@@ -1,0 +1,18 @@
+[
+    {
+        "role": "system",
+        "content": "\n# Instructions:\nYou are an autocomplete system for Python. Generate or complete Python code based on the user's description or the provided code snippet.\n\nThe user may\n1. Describe code, either directly or in a Python comment. In this case, you should implement the described code.\n2. Write incomplete code. In this case, you should complete the code from the last cursor position.\n\n\n## Example 1:\n\n[INPUT]\n# Function that adds two numbers\ndef\n[/INPUT]\n\n[ANSWER]\n```python\n add_numbers(a, b):\n    return a + b\n```\n[/ANSWER]\n\n\n## Example 2:\n\n[INPUT]\n```python\ndef factorial(n):\n    # Computes the fact\n```\n[/INPUT]\n\n[ANSWER]\n```python\n    # Computes the factorial of a number\n    if n == 0:\n        return 1\n    else:\n        return n * factorial(n-1)\n```\n[/ANSWER]\n\n\n## Example 3:\n\n[INPUT]\nI need a function that checks if a number is prime\n[/INPUT]\n\n[ANSWER]\n```python\ndef is_prime(number):\n    if number > 1:\n        for i in range(2, int(number**0.5)+1):\n            if (number % i) == 0:\n                return False\n        return True\n    else:\n        return False\n```\n[/ANSWER]\n\n\n# Rules:\n- Your entire response must be valid Python code.\n- Any comments or notes must be made in Python code block, i.e., ```python ... ```.\n- You must not add any additional comments or notes outside of the ```python ... ``` blocks. Your entire response must only consist of one Python code block.\n- You must end your response after ending the Python code block with \"```\".\n"
+    },
+    {
+        "role": "user",
+        "content": "# Entry point for the PubMed Topic Clustering and Trend Visualization application.\n\nimport logging\nimport os\nfrom logging.handlers import TimedRotatingFileHandler\n\n# Import the functions from the submodules\nfrom .cli.cli import run_cli\n\nLOG_FILE = 'logs/main.log'\nos.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)\n\nlogging.basicConfig(\n    level=logging.DEBUG,\n    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',\n    datefmt='"
+    },
+    {
+        "role": "assistant",
+        "content": "```python\n# Entry point for the PubMed Topic Clustering and Trend Visualization application.\n\nimport logging\nimport os\nfrom logging.handlers import TimedRotatingFileHandler\n\n# Import the functions from the submodules\nfrom .cli.cli import run_cli\n\nLOG_FILE = 'logs/main.log'\nos.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)\n\nlogging.basicConfig(\n    level=logging.DEBUG,\n    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',\n    datefmt='%Y-%m-%d %H:%M:%S'\n    )\nfile_handler = TimedRotatingFileHandler(LOG_FILE, when='midnight', backupCount=7)\nfile_handler.setLevel(logging.DEBUG)\nfile_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')\nfile_handler.setFormatter(file_formatter)\nlogging.root.addHandler(file_handler)\n\nrun_cli()\n```\n```"
+    },
+    {
+        "role": "comment",
+        "content": "\n+ Valid python code\n+ Good completion\n- Ends with extra ```\n- A little complicated compared to GT\n\n\nGround Truth:\n```python\n%Y-%m-%d %H:%M:%S',\n    handlers=[TimedRotatingFileHandler(LOG_FILE, when='midnight', backupCount=7)])\nlogger = logging.getLogger('pmtrendviz.__main__')\n\n\ndef main() -> None:\n```\n"
+    }
+]

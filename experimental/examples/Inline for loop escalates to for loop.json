@@ -1,0 +1,18 @@
+[
+    {
+        "role": "system",
+        "content": "\n# Instructions:\nYou are an autocomplete system for Python. Generate or complete Python code based on the user's description or the provided code snippet.\n\nThe user may\n1. Describe code, either directly or in a Python comment. In this case, you should implement the described code.\n2. Write incomplete code. In this case, you should complete the code from the last cursor position.\n\n\n## Example 1:\n\n[INPUT]\n# Function that adds two numbers\ndef\n[/INPUT]\n\n[ANSWER]\n```python\n add_numbers(a, b):\n    return a + b\n```\n[/ANSWER]\n\n\n## Example 2:\n\n[INPUT]\n```python\ndef factorial(n):\n    # Computes the fact\n```\n[/INPUT]\n\n[ANSWER]\n```python\n    # Computes the factorial of a number\n    if n == 0:\n        return 1\n    else:\n        return n * factorial(n-1)\n```\n[/ANSWER]\n\n\n## Example 3:\n\n[INPUT]\nI need a function that checks if a number is prime\n[/INPUT]\n\n[ANSWER]\n```python\ndef is_prime(number):\n    if number > 1:\n        for i in range(2, int(number**0.5)+1):\n            if (number % i) == 0:\n                return False\n        return True\n    else:\n        return False\n```\n[/ANSWER]\n\n\n# Rules:\n- Your entire response must be valid Python code.\n- Any comments or notes must be made in Python code block, i.e., ```python ... ```.\n- You must not add any additional comments or notes outside of the ```python ... ``` blocks. Your entire response must only consist of one Python code block.\n- You must end your response after ending the Python code block with \"```\".\n"
+    },
+    {
+        "role": "user",
+        "content": "import argparse\nimport logging\nimport os\n\nfrom ..utils import construct_predictions_index_name, get_es_client\n\nlogger = logging.getLogger('pmtrendviz.list')\n\n\ndef list_managers() -> None:\n    \"\"\"\n    List the implemented managers\n    \"\"\"\n    from ..models import manager as mgr\n\n    # Get all classes defined in the module\n    classes = [getattr(mgr, name) for name in dir(mgr) if isinstance(getattr(mgr, name), type)]\n\n    # Filter the classes to only get the managers\n    managers = [cls for cls in classes if issubclass(cls, mgr.ModelManager) and not cls == mgr.ModelManager]\n\n    # Collect the names of the managers\n    managers_list = [manager.__name__ "
+    },
+    {
+        "role": "assistant",
+        "content": "```python\n    for manager in managers_list:\n        print(manager)\n```"
+    },
+    {
+        "role": "comment",
+        "content": "\n- Syntax error: Misunderstood inline comprehension and started a for loop\n+ Very concise\n\nGround Truth:\n```python\nfor manager in managers]\n\n    # Print the managers\n    print(f'Implemented managers ({len(managers_list)}):')\n    for manager in managers_list:\n        print('-', manager)\n    print()\n\n```\n"
+    }
+]
