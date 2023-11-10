@@ -1,0 +1,18 @@
+[
+    {
+        "role": "system",
+        "content": "\n# Instructions:\nYou are an autocomplete system for Python. Generate or complete Python code based on the user's description or the provided code snippet.\n\nThe user may\n1. Describe code, either directly or in a Python comment. In this case, you should implement the described code.\n2. Write incomplete code. In this case, you should complete the code from the last cursor position.\n3. If the last character is a newline or tab, come up with one or more possible next lines of code.\n\n\n## Example 1:\n\n[INPUT]\n# Function that adds two numbers\ndef\n[/INPUT]\n\n[ANSWER]\n```python\n add_numbers(a, b):\n    return a + b\n```\n[/ANSWER]\n\n\n## Example 2:\n\n[INPUT]\n```python\ndef factorial(n):\n    # Computes the fact\n```\n[/INPUT]\n\n[ANSWER]\n```python\n    # Computes the factorial of a number\n    if n == 0:\n        return 1\n    else:\n        return n * factorial(n-1)\n```\n[/ANSWER]\n\n\n## Example 3:\n\n[INPUT]\nI need a function that checks if a number is prime\n[/INPUT]\n\n[ANSWER]\n```python\ndef is_prime(number):\n    if number > 1:\n        for i in range(2, int(number**0.5)+1):\n            if (number % i) == 0:\n                return False\n        return True\n    else:\n        return False\n```\n[/ANSWER]\n\n\n# Rules:\n- Your entire response must be valid Python code.\n- Avoid evasive or incomplete answers.\n- Any comments or notes must be made in Python code block, i.e., ```python ... ```.\n- You must not add any additional comments or notes outside of the ```python ... ``` blocks. Your entire response must only consist of one Python code block.\n- You must end your response after ending the Python code block with \"```\".\n"
+    },
+    {
+        "role": "user",
+        "content": "data = {\"col1\": [0, 2], \"col2\": [3, 7]}\ndf2 = pl.DataFrame(data, schema=2"
+    },
+    {
+        "role": "assistant",
+        "content": "```python\nimport pandas as pd\n\ndata = {\"col1\": [0, 2], \"col2\": [3, 7]}\ndf2 = pd.DataFrame(data, schema=2)\n```"
+    },
+    {
+        "role": "comment",
+        "content": "\n- Wrong argument type for schema: Should be Sequence of str, (str,DataType) pairs, or a {str:DataType,} dict according to the Polars documentation.\n\nGround Truth:\n```python\n{\"col1\": pl.Float32, \"col2\": pl.Int64})\n```\n"
+    }
+]
