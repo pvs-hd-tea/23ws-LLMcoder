@@ -1,0 +1,18 @@
+[
+    {
+        "role": "system",
+        "content": "\n# Instructions:\nYou are an autocomplete system for Python. Generate or complete Python code based on the user's description or the provided code snippet.\n\nThe user may\n1. Describe code, either directly or in a Python comment. In this case, you should implement the described code.\n2. Write incomplete code. In this case, you should complete the code from the last cursor position.\n3. If the last character is a newline or tab, come up with one or more possible next lines of code.\n\n\n## Example 1:\n\n[INPUT]\n# Function that adds two numbers\ndef\n[/INPUT]\n\n[ANSWER]\n```python\n add_numbers(a, b):\n    return a + b\n```\n[/ANSWER]\n\n\n## Example 2:\n\n[INPUT]\n```python\ndef factorial(n):\n    # Computes the fact\n```\n[/INPUT]\n\n[ANSWER]\n```python\n    # Computes the factorial of a number\n    if n == 0:\n        return 1\n    else:\n        return n * factorial(n-1)\n```\n[/ANSWER]\n\n\n## Example 3:\n\n[INPUT]\nI need a function that checks if a number is prime\n[/INPUT]\n\n[ANSWER]\n```python\ndef is_prime(number):\n    if number > 1:\n        for i in range(2, int(number**0.5)+1):\n            if (number % i) == 0:\n                return False\n        return True\n    else:\n        return False\n```\n[/ANSWER]\n\n\n# Rules:\n- Only provide a single function completion or completion a single operation.\n- Donot provide completion of the whole file.\n- Your entire response must be valid Python code.\n- This is a \"python code block\": ```python ... ``` \n    - Inside it the three dots can be replaced with the code that you suggest\n- Avoid evasive or incomplete answers.\n- Any comments or notes must be made in Python code block, i.e., ```python ... ```.\n- You must not add any additional comments or notes outside of the ```python ... ``` blocks. Your entire response must only consist of one Python code block.\n"
+    },
+    {
+        "role": "user",
+        "content": "# Please try to Create API_KEYS file in the same Directory\nfrom API.API_KEYS import YOUTUBE_API_KEY\nfrom googleapiclient.discovery import build\n\n\nclass Youtube:\n    def __init__(self):\n        self.youtube = build('youtube', 'v3', developerKey=YOUTUBE_API_KEY)\n\n    def get_all_comments_from_video(self, video_ID, include_comments=False):\n        comments = []\n\n        # Fetch and Read the first batch of comments #\n        response = self.get_comments_from_video(video_ID)\n        video_comments = self.read_comments_from_response(response)\n\n        # Save first batch of comments #\n        comments = video_comments\n\n        # Get the response if more comments exists till next page token occur #\n        next_page_token = response.get('nextPageToken')\n        while next_page_token:\n            response = self.get_comments_from_video(video_ID, page_token=next_page_token)\n            video_comments = self.read_comments_from_response(response)\n            comments.extend(video_comments)\n            next_page_token = response.get('nextPageToken')\n"
+    },
+    {
+        "role": "assistant",
+        "content": "```python\nimport os\n\n# Check if API_KEYS file already exists\nif not os.path.exists(\"API_KEYS.py\"):\n    # Create API_KEYS file\n    with open(\"API_KEYS.py\", \"w\") as file:\n        file.write(\"# Put your API key here\\n\")\n        file.write(\"YOUTUBE_API_KEY = 'your_api_key_here'\")\n```"
+    },
+    {
+        "role": "comment",
+        "content": "\n+ Completed only one function\n= Didn't gave any return statement for the function\n- No syntax or definition error but runtime error\n    - Or error at different place in the codebase\n- Comments are written outside of the codeblock\n"
+    }
+]
