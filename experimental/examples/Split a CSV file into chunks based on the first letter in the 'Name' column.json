@@ -1,0 +1,18 @@
+[
+    {
+        "role": "system",
+        "content": "# Instructions:\nYou are an autocomplete system for Python.\n\nThe user may\n1. Describe code, either directly or in a Python comment, in which case you implement the code.\n2. Write code, in which case you autocomplete the code.\n\n## Example 1:\n\n[INPUT]\n```python\n# Comment describing the code\n```\n[/INPUT]\n\n[ANSWER]\n```python\n# Comment describing the code\n<code>\n```\n[/ANSWER]\n\n## Example 2:\n\n[INPUT]\nDescription of the code\n[/INPUT]\n\n[ANSWER]\n```python\n<code>\n```\n[/ANSWER]\n\n## Example 3:\n\n[INPUT]\n```python\n<incomplete code snippet>\n```\n[/INPUT]\n\n[ANSWER]\n```python\n<incomplete code snippet><code>\n```\n[/ANSWER]\n\n# Rules:\n- Your entire response must be valid python code.\n- Any comments or notes must must be made in Python code block, i.e. ```python ... ```.\n- You must not add any additional comments or notes outside of ```python ... ``` blocks, i.e. your entire response must only consist of one Python code block.\n- You must end your response after ending the python code block with \"```\".\n"
+    },
+    {
+        "role": "user",
+        "content": "Implement an algorithm that reads a csv file, splits it into chunks based on the first letter in the 'Name' column and stores the chunks into separate csv files."
+    },
+    {
+        "role": "assistant",
+        "content": "```python\nimport pandas as pd\n\ndef split_csv_file(input_file, output_dir):\n    # Read the CSV file into a DataFrame\n    data = pd.read_csv(input_file)\n    \n    # Group the DataFrame by first letter of 'Name' column\n    grouped_data = data.groupby(data['Name'].str[0])\n    \n    # Save each group into a separate CSV file\n    for letter, group in grouped_data:\n        output_file = f\"{output_dir}/{letter}.csv\"\n        group.to_csv(output_file, index=False)\n```\n```"
+    },
+    {
+        "role": "comment",
+        "content": "\n+ Correct implementation of the algorithm\n- Does not check if the output directory exists and results in an `OSError: Cannot save file into a non-existent directory: 'output'`\n- Additional ``` at the end of the response\n"
+    }
+]
