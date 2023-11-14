@@ -1,2 +1,8 @@
 # OpenAI API key
 key.txt
+
+# GitHub Access Token
+gh_access.txt
+
+# Scraped data
+scraped_repos
