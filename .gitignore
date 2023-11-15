@@ -1,8 +1,11 @@
 # OpenAI API key
 key.txt
 
+<<<<<<< HEAD
 
 
+=======
+>>>>>>> 0df9c53 (Set up package structure (#13))
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -170,5 +173,5 @@ cython_debug/
 # don't commit logs
 logs/*
 
-# venv environment
-elqmVenv/*
+# vscode
+.vscode

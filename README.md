@@ -10,7 +10,7 @@
 # Getting Started
 ## Clone The Repository
 
-```bash
+```sh
 git clone https://github.com/pvs-hd-tea/23ws-LLMcoder
 cd 23ws-LLMcoder
 ```
@@ -19,9 +19,33 @@ cd 23ws-LLMcoder
 
 ### With conda
 
-```bash
-conda create -n llmcoder python=3.11 ipykernel
+```sh
+conda create -n llmcoder python=3.11 [ipykernel]
 conda activate llmcoder
+```
+
+## Install
+
+### Install the package
+
+```sh
+pip install -e .
+```
+
+## Usage
+
+```sh
+llmcoder [command] [options]
+```
+
+# Development
+
+## Setup
+To set up the development environment, run the following commands:
+
+```sh
+pip install -e .[dev]
+pre-commit install
 ```
 
 
