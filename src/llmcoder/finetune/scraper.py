@@ -190,20 +190,17 @@ class GitHubScraper:
             ]
 
             # Combine the lists into a list of tuples of (repo_url, repo_name)
-            repos_urls = popular_package_repos_urls + personal_repos_urls + liked_repos_urls
+            repos_urls = popular_repos + popular_package_repos_urls + personal_repos_urls + liked_repos_urls
             repos_names = [url.split("/")[-1] for url in repos_urls]
             repos = list(zip(repos_urls, repos_names))
 
-            # Add the popular repositories to the list
-            repos.extend([(repo_url, repo_name) for repo_url in popular_repos for repo_name in repos_names])
-
-            # Lastly, add the backup repositories (they will be skipped in case the goal of 25 is reached)
-            repos.extend([(repo_url, repo_name) for repo_url in backup_repos for repo_name in repos_names])
+            # Add the backup repositories
+            repos.extend([(url, url.split("/")[-1]) for url in backup_repos])
 
         else:
             repos = []
             for repository_set in repository_sets:
-                repos.extend([(repo_url, repo_name) for repo_url in repository_set for repo_name in repos_names])
+                repos.extend([(url, url.split("/")[-1]) for url in repository_set])
 
         # Make sure there are no duplicates to avoid sampling issue later
         if not len(set(repos)) == len(repos):
