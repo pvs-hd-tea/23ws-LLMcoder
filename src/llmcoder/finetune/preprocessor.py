@@ -241,7 +241,7 @@ Your application is a VSCode extension like GitHub Copilot, which provides seaml
 
         return truncated_split_files_contents
 
-    def save_data(self, truncated_split_files_contents: list[tuple[str, str]]) -> None:
+    def save_pairs(self, truncated_split_files_contents: list[tuple[str, str]]) -> None:
         """
         Save the data for manual truncation of the output.
 
@@ -334,3 +334,6 @@ Your application is a VSCode extension like GitHub Copilot, which provides seaml
         with open(output_file, 'w', encoding='utf-8') as file:
             for conversation in tqdm(conversations):
                 file.write(json.dumps({"messages": conversation}) + '\n')
+
+        # Inform the user that the data is fully processed and ready to be used in the OpenAI API
+        print(f"Data saved in {output_file} and ready to be used in the OpenAI API.")
