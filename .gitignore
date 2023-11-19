@@ -171,3 +171,7 @@ logs/*
 
 # vscode
 .vscode
+
+
+# ipynb checkpoint
+.ipynb_checkpoints
