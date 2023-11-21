@@ -1,7 +1,7 @@
 # AI ToolsFirst prototype for completion fetching documentation
 import argparse
 import sys
-from .llmCoder import llmCoder
+from .LlmCoder import LLMCoder
 
 
 
@@ -25,7 +25,7 @@ def main() -> None:
         # from llmcoder.fine_tune import fine_tune_autocomplete
         # fine_tune_autocomplete()  # FIXME: Implement fine-tune-autocomplete
         # Creating an instance of LLMCoder
-        llm_coder_instance = llmCoder(model_name = "gpt-3.5-turbo", feedback_variant = "separate", analyzers_list = {})
+        llm_coder_instance = LLMCoder(model_name = "gpt-3.5-turbo", feedback_variant = "separate", analyzers_list = {})
         user_input = "hello"
         result = llm_coder_instance.complete_first(user_input)
         print(result)

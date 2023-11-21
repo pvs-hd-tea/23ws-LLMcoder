@@ -8,16 +8,17 @@ from .docanalyzer import APIDocumentationAnalyzer
 from .unittestanalyzer import UnitTestAnalyzer
 
 
-class llmCoder:
+class LLMCoder:
     # @ model_name string (e.g. "gpt-3.5-turbo")
     # @ feedback_invariant
         # "separate" -> execution of each analyzer separately
-        # "pipeline"
+        # "coworker" -> analyzers interact with each other
     def __init__(self, model_name: str, feedback_variant: str, analyzers_list: list):
         self.model_name = model_name
         self.feedback_variant = feedback_variant
         self.analyzers_list = analyzers_list
 
+    #TODO: use utils
     def get_openai_api_key(self):
         openai.api_key = os.environ("OPENAI_API_KEY")
         return openai.api_key
