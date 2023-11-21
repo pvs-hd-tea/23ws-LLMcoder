@@ -6,7 +6,8 @@
 # Requirements
 ## Hardware
 ## Software
-- Python 3.11
+- Python >= 3.10
+- `pip` >= [21.3](https://pip.pypa.io/en/stable/news/#v21-3)
 # Getting Started
 ## Clone The Repository
 
