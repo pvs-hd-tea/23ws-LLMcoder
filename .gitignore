@@ -1,6 +1,17 @@
 # OpenAI API key
 key.txt
 
+# GitHub Access Token
+gh_access.txt
+
+# Scraped data
+scraped_repos
+
+# Preprocessed data
+pairs
+
+# Datasets
+datasets
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -171,3 +182,7 @@ logs/*
 
 # vscode
 .vscode
+
+
+# ipynb checkpoint
+.ipynb_checkpoints

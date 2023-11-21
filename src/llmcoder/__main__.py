@@ -1,7 +1,7 @@
 # AI ToolsFirst prototype for completion fetching documentation
 import argparse
 import sys
-from .LlmCoder import LLMCoder
+from .LLMCoder import LLMCoder
 
 
 
@@ -20,16 +20,33 @@ def main() -> None:
     args = parser.parse_args()
 
     # Execute the command
-    # match args.command:
-    if(args.command =='fine-tune-autocomplete'):
-        # from llmcoder.fine_tune import fine_tune_autocomplete
-        # fine_tune_autocomplete()  # FIXME: Implement fine-tune-autocomplete
-        # Creating an instance of LLMCoder
-        llm_coder_instance = LLMCoder(model_name = "gpt-3.5-turbo", feedback_variant = "separate", analyzers_list = {})
-        user_input = "hello"
-        result = llm_coder_instance.complete_first(user_input)
-        print(result)
+    match args.command:
+        case 'fine-tune-preprocess':
+            from llmcoder.finetune import FineTunePreprocessor, GitHubScraper
 
-    else:
-        print('Unknown command: ', args.command)
-        sys.exit(1)
+            gh_scraper = GitHubScraper()
+            repos = gh_scraper.accumulate_repositories()  # Use the default repos
+            gh_scraper.scrape_repositories(repos=repos)  # Scrape the repos to the default directory
+
+            preprocessor = FineTunePreprocessor()
+            file_splits = preprocessor.preprocess()
+            preprocessor.save_pairs(file_splits)
+
+        case 'fine-tune-export':
+            from llmcoder.finetune import FineTunePreprocessor
+
+            preprocessor = FineTunePreprocessor()
+            conversations = preprocessor.build_conversations()
+            preprocessor.validate_conversations(conversations)
+            preprocessor.save_conversations(conversations)
+        case 'complete':
+            # Creating an instance of LLMCoder
+            llm_coder_instance = LLMCoder(model_name = "gpt-3.5-turbo", feedback_variant = "separate", analyzers_list = {})
+            user_input = "hello"
+            result = llm_coder_instance.complete_first(user_input)
+            print(result)
+
+        
+        case _:
+            print('Unknown command: ', args.command)
+            sys.exit(1)
