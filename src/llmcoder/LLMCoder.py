@@ -6,6 +6,8 @@ import os
 from .synanalyzer import SyntaxAnalyzer
 from .docanalyzer import APIDocumentationAnalyzer
 from .unittestanalyzer import UnitTestAnalyzer
+from utils import get_openai_key
+from openai import OpenAI
 
 
 class LLMCoder:
@@ -17,11 +19,9 @@ class LLMCoder:
         self.model_name = model_name
         self.feedback_variant = feedback_variant
         self.analyzers_list = analyzers_list
+        self.client = OpenAI(api_key = get_openai_key())
+        
 
-    #TODO: use utils
-    def get_openai_api_key(self):
-        openai.api_key = os.environ("OPENAI_API_KEY")
-        return openai.api_key
     
     # Function for exception handling
     def check_reason(reason: str):

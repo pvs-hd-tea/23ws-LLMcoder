@@ -18,6 +18,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Directories env
+myenv/
+
 # C extensions
 *.so
 
