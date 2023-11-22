@@ -56,6 +56,7 @@ pre-commit install
 
 
 # Citation
+```bibtex
 @software{llmcoder-hd-23,
     author = {Ana Carsi and Kushal Gaywala and Paul Saegert},
     title = {LLMcoder: Feedback-Based Code Assistant},
@@ -65,3 +66,4 @@ pre-commit install
     version = {0.0.1},
     url = {https://github.com/pvs-hd-tea/23ws-LLMcoder}
 }
+```
