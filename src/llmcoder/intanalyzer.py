@@ -15,11 +15,8 @@ from abc import ABCMeta, abstractmethod
 
 # Interface to follow the Duck Typing principle supported by Python
 # TODO: be defined a wrapper for the BaseDecorator
-class FormalAnalyzerInterface(metaclass = abc.ABCMeta):
-    """
-    The hasattr() function checks if an attribute (including a method) exists, 
-    and the callable() function checks if the attribute is callable (i.e., a method).
-    """
+class FormalAnalyzerInterface(metaclass = ABCMeta):
+    
     # Required method for the analyzer to be implemented in concrete component
     @abstractmethod
     def analyze(self, code_suggestion: str) -> str:

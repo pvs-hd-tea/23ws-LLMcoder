@@ -7,8 +7,9 @@ import os
 class APIDocumentationAnalyzer():
 
     def analyze(self, code_suggestion: str) -> str:
-             # ...
-            return f"Documentation check applied to: "
+        # ...
+        return f"Documentation check applied to: "
     
     def download_packages(dependencies: str):
-          return f"Packages downlowaded succesfully"
+          
+        return f"Packages downlowaded succesfully"
