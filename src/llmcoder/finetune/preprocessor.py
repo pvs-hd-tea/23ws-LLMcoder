@@ -69,6 +69,18 @@ def split_file(file_contents: str, min_pos: int = 1, max_pos: int = None) -> tup
     if max_pos is None:
         max_pos = len(file_contents) - 1
 
+    if min_pos > len(file_contents) - 1:
+        raise ValueError("min_pos cannot be greater than the length of the file contents")
+
+    if min_pos < 0:
+        raise ValueError("min_pos cannot be negative")
+
+    if max_pos > len(file_contents) - 1:
+        raise ValueError("max_pos cannot be greater than the length of the file contents")
+
+    if min_pos > max_pos:
+        raise ValueError("min_pos cannot be greater than max_pos")
+
     split_pos = random.randint(min_pos, max_pos)
 
     return file_contents[:split_pos], file_contents[split_pos:]
@@ -314,7 +326,7 @@ Your application is a VSCode extension like GitHub Copilot, which provides seaml
         tokenized_conversations = []
         for i, conversation in tqdm(enumerate(conversations)):
             try:
-                tokenized_conversation = [{"role": role, "tokenized_content": self.enc.encode(content)} for message in conversation for role, content in message.items()]
+                tokenized_conversation = [{"role": message["role"], "tokenized_content": self.enc.encode(message["content"])} for message in conversation]
                 tokenized_conversations.append(tokenized_conversation)
             except Exception as e:
                 print(f"Failed to tokenize conversation. Skipping conversation {i}.")

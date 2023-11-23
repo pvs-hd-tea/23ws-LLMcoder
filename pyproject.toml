@@ -7,11 +7,21 @@ authors = [
     {name = "Paul Saegert"}
     ]
 readme = "README.md"
-requires-python = ">=3.11"
-dynamic = ["dependencies"]
+requires-python = ">=3.10"
 version = "0.0.1"
 urls = { Github = "https://github.com/pvs-hd-tea/23ws-LLMcoder"}
+dynamic = ["dependencies"]
 
+[project.optional-dependencies]
+dev = [
+   "requests",
+   "types-requests",
+   "pre-commit",
+   "pytest",
+   "pytest-cov",
+   "mypy",
+   "flake8"
+]
 
 [project.scripts]
 llmcoder = "llmcoder.__main__:main"
