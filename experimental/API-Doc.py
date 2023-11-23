@@ -60,30 +60,3 @@ class APIDoc :
 
     def get_import_documentation(package: dict[str, str]) -> dict[str, str]:
         return
-
-class Analyzer(Observer):
-    def analyze(self, code):
-        raise NotImplementedError
-
-class ExecutabilityTester(Analyzer):
-    def analyze(self, code):
-        # Perform analysis
-        error = self.check_executability(code)
-        if error:
-            self.notify_observers(error)  # Notify other analyzers about the error
-
-class APIDocumentationAnalyzer(Analyzer):
-    def update(self, message):
-        # Act upon receiving a notification
-        if message.type == 'ExecutabilityError':
-            documentation = self.fetch_documentation(message.details)
-            # Process the documentation further for more targeted search
-
-# Setting up the observers
-exec_tester = ExecutabilityTester()
-api_doc_analyzer = APIDocumentationAnalyzer()
-
-exec_tester.add_observer(api_doc_analyzer)  # api_doc_analyzer now listens to exec_tester
-class Combinator(Analyzer):
-    def analyzer(self, FromAnalyzer, ToAnalyzer):
-        
