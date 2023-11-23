@@ -1,5 +1,9 @@
+# AI ToolsFirst prototype for completion fetching documentation
 import argparse
 import sys
+from .LLMCoder import LLMCoder
+from .synanalyzer import SyntaxAnalyzer
+from .docanalyzer import APIDocumentationAnalyzer
 
 
 def main() -> None:
@@ -7,13 +11,12 @@ def main() -> None:
     Parse the command line arguments for commands and options
 
     Commands:
-    `llmcoder fine-tune-prepare` - Scrape & preprocess data for fine-tuning the autocomplete model
-    `llmcoder fine-tune-export` - Export the preprocessed data for fine-tuning the autocomplete model
+    `llmcoder fine-tune-autocomplete` - Scrape & preprocess data for fine-tuning the autocomplete model
     """
 
     # Parse the command line arguments for commands and options
-    parser = argparse.ArgumentParser(description='LLMcoder - Feedback-Based Coding Assistant', add_help=True)
-    parser.add_argument('command', help='Command to execute. Available commands: fine-tune-preprocess, fine-tune-export')
+    parser = argparse.ArgumentParser(description = 'LLMcoder - Feedback-Based Coding Assistant')
+    parser.add_argument('command', help = 'Command to execute')
 
     args = parser.parse_args()
 
@@ -37,7 +40,23 @@ def main() -> None:
             conversations = preprocessor.build_conversations()
             preprocessor.validate_conversations(conversations)
             preprocessor.save_conversations(conversations)
+        case 'complete':
+            # Run with the context of with to automatically close the file later
+            with open("../../sys_prompt.txt") as f:
+                    # Remove extra characters
+                    system_prompt = f.read().strip("\n")
 
+            synanalyzer_instance = SyntaxAnalyzer()
+            apidocanalyzer_instance = APIDocumentationAnalyzer()
+
+
+            # Creating an instance of LLMCoder
+            llm_coder_instance = LLMCoder(model_first = "ft:gpt-3.5-turbo-1106:personal::8LCi9Q0d", model_feedback = "gpt-3.5-turbo", system_prompt = system_prompt, feedback_variant = "separate", analyzers_list = [synanalyzer_instance, apidocanalyzer_instance])
+            user_input = "hello"
+            result = llm_coder_instance.complete_first(user_input)
+            print(result)
+
+        
         case _:
             print('Unknown command: ', args.command)
             sys.exit(1)

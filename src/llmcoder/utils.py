@@ -13,7 +13,7 @@ def get_data_dir(*args: str) -> str:
     Returns
     -------
     str
-        The path to the data directory.
+        The path to the data directory.s
     """
     os.makedirs(os.path.join(os.path.dirname(__file__), '..', '..', 'data', *args), exist_ok=True)
 
