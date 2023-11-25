@@ -6,17 +6,22 @@ import sys
 def main() -> None:
     """
     Parse the command line arguments for commands and options
-
-    Commands:
-    `llmcoder fine-tune-preprocess`: Preprocess the data for fine-tuning
-    `llmcoder fine-tune-export`: Export the fine-tuned model
-    `llmcoder complete`: Complete a piece of code
     """
 
-    # Parse the command line arguments for commands and options
+    # Create the top-level parser
     parser = argparse.ArgumentParser(description='LLMcoder - Feedback-Based Coding Assistant')
-    parser.add_argument('command', help='Command to execute')
+    subparsers = parser.add_subparsers(dest='command')
 
+    # Create subparser for each command
+    # fine_tune_preprocess_parser = subparsers.add_parser('fine-tune-preprocess')
+    # fine_tune_export_parser = subparsers.add_parser('fine-tune-export')
+    complete_parser = subparsers.add_parser('complete')
+
+    # Add specific arguments to the complete command
+    complete_parser.add_argument('-f', '--file', type=str, help='File to complete')
+    complete_parser.add_argument('user_input', nargs='?', default='', help='User input to complete')
+
+    # Parse the command line arguments
     args = parser.parse_args()
 
     # Execute the command
@@ -40,15 +45,23 @@ def main() -> None:
             preprocessor.validate_conversations(conversations)
             preprocessor.save_conversations(conversations)
         case 'complete':
-            # TODO: Add option to specify the analyzers to use
             from llmcoder.LLMCoder import LLMCoder
 
-            # Creating an instance of LLMCoder
             llmcoder = LLMCoder()
-            user_input = "def say_something_nice():\n"
+
+            if args.file:
+                with open(args.file, 'r') as file:
+                    user_input = file.read()
+            else:
+                user_input = args.user_input
 
             completion = llmcoder.complete(user_input)
-            print(completion)
+
+            if args.file:
+                with open(args.file, 'a') as file:
+                    file.write(completion)
+            else:
+                print(completion)
         case _:
             print('Unknown command: ', args.command)
             sys.exit(1)

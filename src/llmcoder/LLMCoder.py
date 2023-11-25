@@ -6,7 +6,7 @@ from llmcoder.utils import get_openai_key, get_system_prompt
 
 class LLMCoder:
     def __init__(self,
-                 analyzers: list[str] = ["api_documentation_analyzer_v1"],
+                 analyzers: list[str] = None,
                  model_first: str = "ft:gpt-3.5-turbo-1106:personal::8LCi9Q0d",
                  model_feedback: str = "gpt-3.5-turbo",
                  feedback_variant: str = "separate",
@@ -18,7 +18,7 @@ class LLMCoder:
         Parameters
         ----------
         analyzers : list[str], optional
-            The list of analyzers to use, by default ["api_documentation_analyzer_v1"]
+            The list of analyzers to use, by default []
         model_first : str, optional
             The model to use for the first completion, by default "ft:gpt-3.5-turbo-1106:personal::8LCi9Q0d"
         model_feedback : str, optional
@@ -30,6 +30,11 @@ class LLMCoder:
         max_iter : int, optional
             The maximum number of iterations to run the feedback loop, by default 10
         """
+        if analyzers is None:
+            self.analyzers = []
+        else:
+            self.analyzers = [AnalyzerFactory.create_analyzer(analyzer) for analyzer in analyzers]
+
         self.messages: list = []
 
         if system_prompt is None:
@@ -44,7 +49,6 @@ class LLMCoder:
             raise ValueError("Inavlid feedback method")
 
         self.feedback_variant = feedback_variant
-        self.analyzers_list = [AnalyzerFactory.create_analyzer(analyzer) for analyzer in analyzers]
         self.client = openai.OpenAI(api_key=get_openai_key())
         self.iterations = 0
         self.max_iter = max_iter
@@ -66,7 +70,7 @@ class LLMCoder:
         # Get the first completion with
         self.complete_first(code)
 
-        if len(self.analyzers_list) > 0:
+        if len(self.analyzers) > 0:
             # Run the feedback loop until the code is correct or the max_iter is reached
             for _ in range(self.max_iter):
                 if self.feedback_step():
@@ -141,7 +145,7 @@ class LLMCoder:
         analyzer_results: list[dict] = []
 
         if self.feedback_variant == "separate":
-            for analyzer in self.analyzers_list:
+            for analyzer in self.analyzers:
                 analyzer_results.append(analyzer.analyze(completed_code))
         if self.feedback_variant == "coworker":
             raise NotImplementedError("Coworker feedback variant not implemented yet")
