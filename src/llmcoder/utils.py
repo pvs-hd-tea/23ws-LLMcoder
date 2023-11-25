@@ -115,3 +115,22 @@ def get_system_prompt(name: str = "2023-11-15_GPT-Builder.txt") -> str:
     # Read the file
     with open(path, "r") as f:
         return f.read().strip()
+
+
+def get_conversations_dir(*args: str) -> str:
+    """
+    Get the path to the log directory.
+
+    Parameters
+    ----------
+    args : str
+        The path to the log directory.
+
+    Returns
+    -------
+    str
+        The path to the log directory.
+    """
+    os.makedirs(os.path.join(os.path.dirname(__file__), '..', '..', 'conversations', *args), exist_ok=True)
+
+    return os.path.join(os.path.dirname(__file__), '..', '..', 'conversations', *args)

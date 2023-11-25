@@ -19,6 +19,7 @@ def main() -> None:
 
     # Add specific arguments to the complete command
     complete_parser.add_argument('-f', '--file', type=str, help='File to complete')
+    complete_parser.add_argument('-l', '--log', action='store_true', help='Log the conversation')
     complete_parser.add_argument('user_input', nargs='?', default='', help='User input to complete')
 
     # Parse the command line arguments
@@ -47,7 +48,7 @@ def main() -> None:
         case 'complete':
             from llmcoder.LLMCoder import LLMCoder
 
-            llmcoder = LLMCoder()
+            llmcoder = LLMCoder(log_conversation=args.log)
 
             if args.file:
                 with open(args.file, 'r') as file:

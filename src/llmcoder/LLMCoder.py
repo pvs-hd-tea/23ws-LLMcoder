@@ -1,7 +1,11 @@
+import json
+import os
+from datetime import datetime
+
 import openai
 
 from llmcoder.analyze.factory import AnalyzerFactory
-from llmcoder.utils import get_openai_key, get_system_prompt
+from llmcoder.utils import get_conversations_dir, get_openai_key, get_system_prompt
 
 
 class LLMCoder:
@@ -11,7 +15,8 @@ class LLMCoder:
                  model_feedback: str = "gpt-3.5-turbo",
                  feedback_variant: str = "separate",
                  system_prompt: str | None = None,
-                 max_iter: int = 10):
+                 max_iter: int = 10,
+                 log_conversation: bool = True):
         """
         Initialize the LLMCoder
 
@@ -29,11 +34,29 @@ class LLMCoder:
             The system prompt to use, by default the one used for preprocessing and fine-tuning
         max_iter : int, optional
             The maximum number of iterations to run the feedback loop, by default 10
+        log_conversation : bool, optional
+            Whether to log the conversation, by default False
         """
         if analyzers is None:
             self.analyzers = []
         else:
             self.analyzers = [AnalyzerFactory.create_analyzer(analyzer) for analyzer in analyzers]
+
+        self.model_first = model_first
+        self.model_feedback = model_feedback
+
+        self.client = openai.OpenAI(api_key=get_openai_key())
+        if feedback_variant not in ["separate", "coworker"]:
+            raise ValueError("Inavlid feedback method")
+
+        self.iterations = -1
+        self.max_iter = max_iter
+        self.feedback_variant = feedback_variant
+
+        if log_conversation:
+            self.conversation_file = os.path.join(get_conversations_dir(), f"{datetime.now()}.jsonl")
+        else:
+            self.conversation_file = None  # type: ignore
 
         self.messages: list = []
 
@@ -41,17 +64,6 @@ class LLMCoder:
             system_prompt = get_system_prompt()
 
         self._add_message("system", message=system_prompt)
-
-        self.model_first = model_first
-        self.model_feedback = model_feedback
-
-        if feedback_variant not in ["separate", "coworker"]:
-            raise ValueError("Inavlid feedback method")
-
-        self.feedback_variant = feedback_variant
-        self.client = openai.OpenAI(api_key=get_openai_key())
-        self.iterations = 0
-        self.max_iter = max_iter
 
     def complete(self, code: str) -> str:
         """
@@ -103,6 +115,17 @@ class LLMCoder:
             "role": role,
             "content": message,
         })
+
+        if self.conversation_file is not None:
+            # If the conversation file already exists, only append the last message as a single line
+            if os.path.isfile(self.conversation_file):
+                with open(self.conversation_file, "a") as f:
+                    f.write(json.dumps(self.messages[-1]) + "\n")
+            # Otherwise, write the whole conversation
+            else:
+                with open(self.conversation_file, "w") as f:
+                    for message in self.messages:
+                        f.write(json.dumps(message) + "\n")
 
     def complete_first(self, code: str) -> dict:
         """
@@ -159,5 +182,7 @@ class LLMCoder:
 
         self._add_message("user", message=error_prompt)
         self._add_message("assistant")
+
+        self.iterations += 1
 
         return all([results['pass'] for results in analyzer_results])
