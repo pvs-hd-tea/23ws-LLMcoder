@@ -105,6 +105,11 @@ class LLMCoder:
         if self.feedback_variant == "coworker":
             raise NotImplementedError("Coworker feedback variant not implemented yet")
 
+        # Check if all the analyzers passed
+        if all([results['pass'] for results in analyzer_results]):
+            # If all the analyzers passed, return True
+            return True
+
         error_prompt = '\n'.join([results['message'] for results in analyzer_results if not results['pass']])
 
         self.messages = self.add_message(self.messages, "user", error_prompt)
