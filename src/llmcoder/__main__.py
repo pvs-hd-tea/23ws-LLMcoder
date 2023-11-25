@@ -8,7 +8,9 @@ def main() -> None:
     Parse the command line arguments for commands and options
 
     Commands:
-    `llmcoder fine-tune-autocomplete` - Scrape & preprocess data for fine-tuning the autocomplete model
+    `llmcoder fine-tune-preprocess`: Preprocess the data for fine-tuning
+    `llmcoder fine-tune-export`: Export the fine-tuned model
+    `llmcoder complete`: Complete a piece of code
     """
 
     # Parse the command line arguments for commands and options

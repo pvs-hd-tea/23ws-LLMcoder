@@ -1,17 +1,35 @@
 import openai
 
-from llmcoder.analyzers.factory import AnalyzerFactory
+from llmcoder.analyze.factory import AnalyzerFactory
 from llmcoder.utils import get_openai_key, get_system_prompt
 
 
 class LLMCoder:
     def __init__(self,
-                 analyzers: list[str] = ["SyntaxAnalyzer_v1", "APIDocumentationAnalyzer_v1"],
+                 analyzers: list[str] = ["api_documentation_analyzer_v1"],
                  model_first: str = "ft:gpt-3.5-turbo-1106:personal::8LCi9Q0d",
                  model_feedback: str = "gpt-3.5-turbo",
                  feedback_variant: str = "separate",
                  system_prompt: str | None = None,
                  max_iter: int = 10):
+        """
+        Initialize the LLMCoder
+
+        Parameters
+        ----------
+        analyzers : list[str], optional
+            The list of analyzers to use, by default ["api_documentation_analyzer_v1"]
+        model_first : str, optional
+            The model to use for the first completion, by default "ft:gpt-3.5-turbo-1106:personal::8LCi9Q0d"
+        model_feedback : str, optional
+            The model to use for the feedback loop, by default "gpt-3.5-turbo"
+        feedback_variant : str, optional
+            The feedback variant to use, by default "separate"
+        system_prompt : str, optional
+            The system prompt to use, by default the one used for preprocessing and fine-tuning
+        max_iter : int, optional
+            The maximum number of iterations to run the feedback loop, by default 10
+        """
         self.messages: list = []
 
         if system_prompt is None:
@@ -48,11 +66,12 @@ class LLMCoder:
         # Get the first completion with
         self.complete_first(code)
 
-        # Run the feedback loop until the code is correct or the max_iter is reached
-        for i in range(self.max_iter):
-            if self.feedback_step():
-                # If the feedback is correct, break the loop and return the code
-                break
+        if len(self.analyzers_list) > 0:
+            # Run the feedback loop until the code is correct or the max_iter is reached
+            for _ in range(self.max_iter):
+                if self.feedback_step():
+                    # If the feedback is correct, break the loop and return the code
+                    break
 
         # Return the last message
         return self.messages[-1]["content"]
