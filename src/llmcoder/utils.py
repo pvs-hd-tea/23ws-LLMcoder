@@ -50,7 +50,7 @@ def get_openai_key(key: str = "") -> str:
         return os.environ["OPENAI_KEY"]
 
     # Fall back to the default key.txt file
-    if os.path.isfile("key.txt"):
+    if os.path.isfile(os.path.join(os.path.dirname(__file__), '..', '..', 'key.txt')):
         with open(os.path.join(os.path.dirname(__file__), '..', '..', 'key.txt'), "r") as f:
             return f.read().strip()
 
@@ -87,7 +87,7 @@ def get_github_access_token(token: str = "") -> str:
         return os.environ["GITHUB_ACCESS_TOKEN"]
 
     # Fall back to the default token.txt file
-    if os.path.isfile("gh_access.txt"):
+    if os.path.isfile(os.path.join(os.path.dirname(__file__), '..', '..', 'gh_access.txt')):
         with open(os.path.join(os.path.dirname(__file__), '..', '..', 'gh_access.txt'), "r") as f:
             return f.read().strip()
 

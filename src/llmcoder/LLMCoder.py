@@ -35,7 +35,7 @@ class LLMCoder:
         if system_prompt is None:
             system_prompt = get_system_prompt()
 
-        self.messages = self._add_message(self.messages, "system", system_prompt)
+        self._add_message("system", message=system_prompt)
 
         self.model_first = model_first
         self.model_feedback = model_feedback
@@ -76,19 +76,29 @@ class LLMCoder:
         # Return the last message
         return self.messages[-1]["content"]
 
-    def _add_message(self, messages: list[dict], role: str, message: str | None = None, model: str = 'gpt-3.5-turbo') -> list[dict]:
+    def _add_message(self, role: str, model: str = 'gpt-3.5-turbo', message: str | None = None) -> None:
+        """
+        Add a message to the messages list
+
+        Parameters
+        ----------
+        role : str
+            The role of the message
+        model : str, optional
+            The model to use for the completion, by default 'gpt-3.5-turbo'
+        message : str, optional
+            The message to add, by default None
+        """
         # If the user is the assistant, generate a response
         if role == "assistant" and message is None:
-            chat_completion = self.client.chat.completions.create(messages=messages, model=model)  # type: ignore
+            chat_completion = self.client.chat.completions.create(messages=self.messages, model=model)  # type: ignore
 
             message = chat_completion.choices[0].message.content
 
-        messages.append({
+        self.messages.append({
             "role": role,
             "content": message,
         })
-
-        return messages
 
     def complete_first(self, code: str) -> dict:
         """
@@ -107,13 +117,13 @@ class LLMCoder:
         self.iterations = 0
 
         # We specify the user code for completion with model by default
-        self.messages = self._add_message(self.messages, "user", code)
+        self._add_message("user", message=code)
 
         # First completion: do it changing the output format, i.e. using the fine-tuned model
-        self.messages = self._add_message(self.messages, "asssistant", self.model_first)
+        self._add_message("assistant", model=self.model_first)
 
         # Return the last message (the completion)
-        return self.messages[-1]
+        return self.messages[-1]["content"]
 
     def feedback_step(self) -> bool:
         """
@@ -143,7 +153,7 @@ class LLMCoder:
 
         error_prompt = '\n'.join([results['message'] for results in analyzer_results if not results['pass']])
 
-        self.messages = self._add_message(self.messages, "user", error_prompt)
-        self.messages = self._add_message(self.messages, "assistant")
+        self._add_message("user", message=error_prompt)
+        self._add_message("assistant")
 
         return all([results['pass'] for results in analyzer_results])
