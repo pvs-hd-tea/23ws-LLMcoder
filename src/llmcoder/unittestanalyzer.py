@@ -9,4 +9,3 @@ class UnitTestAnalyzer():
     def analyze(self, code_suggestion: str) -> str:
              # ...
             return f"Runtime check applied to: "
-    

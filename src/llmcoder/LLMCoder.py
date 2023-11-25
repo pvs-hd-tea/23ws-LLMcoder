@@ -1,12 +1,24 @@
 import openai
 
-from llmcoder.utils import get_openai_key
+from llmcoder.analyzers.factory import AnalyzerFactory
+from llmcoder.utils import get_openai_key, get_system_prompt
 
 
 class LLMCoder:
-    def __init__(self, model_first: str, model_feedback: str, feedback_variant: str, analyzers_list: list, system_prompt: str, max_iter: int):
+    def __init__(self,
+                 analyzers: list[str] = ["SyntaxAnalyzer_v1", "APIDocumentationAnalyzer_v1"],
+                 model_first: str = "ft:gpt-3.5-turbo-1106:personal::8LCi9Q0d",
+                 model_feedback: str = "gpt-3.5-turbo",
+                 feedback_variant: str = "separate",
+                 system_prompt: str | None = None,
+                 max_iter: int = 10):
         self.messages: list = []
-        self.messages = self.add_message(self.messages, "system", system_prompt)
+
+        if system_prompt is None:
+            system_prompt = get_system_prompt()
+
+        self.messages = self._add_message(self.messages, "system", system_prompt)
+
         self.model_first = model_first
         self.model_feedback = model_feedback
 
@@ -14,7 +26,7 @@ class LLMCoder:
             raise ValueError("Inavlid feedback method")
 
         self.feedback_variant = feedback_variant
-        self.analyzers_list = analyzers_list
+        self.analyzers_list = [AnalyzerFactory.create_analyzer(analyzer) for analyzer in analyzers]
         self.client = openai.OpenAI(api_key=get_openai_key())
         self.iterations = 0
         self.max_iter = max_iter
@@ -38,14 +50,14 @@ class LLMCoder:
 
         # Run the feedback loop until the code is correct or the max_iter is reached
         for i in range(self.max_iter):
-            if self.feedback_completion():
+            if self.feedback_step():
                 # If the feedback is correct, break the loop and return the code
                 break
 
         # Return the last message
         return self.messages[-1]["content"]
 
-    def add_message(self, messages: list[dict], role: str, message: str | None = None, model: str = 'gpt-3.5-turbo') -> list[dict]:
+    def _add_message(self, messages: list[dict], role: str, message: str | None = None, model: str = 'gpt-3.5-turbo') -> list[dict]:
         # If the user is the assistant, generate a response
         if role == "assistant" and message is None:
             chat_completion = self.client.chat.completions.create(messages=messages, model=model)  # type: ignore
@@ -76,15 +88,15 @@ class LLMCoder:
         self.iterations = 0
 
         # We specify the user code for completion with model by default
-        self.messages = self.add_message(self.messages, "user", code)
+        self.messages = self._add_message(self.messages, "user", code)
 
         # First completion: do it changing the output format, i.e. using the fine-tuned model
-        self.messages = self.add_message(self.messages, "asssistant", self.model_first)
+        self.messages = self._add_message(self.messages, "asssistant", self.model_first)
 
         # Return the last message (the completion)
         return self.messages[-1]
 
-    def feedback_completion(self) -> bool:
+    def feedback_step(self) -> bool:
         """
         Run the feedback step of the LLMCoder feedback loop
 
@@ -112,7 +124,7 @@ class LLMCoder:
 
         error_prompt = '\n'.join([results['message'] for results in analyzer_results if not results['pass']])
 
-        self.messages = self.add_message(self.messages, "user", error_prompt)
-        self.messages = self.add_message(self.messages, "assistant")
+        self.messages = self._add_message(self.messages, "user", error_prompt)
+        self.messages = self._add_message(self.messages, "assistant")
 
         return all([results['pass'] for results in analyzer_results])
