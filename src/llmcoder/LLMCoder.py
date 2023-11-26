@@ -49,12 +49,12 @@ class LLMCoder:
         if feedback_variant not in ["separate", "coworker"]:
             raise ValueError("Inavlid feedback method")
 
-        self.iterations = -1
+        self.iterations = 0
         self.max_iter = max_iter
         self.feedback_variant = feedback_variant
 
         if log_conversation:
-            self.conversation_file = os.path.join(get_conversations_dir(), f"{datetime.now()}.jsonl")
+            self.conversation_file = self._create_conversation_file()
         else:
             self.conversation_file = None  # type: ignore
 
@@ -91,6 +91,18 @@ class LLMCoder:
 
         # Return the last message
         return self.messages[-1]["content"]
+
+    @staticmethod
+    def _create_conversation_file() -> str:
+        """
+        Create the conversation file
+
+        Returns
+        -------
+        str
+            The path of the conversation file
+        """
+        return os.path.join(get_conversations_dir(), f"{datetime.now()}.jsonl")
 
     def _add_message(self, role: str, model: str = 'gpt-3.5-turbo', message: str | None = None) -> None:
         """
