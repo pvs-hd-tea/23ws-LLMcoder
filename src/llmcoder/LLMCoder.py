@@ -156,6 +156,7 @@ class LLMCoder:
         analyzer_results : list[dict]
             The analyzer results to add
         """
+        self.iterations += 1
         self.analyzer_pass_history.append([results['pass'] for results in analyzer_results])
 
     def complete_first(self, code: str) -> dict:
