@@ -2,17 +2,47 @@ import os
 import unittest
 from unittest.mock import MagicMock, patch
 
-from llmcoder.LLMCoder import LLMCoder  # Replace with the actual module name where LLMCoder is defined
+from llmcoder.LLMCoder import LLMCoder
 from llmcoder.utils import get_conversations_dir
 
 
+# Define the mock response classes
+class MockMessage:
+    def __init__(self, content: str) -> None:
+        self.content = content
+
+
+class MockChoice:
+    def __init__(self, message: MockMessage) -> None:
+        self.message = message
+
+
+class MockCompletionResponse:
+    def __init__(self, choices: list[MockChoice]) -> None:
+        self.choices = choices
+
+
+# Define the helper function
+def create_mock_openai_response(content: str) -> MockCompletionResponse:
+    mock_message = MockMessage(content)
+    mock_choice = MockChoice(mock_message)
+    return MockCompletionResponse([mock_choice])
+
+
 class TestLLMCoder(unittest.TestCase):
-    @patch('llmcoder.utils.get_openai_key', return_value="mock_api_key")
+    def setUp(self) -> None:
+        # FIXME: Use a mock instead of a real file. This currently fails because the get_openai_key is not patched correctly.
+        self.key_file_path = os.path.join(os.path.dirname(__file__), '..', 'key.txt')
+        if not os.path.isfile(self.key_file_path):
+            with open(self.key_file_path, "w") as f:
+                f.write("sk-mock_key")
+
+    @patch('llmcoder.LLMCoder.LLMCoder._create_conversation_file', return_value=None)
     @patch('llmcoder.utils.get_conversations_dir', return_value="/mock/conversations/dir")
     @patch('llmcoder.utils.get_system_prompt', return_value="mock_system_prompt")
-    @patch('llmcoder.LLMCoder.LLMCoder._create_conversation_file', return_value=None)
     @patch('openai.OpenAI')
-    def test_init_default_parameters(self, mock_openai: MagicMock, mock_system_prompt: MagicMock, mock_conversations_dir: MagicMock, mock_openai_key: MagicMock, mock_create_conversation_file: MagicMock) -> None:
+    def test_init_default_parameters(self, mock_openai: MagicMock, mock_system_prompt: MagicMock, mock_conversations_dir: MagicMock, mock_create_conversation_file: MagicMock) -> None:
+
         llmcoder = LLMCoder()
         self.assertEqual(llmcoder.analyzers, [])
         self.assertEqual(llmcoder.model_first, "ft:gpt-3.5-turbo-1106:personal::8LCi9Q0d")
@@ -31,11 +61,11 @@ class TestLLMCoder(unittest.TestCase):
         # Check the extension
         self.assertEqual(os.path.splitext(conversation_file)[1], ".jsonl")
 
-    @patch('openai.OpenAI')
-    @patch('os.path')
-    @patch('builtins.open', new_callable=unittest.mock.mock_open, read_data="mock_data")
-    @patch('os.makedirs')  # Mock os.makedirs
     @patch('json.dumps')
+    @patch('builtins.open', new_callable=unittest.mock.mock_open, read_data="mock_data")
+    @patch('os.path')
+    @patch('os.makedirs')  # Mock os.makedirs
+    @patch('openai.OpenAI')
     def test_add_message(self, mock_openai: MagicMock, mock_path: MagicMock, mock_open: MagicMock, mock_os_makedirs: MagicMock, mock_json_dumps: MagicMock) -> None:
         llmcoder = LLMCoder(log_conversation=True)
 
@@ -44,7 +74,7 @@ class TestLLMCoder(unittest.TestCase):
         self.assertEqual(llmcoder.messages[0], {"role": "system", "content": "mock_data"})
 
         # Mocking a response from OpenAI client
-        mock_response = {"choices": [{"message": {"content": "mock_response"}}]}
+        mock_response = create_mock_openai_response("mock_response")
         mock_openai.return_value.chat.completions.create.return_value = mock_response
 
         # Test adding a user message
@@ -58,14 +88,14 @@ class TestLLMCoder(unittest.TestCase):
         self.assertTrue("content" in llmcoder.messages[2])
         self.assertTrue(llmcoder.messages[2]["content"].startswith("mock_response"))
 
-    @patch('openai.OpenAI')
-    @patch('builtins.open', new_callable=unittest.mock.mock_open, read_data="mock_data")
     @patch('json.dumps')
+    @patch('builtins.open', new_callable=unittest.mock.mock_open, read_data="mock_data")
+    @patch('openai.OpenAI')
     def test_complete_first(self, mock_openai: MagicMock, mock_open: MagicMock, mock_json_dumps: MagicMock) -> None:
         llmcoder = LLMCoder(model_first="ft:gpt-3.5-turbo-1106:personal::8LCi9Q0d")
 
         # Mock the OpenAI client response
-        mock_response = {"choices": [{"message": {"content": "mock_completed_code"}}]}
+        mock_response = create_mock_openai_response("mock_completed_code")
         mock_openai.return_value.chat.completions.create.return_value = mock_response
 
         # Call complete_first
@@ -78,15 +108,15 @@ class TestLLMCoder(unittest.TestCase):
         # Check if the completion is correct
         self.assertTrue("content" in llmcoder.messages[-1])
 
-    @patch('openai.OpenAI')
-    @patch('llmcoder.analyze.Analyzer')
-    @patch('builtins.open', new_callable=unittest.mock.mock_open, read_data="mock_data")
     @patch('json.dumps')
+    @patch('builtins.open', new_callable=unittest.mock.mock_open, read_data="mock_data")
+    @patch('llmcoder.analyze.Analyzer')
+    @patch('openai.OpenAI')
     def test_feedback_step(self, mock_openai: MagicMock, mock_analyzer_class: MagicMock, mock_open: MagicMock, mock_json_dumps: MagicMock) -> None:
         llmcoder = LLMCoder()
 
         # Mock the OpenAI client response
-        mock_response = {"choices": [{"message": {"content": "mock_completed_code"}}]}
+        mock_response = create_mock_openai_response("mock_completed_code")
         mock_openai.return_value.chat.completions.create.return_value = mock_response
 
         # Create two mock analyzers
@@ -110,15 +140,15 @@ class TestLLMCoder(unittest.TestCase):
         self.assertEqual(llmcoder.iterations, 1)
         self.assertEqual(llmcoder.messages[-2]['content'], 'Error message')
 
-    @patch('openai.OpenAI')
-    @patch('llmcoder.analyze.Analyzer')
-    @patch('builtins.open', new_callable=unittest.mock.mock_open, read_data="mock_data")
     @patch('json.dumps')
+    @patch('builtins.open', new_callable=unittest.mock.mock_open, read_data="mock_data")
+    @patch('llmcoder.analyze.Analyzer')
+    @patch('openai.OpenAI')
     def test_complete(self, mock_openai: MagicMock, mock_analyzer_class: MagicMock, mock_open: MagicMock, mock_json_dumps: MagicMock) -> None:
         llmcoder = LLMCoder(max_iter=2)
 
         # Mock the OpenAI client response
-        mock_response = {"choices": [{"message": {"content": "mock_completed_code"}}]}
+        mock_response = create_mock_openai_response("mock_completed_code")
         mock_openai.return_value.chat.completions.create.return_value = mock_response
 
         # Create two mock analyzers
