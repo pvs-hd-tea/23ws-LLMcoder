@@ -50,7 +50,7 @@ def get_openai_key(key: str = "") -> str:
         return os.environ["OPENAI_KEY"]
 
     # Fall back to the default key.txt file
-    if os.path.isfile("key.txt"):
+    if os.path.isfile(os.path.join(os.path.dirname(__file__), '..', '..', 'key.txt')):
         with open(os.path.join(os.path.dirname(__file__), '..', '..', 'key.txt'), "r") as f:
             return f.read().strip()
 
@@ -87,8 +87,50 @@ def get_github_access_token(token: str = "") -> str:
         return os.environ["GITHUB_ACCESS_TOKEN"]
 
     # Fall back to the default token.txt file
-    if os.path.isfile("gh_access.txt"):
+    if os.path.isfile(os.path.join(os.path.dirname(__file__), '..', '..', 'gh_access.txt')):
         with open(os.path.join(os.path.dirname(__file__), '..', '..', 'gh_access.txt'), "r") as f:
             return f.read().strip()
 
     raise ValueError("Could not find GitHub access token. Please provide it as an argument or in a token.txt file.")
+
+
+def get_system_prompt(name: str = "2023-11-15_GPT-Builder.txt") -> str:
+    """
+    Read the system prompt from a file.
+
+    Parameters
+    ----------
+    name : str
+        The name or path to the prompt file.
+
+    Returns
+    -------
+    str
+        The prompt.
+    """
+
+    # Construct the path to the file
+    path = os.path.join(os.path.dirname(__file__), '..', '..', 'system_prompts', name)
+
+    # Read the file
+    with open(path, "r") as f:
+        return f.read().strip()
+
+
+def get_conversations_dir(*args: str) -> str:
+    """
+    Get the path to the log directory.
+
+    Parameters
+    ----------
+    args : str
+        The path to the log directory.
+
+    Returns
+    -------
+    str
+        The path to the log directory.
+    """
+    os.makedirs(os.path.join(os.path.dirname(__file__), '..', '..', 'conversations', *args), exist_ok=True)
+
+    return os.path.join(os.path.dirname(__file__), '..', '..', 'conversations', *args)
