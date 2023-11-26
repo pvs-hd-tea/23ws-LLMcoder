@@ -13,10 +13,17 @@ pairs
 # Datasets
 datasets
 
+
+# Conversations
+conversations
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
+
+# Directories env
+myenv/
 
 # C extensions
 *.so

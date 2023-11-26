@@ -4,7 +4,7 @@ from unittest.mock import Mock, mock_open, patch
 
 import pytest
 
-from llmcoder.utils import get_data_dir, get_github_access_token, get_openai_key
+from llmcoder.utils import get_conversations_dir, get_data_dir, get_github_access_token, get_openai_key, get_system_prompt
 
 
 # Test get_data_dir function
@@ -125,3 +125,39 @@ def test_github_environment_variable() -> None:
 def test_github_key_not_found(mock_isfile: Mock) -> None:
     with pytest.raises(ValueError):
         get_github_access_token()
+
+
+# get_system_prompt
+def test_get_system_prompt_file_exists() -> None:
+    prompt_file_path = os.path.join(os.path.dirname(__file__), '..', 'system_prompts', '2023-11-15_GPT-Builder.txt')
+
+    # Check if system_prompt.txt exists
+    if os.path.isfile(prompt_file_path):
+        with open(prompt_file_path, "r") as file:
+            content = file.read().strip()
+            assert content != ""
+    else:
+        # Create system_prompt.txt for the test
+        test_prompt = "pytest_system_prompt"
+        with open(prompt_file_path, "w") as file:
+            file.write(test_prompt)
+
+        try:
+            # Test get_system_prompt function
+            assert get_system_prompt() == test_prompt
+        finally:
+            # Cleanup: Remove the test system_prompt.txt file
+            os.remove(prompt_file_path)
+
+
+def test_get_system_prompt_file_not_found() -> None:
+    with pytest.raises(FileNotFoundError):
+        get_system_prompt("invalid_prompt.txt")
+
+
+# get_conversations_dir
+def test_get_conversations_dir() -> None:
+    conversations_dir = get_conversations_dir()
+
+    assert os.path.exists(conversations_dir)
+    assert os.path.abspath(conversations_dir) == os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'conversations'))
