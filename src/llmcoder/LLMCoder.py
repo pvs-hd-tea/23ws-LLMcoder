@@ -50,6 +50,7 @@ class LLMCoder:
             raise ValueError("Inavlid feedback method")
 
         self.iterations = 0
+        self.analyzer_pass_history: list[list[dict]] = []
         self.max_iter = max_iter
         self.feedback_variant = feedback_variant
 
@@ -139,6 +140,24 @@ class LLMCoder:
                     for message in self.messages:
                         f.write(json.dumps(message) + "\n")
 
+    def _reset_loop(self) -> None:
+        """
+        Reset the feedback loop
+        """
+        self.iterations = 0
+        self.analyzer_pass_history = []
+
+    def _update_analyzer_pass_history(self, analyzer_results: list[dict]) -> None:
+        """
+        Add the analyzer results to the analyzer results list
+
+        Parameters
+        ----------
+        analyzer_results : list[dict]
+            The analyzer results to add
+        """
+        self.analyzer_pass_history.append([results['pass'] for results in analyzer_results])
+
     def complete_first(self, code: str) -> dict:
         """
         Run the first completion of the LLMCoder without any feedback
@@ -153,7 +172,7 @@ class LLMCoder:
         dict
             The message of the assistant
         """
-        self.iterations = 0
+        self._reset_loop()
 
         # We specify the user code for completion with model by default
         self._add_message("user", message=code)
@@ -195,6 +214,7 @@ class LLMCoder:
         self._add_message("user", message=error_prompt)
         self._add_message("assistant")
 
-        self.iterations += 1
+        # Add the analyzer results to the analyzer results list
+        self._update_analyzer_pass_history(analyzer_results)
 
         return all([results['pass'] for results in analyzer_results])
