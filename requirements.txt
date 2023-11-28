@@ -1,9 +1,10 @@
 dynaconf
-openai
-requests
-tiktoken
-tqdm
-pyastsim
 levenshtein
 nltk
+openai
+pandas
+pyastsim
+requests
 sentence-transformers
+tiktoken
+tqdm

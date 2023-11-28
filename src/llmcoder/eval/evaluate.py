@@ -48,7 +48,7 @@ class Evaluation:
         """
         Run the evaluation end to end (reading inputs from the database and writing results back)
         """
-        results = self.predict(store=False, verbose=verbose)
+        results = self.predict(store=True, verbose=verbose)
         self.analyze(results, store=True, verbose=verbose)
 
         return self.analysis_results

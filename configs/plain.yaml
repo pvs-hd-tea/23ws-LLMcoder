@@ -1,0 +1,14 @@
+analyzers: []
+model_first: "gpt-3.5-turbo"
+model_feedback: "gpt-3.5-turbo"
+feedback_variant: "separate"
+system_prompt: ""
+dataset: "eval"
+max_iter: 5
+log_conversation: true
+scores: [
+  "extrinsic.levenshtein_distance_score",
+  "extrinsic.bleu_score",
+  "extrinsic.trf_similarity_score",
+  "extrinsic.sequence_matcher_score",
+]

@@ -1,9 +1,10 @@
 from difflib import SequenceMatcher, ndiff
-from pyastsim.pyastsim import get_normed_content, get_pair_stats
+from typing import Callable
+
 from Levenshtein import distance
 from nltk.translate.bleu_score import sentence_bleu
+from pyastsim.pyastsim import get_normed_content, get_pair_stats
 from sentence_transformers import SentenceTransformer, util
-from typing import Callable
 
 
 def levenshtein_distance_score(ground_truth: str, completion: str) -> int:

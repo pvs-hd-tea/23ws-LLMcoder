@@ -65,6 +65,8 @@ class LLMCoder:
             self.system_prompt = get_system_prompt()
         elif system_prompt in os.listdir(get_system_prompt_dir()):
             self.system_prompt = get_system_prompt(system_prompt)
+        else:
+            self.system_prompt = system_prompt
 
         self._add_message("system", message=self.system_prompt)
 
