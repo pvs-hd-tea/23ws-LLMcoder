@@ -6,10 +6,10 @@ import re
 import tiktoken
 from tqdm import tqdm
 
-from llmcoder.utils import get_data_dir
+from llmcoder.utils import get_data_dir, get_system_prompt
 
 
-def count_lines(file_path: str, encoding: str = 'utf-8') -> int:
+def count_lines(file_path: str, encoding: str = 'iso-8859-1') -> int:
     """
     Count the number of lines in a file.
 
@@ -18,7 +18,7 @@ def count_lines(file_path: str, encoding: str = 'utf-8') -> int:
     file_path : str
         The path to the file.
     encoding : str, optional
-        The encoding of the file, by default 'utf-8'
+        The encoding of the file, by default 'iso-8859-1'
 
     Returns
     -------
@@ -29,7 +29,7 @@ def count_lines(file_path: str, encoding: str = 'utf-8') -> int:
         return sum(1 for _ in file)
 
 
-def get_file_contents(file_paths: list[str], encoding: str = 'utf-8') -> list[str]:
+def get_file_contents(file_paths: list[str], encoding: str = 'iso-8859-1') -> list[str]:
     """
     Get the contents of the given files.
 
@@ -38,7 +38,7 @@ def get_file_contents(file_paths: list[str], encoding: str = 'utf-8') -> list[st
     file_paths : list[str]
         A list of paths to the files.
     encoding : str, optional
-        The encoding of the files, by default 'utf-8'
+        The encoding of the files, by default 'iso-8859-1'
 
     Returns
     -------
@@ -126,34 +126,45 @@ def sample_files_from_dir(repo_dir: str, n_samples: int = 4, file_extensions: li
 
 
 class FineTunePreprocessor:
-    def __init__(self, tokenizer: str = "p50k_base", scraped_files_dir: str | None = None, save_pairs_dir: str | None = None, system_prompt: str | None = None, disallowed_special_tokens: list[str] | None = None) -> None:
+    def __init__(self, dataset_name: str, tokenizer: str = "p50k_base", scraped_files_dir: str | None = None, save_pairs_dir: str | None = None, save_data_dir: str | None = None, system_prompt: str | None = None, disallowed_special_tokens: list[str] | None = None) -> None:
         """
         A preprocessor for the fine-tuning data which samples files from scraped repositories, splits them into two parts and saves them in a format that can be used for fine-tuning.
 
         Parameters
         ----------
+        dataset_name : str
+            The name of the dataset.
         tokenizer : str, optional
             The tokenizer to use, by default "p50k_base" for gpt-3.5-turbo
         scraped_files_dir : str
             The directory to store the scraped files in, defaults to 'scraped_repos'.
         save_pairs_dir : str
-            The directory to store the sampled files in, defaults to 'fine-tune-pairs'.
+            The directory to store the sampled files in, defaults to 'pairs'.
+        save_data_dir : str
+            The directory to store the preprocessed data in, defaults to 'data'.
         system_prompt : str
             The system prompt to use, defaults to the default system prompt.
         disallowed_special_tokens : list[str]
             A list of disallowed special tokens, defaults to the default disallowed special tokens.
         """
+        self.name = dataset_name
+
         self.enc = tiktoken.get_encoding(tokenizer)
 
         if scraped_files_dir is None:
-            self.scraped_files_dir = get_data_dir("scraped_repos")  # /data/scraped_repos
+            self.scraped_files_dir = get_data_dir(self.name, "scraped_repos")  # /data/scraped_repos
         else:
             self.scraped_files_dir = scraped_files_dir
 
         if save_pairs_dir is None:
-            self.save_pairs_dir = get_data_dir("fine-tune-pairs")
+            self.save_pairs_dir = get_data_dir(self.name, "pairs")
         else:
             self.save_pairs_dir = save_pairs_dir
+
+        if save_data_dir is None:
+            self.save_data_dir = get_data_dir(self.name)
+        else:
+            self.save_data_dir = save_data_dir
 
         if disallowed_special_tokens is None:
             # https://github.com/openai/tiktoken/blob/main/tiktoken_ext/openai_public.py#L54
@@ -167,18 +178,8 @@ class FineTunePreprocessor:
         else:
             self.disallowed_special_tokens = disallowed_special_tokens
 
-        # DO NOT CHANGE THE FORMAT THE DEFAULT SYSTEM PROMPT. It may be ugly, but proper indentation causes the actual prompt to get indented as well.
         if system_prompt is None:
-            self.system_prompt = """You are AutocompleteGPT, a useful AI autocomplete tool that provides code completions based on the user's code.
-You are a precision-focused tool for code autocompletion, adept in languages like Python, JavaScript, C++, and SQL.
-Precisely continue the code from the point of interruption and do not repeat or modify the original code, even if it is incorrect or the code interrupts in the middle of a line.
-Your code is well documented with comments and annotations, and you should provide a clear explanation of the code's purpose in your code completion.
-Your unique capability is to provide completions without altering, repeating, or commenting on the original code.
-You offer only the necessary code to complete the snippet, ensuring the response is exclusively code, with no additional comments, explanations, or annotations.
-This approach makes you an ideal assistant for users seeking straightforward and efficient code extensions, enhancing their work with accurate, logic-driven completions while maintaining the integrity and simplicity of the original input.
-Your response begins with the next characters of the line if the last line of the user'S code is incomplete, or the next line if the last line of the user's code is complete.
-Your application is a VSCode extension like GitHub Copilot, which provides seamless code completions based on the user's code at the point of interruption.
-"""
+            self.system_prompt = get_system_prompt()
         else:
             self.system_prompt = system_prompt
 
@@ -200,6 +201,9 @@ Your application is a VSCode extension like GitHub Copilot, which provides seaml
         """
         sampled_files_contents = []
         for repo_name in tqdm(os.listdir(self.scraped_files_dir)):
+            if not os.path.isdir(os.path.join(self.scraped_files_dir, repo_name)):
+                continue
+
             repo_dir = os.path.join(self.scraped_files_dir, repo_name)
 
             sampled_files = sample_files_from_dir(repo_dir, n_samples=n_samples, file_extensions=file_extensions)
@@ -269,10 +273,10 @@ Your application is a VSCode extension like GitHub Copilot, which provides seaml
 
             os.makedirs(pair_path, exist_ok=True)
 
-            with open(os.path.join(pair_path, "input.txt"), 'w', encoding='utf-8') as file:
+            with open(os.path.join(pair_path, "input.txt"), 'w', encoding='iso-8859-1') as file:
                 file.write(first_part)
 
-            with open(os.path.join(pair_path, "output.txt"), 'w', encoding='utf-8') as file:
+            with open(os.path.join(pair_path, "output.txt"), 'w', encoding='iso-8859-1') as file:
                 file.write(second_part)
 
         # Inform the user that the data is ready for manual truncation
@@ -291,10 +295,10 @@ Your application is a VSCode extension like GitHub Copilot, which provides seaml
         # Combine the system prompt, inout and output text into a conversation
         conversations = []
         for input_file, output_file in tqdm(zip(input_files, output_files)):
-            with open(input_file, 'r', encoding='utf-8') as file:
+            with open(input_file, 'r', encoding='iso-8859-1') as file:
                 input_text = file.read()
 
-            with open(output_file, 'r', encoding='utf-8') as file:
+            with open(output_file, 'r', encoding='iso-8859-1') as file:
                 output_text = file.read()
 
             conversation = [
@@ -342,8 +346,8 @@ Your application is a VSCode extension like GitHub Copilot, which provides seaml
             A list of conversations.
         """
         # Save the conversations in a jsonl file
-        output_file = os.path.join(self.save_pairs_dir, "train_completions.jsonl")
-        with open(output_file, 'w', encoding='utf-8') as file:
+        output_file = os.path.join(self.save_data_dir, "conversations.jsonl")
+        with open(output_file, 'w', encoding='iso-8859-1') as file:
             for conversation in tqdm(conversations):
                 file.write(json.dumps({"messages": conversation}) + '\n')
 

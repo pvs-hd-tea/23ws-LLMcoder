@@ -5,7 +5,7 @@ from datetime import datetime
 import openai
 
 from llmcoder.analyze.factory import AnalyzerFactory
-from llmcoder.utils import get_conversations_dir, get_openai_key, get_system_prompt
+from llmcoder.utils import get_conversations_dir, get_openai_key, get_system_prompt, get_system_prompt_dir
 
 
 class LLMCoder:
@@ -62,9 +62,11 @@ class LLMCoder:
         self.messages: list = []
 
         if system_prompt is None:
-            system_prompt = get_system_prompt()
+            self.system_prompt = get_system_prompt()
+        elif system_prompt in os.listdir(get_system_prompt_dir()):
+            self.system_prompt = get_system_prompt(system_prompt)
 
-        self._add_message("system", message=system_prompt)
+        self._add_message("system", message=self.system_prompt)
 
     def complete(self, code: str) -> str:
         """

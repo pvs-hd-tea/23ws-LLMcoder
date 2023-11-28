@@ -13,6 +13,9 @@ pairs
 # Datasets
 datasets
 
+# Data
+data
+!src/llmcoder/data
 
 # Conversations
 conversations

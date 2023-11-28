@@ -20,6 +20,25 @@ def get_data_dir(*args: str) -> str:
     return os.path.join(os.path.dirname(__file__), '..', '..', 'data', *args)
 
 
+def get_config_dir(*args: str) -> str:
+    """
+    Get the path to the configs directory.
+
+    Parameters
+    ----------
+    args : str
+        The path to the configs directory.
+
+    Returns
+    -------
+    str
+        The path to the configs directory.
+    """
+    os.makedirs(os.path.join(os.path.dirname(__file__), '..', '..', 'configs', *args), exist_ok=True)
+
+    return os.path.join(os.path.dirname(__file__), '..', '..', 'configs', *args)
+
+
 def get_openai_key(key: str = "") -> str:
     """
     Get OpenAI API key. Try to interpret the key as a key first, then as a path to a file containing the key.
@@ -115,6 +134,25 @@ def get_system_prompt(name: str = "2023-11-15_GPT-Builder.txt") -> str:
     # Read the file
     with open(path, "r") as f:
         return f.read().strip()
+
+
+def get_system_prompt_dir(*args: str) -> str:
+    """
+    Get the path to the system prompts directory.
+
+    Parameters
+    ----------
+    args : str
+        The path to the system prompts directory.
+
+    Returns
+    -------
+    str
+        The path to the system prompts directory.
+    """
+    os.makedirs(os.path.join(os.path.dirname(__file__), '..', '..', 'system_prompts', *args), exist_ok=True)
+
+    return os.path.join(os.path.dirname(__file__), '..', '..', 'system_prompts', *args)
 
 
 def get_conversations_dir(*args: str) -> str:

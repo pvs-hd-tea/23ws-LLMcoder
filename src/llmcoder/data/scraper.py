@@ -15,21 +15,25 @@ class GitHubScraper:
     """
     A class for scraping GitHub repositories and storing them in a flat structure.
     """
-    def __init__(self, access_token: str | None = None, scraped_files_dir: str | None = None) -> None:
+    def __init__(self, dataset_name: str, access_token: str | None = None, scraped_files_dir: str | None = None) -> None:
         """
         Initialize the GitHubScraper class with a GitHub access token.
 
         Parameters
         ----------
+        dataset_name : str
+            The name of the dataset to scrape repositories for.
         access_token : str
             A GitHub access token for authenticating with the GitHub API.
         scraped_files_dir : str
             The directory to store the scraped files in, defaults to 'scraped_repos'.
         """
+        self.name = dataset_name
+
         self.access_token = access_token
 
         if scraped_files_dir is None:
-            self.scraped_files_dir = get_data_dir("scraped_repos")  # /data/scraped_repos
+            self.scraped_files_dir = get_data_dir(self.name, "scraped_repos")  # /data/scraped_repos
         else:
             self.scraped_files_dir = scraped_files_dir
 
@@ -156,7 +160,7 @@ class GitHubScraper:
         """
         if repository_sets is None:
             # Get the top 10 Python repositories by stars
-            all_popular_repos = self.get_popular_repos(num_repos_per_query=3)
+            all_popular_repos = self.get_popular_repos(num_repos_per_query=6)
 
             # Keep the top 10 repositories and put the rest (5) in a backup list
             popular_repos = all_popular_repos[:10]
@@ -197,6 +201,9 @@ class GitHubScraper:
             # Add the backup repositories
             repos.extend([(url, url.split("/")[-1]) for url in backup_repos])
 
+            # Make sure there are no duplicates to avoid sampling issue later
+            repos = list(set(repos))
+
         else:
             repos = []
             for repository_set in repository_sets:
@@ -211,7 +218,9 @@ class GitHubScraper:
                     print(repo)
                 else:
                     seen.add(repo)
-            raise Exception("Duplicate repositories found")
+
+            duplicates = [repo for repo in repos if repos.count(repo) > 1]
+            raise Exception(f"Duplicate repositories found: {duplicates}")
 
         return repos
 

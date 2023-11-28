@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, Mock, call, mock_open, patch
 
 import pytest
 
-from llmcoder.finetune.preprocessor import FineTunePreprocessor, count_lines, get_file_contents, sample_files_from_dir, split_file
+from llmcoder.data.preprocessor import FineTunePreprocessor, count_lines, get_file_contents, sample_files_from_dir, split_file
 
 
 # Generated with GPT-4 under supervision
@@ -112,7 +112,7 @@ def mock_count_lines(file_path: str) -> int:
 
 @patch('os.listdir')
 @patch('os.path.join')
-@patch('llmcoder.finetune.preprocessor.count_lines', side_effect=mock_count_lines)
+@patch('llmcoder.data.preprocessor.count_lines', side_effect=mock_count_lines)
 @patch('random.choices')
 def test_sample_files_from_dir_normal(mock_choices: MagicMock, mock_count_lines: MagicMock, mock_join: MagicMock, mock_listdir: MagicMock) -> None:
     # Setting up the mock environment
@@ -136,7 +136,8 @@ def test_fine_tune_preprocessor_initialization() -> None:
     custom_system_prompt = "Custom system prompt"
     custom_disallowed_tokens = ["TOKEN1", "TOKEN2"]
 
-    preprocessor_custom = FineTunePreprocessor(scraped_files_dir=custom_scraped_files_dir,
+    preprocessor_custom = FineTunePreprocessor(dataset_name='pytest',
+                                               scraped_files_dir=custom_scraped_files_dir,
                                                save_pairs_dir=custom_save_pairs_dir,
                                                system_prompt=custom_system_prompt,
                                                disallowed_special_tokens=custom_disallowed_tokens)
@@ -149,11 +150,13 @@ def test_fine_tune_preprocessor_initialization() -> None:
 
 @patch('os.listdir')
 @patch('os.path.join', side_effect=lambda *args: "/".join(args))
-@patch('llmcoder.finetune.preprocessor.sample_files_from_dir')
-@patch('llmcoder.finetune.preprocessor.get_file_contents')
-@patch('llmcoder.finetune.preprocessor.split_file')
+@patch('llmcoder.data.preprocessor.sample_files_from_dir')
+@patch('llmcoder.data.preprocessor.get_file_contents')
+@patch('llmcoder.data.preprocessor.split_file')
 @patch('tqdm.tqdm', side_effect=lambda x: x)
-def test_sample_files(mock_tqdm: MagicMock,
+@patch('os.path.isdir', return_value=True)
+def test_sample_files(mock_os_path_isdir: MagicMock,
+                      mock_tqdm: MagicMock,
                       mock_split_file: MagicMock,
                       mock_get_file_contents: MagicMock,
                       mock_sample_files_from_dir: MagicMock,
@@ -166,7 +169,7 @@ def test_sample_files(mock_tqdm: MagicMock,
     mock_split_file.side_effect = lambda contents: (contents[:5], contents[5:])
 
     # Initialize FineTuner instance
-    preprocessor = FineTunePreprocessor(scraped_files_dir="/mocked/data/dir/scraped_repos")
+    preprocessor = FineTunePreprocessor(dataset_name='pytest', scraped_files_dir="/mocked/data/dir/scraped_repos")
     result = preprocessor.sample_files()
 
     # Assertions
@@ -179,7 +182,7 @@ def test_sample_files(mock_tqdm: MagicMock,
 @patch('random.randint', return_value=5000)
 def test_preprocess(mock_randint: MagicMock) -> None:
     # Initialize FineTuner instance
-    preprocessor = FineTunePreprocessor()  # Adjust based on how your class is initialized
+    preprocessor = FineTunePreprocessor(dataset_name='pytest')  # Adjust based on how your class is initialized
 
     # Simulated split file contents
     split_files_contents = [("A" * 6000, "B" * 3000), ("C" * 4000, "D" * 2000)]
@@ -205,7 +208,7 @@ def test_preprocess(mock_randint: MagicMock) -> None:
 @patch('builtins.open', new_callable=mock_open, read_data="")
 def test_save_pairs(mock_file_open: MagicMock, mock_path_join: MagicMock, mock_makedirs: MagicMock) -> None:
     # Initialize FineTunePreprocessor instance
-    preprocessor = FineTunePreprocessor(save_pairs_dir="/mocked/data/dir/fine-tune-pairs")
+    preprocessor = FineTunePreprocessor(dataset_name='pytest', save_pairs_dir="/mocked/data/dir/fine-tune-pairs")
 
     # Sample data to test
     truncated_split_files_contents = [("input1", "output1"), ("input2", "output2")]
@@ -223,11 +226,11 @@ def test_save_pairs(mock_file_open: MagicMock, mock_path_join: MagicMock, mock_m
         input_file_path = f"/mocked/data/dir/fine-tune-pairs/pair_{i}/input.txt"
         output_file_path = f"/mocked/data/dir/fine-tune-pairs/pair_{i}/output.txt"
         expected_file_calls.extend([
-            call(input_file_path, 'w', encoding='utf-8'),
+            call(input_file_path, 'w', encoding='iso-8859-1'),
             call().__enter__(),
             call().write(input_content),
             call().__exit__(None, None, None),
-            call(output_file_path, 'w', encoding='utf-8'),
+            call(output_file_path, 'w', encoding='iso-8859-1'),
             call().__enter__(),
             call().write(output_content),
             call().__exit__(None, None, None)
@@ -245,7 +248,7 @@ class TestFineTunePreprocessor(TestCase):
         # Initialize FineTunePreprocessor instance
         system_prompt = "System prompt text"
         disallowed_tokens = ["disallowed_token1", "disallowed_token2"]
-        preprocessor = FineTunePreprocessor(system_prompt=system_prompt, disallowed_special_tokens=disallowed_tokens)
+        preprocessor = FineTunePreprocessor(dataset_name='pytest', system_prompt=system_prompt, disallowed_special_tokens=disallowed_tokens)
 
         # Call build_conversations
         conversations = preprocessor.build_conversations()
@@ -256,11 +259,11 @@ class TestFineTunePreprocessor(TestCase):
             input_file_path = f"{preprocessor.save_pairs_dir}/pair_{i}/input.txt"
             output_file_path = f"{preprocessor.save_pairs_dir}/pair_{i}/output.txt"
             expected_file_calls.extend([
-                call(input_file_path, 'r', encoding='utf-8'),
+                call(input_file_path, 'r', encoding='iso-8859-1'),
                 call().__enter__(),
                 call().read(),
                 call().__exit__(None, None, None),
-                call(output_file_path, 'r', encoding='utf-8'),
+                call(output_file_path, 'r', encoding='iso-8859-1'),
                 call().__enter__(),
                 call().read(),
                 call().__exit__(None, None, None),
@@ -298,7 +301,7 @@ class TestFineTunePreprocessor(TestCase):
         # Initialize FineTunePreprocessor instance
         system_prompt = "System prompt text"
         disallowed_tokens = ["disallowed_token1", "disallowed_token2"]
-        preprocessor = FineTunePreprocessor(system_prompt=system_prompt, disallowed_special_tokens=disallowed_tokens)
+        preprocessor = FineTunePreprocessor(dataset_name='pytest', system_prompt=system_prompt, disallowed_special_tokens=disallowed_tokens)
 
         # Sample conversations
         conversations = [
@@ -319,7 +322,7 @@ class TestFineTunePreprocessor(TestCase):
     @patch('json.dumps')
     def test_save_conversations(self, mock_json_dumps: MagicMock, mock_tqdm: MagicMock, mock_file_open: MagicMock, mock_path_join: MagicMock) -> None:
         # Initialize FineTunePreprocessor instance
-        fine_tuner = FineTunePreprocessor(save_pairs_dir="/mocked/data/dir/fine-tune-pairs")
+        fine_tuner = FineTunePreprocessor(dataset_name='pytest', save_data_dir="/mocked/data/dir/fine-tune-pairs", system_prompt="pytest")
 
         # Sample conversations
         conversations = [
@@ -334,7 +337,7 @@ class TestFineTunePreprocessor(TestCase):
         fine_tuner.save_conversations(conversations)
 
         # Verify file creation
-        mock_file_open.assert_called_once_with("/mocked/data/dir/fine-tune-pairs/train_completions.jsonl", 'w', encoding='utf-8')
+        mock_file_open.assert_called_once_with("/mocked/data/dir/fine-tune-pairs/conversations.jsonl", 'w', encoding='iso-8859-1')
 
         # Check the calls to json.dumps
         expected_json_calls = [call({"messages": conversation}) for conversation in conversations]
@@ -344,3 +347,6 @@ class TestFineTunePreprocessor(TestCase):
         handle = mock_file_open()
         expected_file_content = [f"mocked_json_{{'messages': {conversation}}}\n" for conversation in conversations]
         handle.write.assert_has_calls([call(content) for content in expected_file_content], any_order=True)
+
+        # Assert that mock_file_open has been called twice
+        assert mock_file_open.call_count == 2
