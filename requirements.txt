@@ -3,3 +3,7 @@ openai
 requests
 tiktoken
 tqdm
+pyastsim
+levenshtein
+nltk
+sentence-transformers
