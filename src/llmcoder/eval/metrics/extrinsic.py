@@ -6,6 +6,10 @@ from nltk.translate.bleu_score import sentence_bleu
 from pyastsim.pyastsim import get_normed_content, get_pair_stats
 from sentence_transformers import SentenceTransformer, util
 
+from openai import OpenAI
+
+from llmcoder.utils import get_openai_key
+
 
 def levenshtein_distance_score(ground_truth: str, completion: str) -> int:
     """
@@ -149,3 +153,63 @@ def sequence_matcher_score(ground_truth: str, completion: str) -> float:
         The similarity between the two strings.
     """
     return SequenceMatcher(None, ground_truth, completion).ratio()
+
+
+# def gpt_reviewer_score(ground_truth: str, completion: str, model: str = "gpt-3.5-turbo") -> float:
+#     """
+#     Compute the similarity between two strings with GPT-3.
+
+#     Parameters
+#     ----------
+#     ground_truth : str
+#         The first string to compare.
+#     completion : str
+#         The second string to compare.
+
+#     Returns
+#     -------
+#     float
+#         The similarity between the two strings.
+#     """
+#     client = OpenAI(get_openai_key())
+
+#     system_prompt_compare = """You are a data scientist tasked with comparing and evaluating code completions made by a language model.
+# The user will submit two code snippets with the same beginning but different completions.
+# Given these snippets, you evaluate the completions, and give each a score between 0 and 10, with 0 being the worst (unusable completion that would make a developer frustrated) and 10 being the best (perfect completion that would make a developer happy).
+# The user may ask you to prioritize different qualities of the code.
+# Take this into account when scoring the completions.
+# Your output should have the following format:
+# <comparison of the two completions with regard to the requested qualities>
+# SCORE 1: <score for completion 1>
+# SCORE 2: <score for completion 2>"""
+
+#     def user_prompt_templste(ground_truth: str, completion: str) -> str:
+#         return f"""Assess and compare these two code snippets and evaluate the completions. Do your own analysis and also prip the following criteria:
+# - correctness
+# - plausibility given the context
+# - readability
+# - efficiency
+
+# CODE 1:
+# ```python
+# {ground_truth}
+# ```
+
+# CODE 2:
+# ```python
+# {completion}
+# ```"""
+    
+#     user_prompt = user_prompt_templste(ground_truth, completion)
+
+#     response = client.complete(
+#         system_prompt=system_prompt_compare,
+#         user_prompt=user_prompt,
+#         model_name_or_path=model,
+#         max_tokens=100,
+#         temperature=0.0,
+#         top_p=1.0,
+#         frequency_penalty=0.0,
+#         presence_penalty=0.0,
+#         stop=["SCORE"],
+#     )
