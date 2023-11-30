@@ -5,10 +5,10 @@ import re
 from types import ModuleType
 from typing import Any
 
-from .intanalyzer import FormalAnalyzerInterface
+from .Analyzer import Analyzer
 
 
-class APIDocumentationAnalyzer(FormalAnalyzerInterface):
+class APIDocumentationAnalyzer(Analyzer):
     def __init__(self) -> None:
         """
         APIDocumentationAnalyzer analyzes the code passed in the object and fetches the documentations of the API references
@@ -18,8 +18,8 @@ class APIDocumentationAnalyzer(FormalAnalyzerInterface):
         code : str
             This string represents the code that is to be analyzed by this analyzer
         """
-        self.code: str = ''
-        self.module: str = ''
+        self.code: str = ""
+        self.module: str = ""
         # List to save modules already imported
         self.modules: list[str] = list()
         # To keep track of spec state
@@ -44,21 +44,27 @@ class APIDocumentationAnalyzer(FormalAnalyzerInterface):
         for node in ast.walk(ast.parse(self.code)):
             # Declerations to import the module and fetch the documentation of the module API
             # Check names in node attributes to get all the packages
-            if hasattr(node, 'names'):
+            if hasattr(node, "names"):
                 # Check if its a from statement import
                 if isinstance(node, ast.ImportFrom):
                     # Save module name
                     # Save attributes / submodules names
                     node_module, module_names = self.get_node_module_names(node)
-                    documentations.extend(self.get_docs_from_from_statements(node_module, module_names))
+                    documentations.extend(
+                        self.get_docs_from_from_statements(node_module, module_names)
+                    )
                 # If import is import statement
                 else:
                     # Then, iterate over all the import <packages> i.e.: node.names
-                    documentations.extend(self.get_docs_from_import_statements(node.names))
+                    documentations.extend(
+                        self.get_docs_from_import_statements(node.names)
+                    )
 
         return documentations
 
-    def get_docs_from_from_statements(self, node_module: str, module_names: list[str]) -> list[dict[str, str]]:
+    def get_docs_from_from_statements(
+        self, node_module: str, module_names: list[str]
+    ) -> list[dict[str, str]]:
         documentations: list[dict[str, str]] = []
 
         # Traverse all module attributes / submodules
@@ -92,16 +98,21 @@ class APIDocumentationAnalyzer(FormalAnalyzerInterface):
                 if len(submodules) > 0:
                     for attribute, submodule in zip(attributes, submodules):
                         # Create a submodule with module to import module.submodule
-                        module_submodule_name = '.'.join([node_module, submodule])
+                        module_submodule_name = ".".join([node_module, submodule])
                         # Import the module.submodule
                         module = self.import_module(module_submodule_name)
                         # Get the attribute that is associated with the module.submodule
                         attribute = getattr(module, attribute)
                         # Fetch the documentation of the module.submodule.attribute
-                        documentations.append(self.format_documentation('.'.join([module_submodule_name, attribute]), self.fetch_documentation(attribute)))
+                        documentations.append(
+                            self.format_documentation(
+                                ".".join([module_submodule_name, attribute]),
+                                self.fetch_documentation(attribute),
+                            )
+                        )
                 else:
                     # Create the module with submodule module.submodule
-                    module_submodule_name = '.'.join([node_module, module_name])
+                    module_submodule_name = ".".join([node_module, module_name])
                     # Import the module with submodule module.submodule
                     module = self.import_module(module_submodule_name)
 
@@ -110,14 +121,23 @@ class APIDocumentationAnalyzer(FormalAnalyzerInterface):
                         # Get the attribute that is associated with the module.submodule
                         attrib = getattr(module, attribute)
                         # Fetch the documentation of the module.submodule.attribute
-                        documentations.append(self.format_documentation('.'.join([module_submodule_name, attribute]), self.fetch_documentation(attrib)))
+                        documentations.append(
+                            self.format_documentation(
+                                ".".join([module_submodule_name, attribute]),
+                                self.fetch_documentation(attrib),
+                            )
+                        )
             # If the the import after from is an attribute then directly get the documentation
             else:
                 # No need to import the module as it was done before while checking hasattr
                 # Get the attribute that is associated with the module
                 attribute = getattr(module, attribute)
                 # Fetch the documentation of the module.attribute
-                documentations.append(self.format_documentation(node_module, self.fetch_documentation(attribute)))
+                documentations.append(
+                    self.format_documentation(
+                        node_module, self.fetch_documentation(attribute)
+                    )
+                )
 
         return documentations
 
@@ -132,19 +152,28 @@ class APIDocumentationAnalyzer(FormalAnalyzerInterface):
                 asnames = self.get_asnames_from_module(package_asname)
             else:
                 asnames = self.get_asnames_from_module(package_asname)
-                asnames = [ref.split('.')[1::1] for ref in re.findall(fr'{package_name}\.[a-zA-Z_\.0-9]+', self.code)]
+                asnames = [
+                    ref.split(".")[1::1]
+                    for ref in re.findall(
+                        rf"{package_name}\.[a-zA-Z_\.0-9]+", self.code
+                    )
+                ]
 
             for asname in asnames:
                 reference, submodule = self.get_references_submodules(asname)
 
                 if len(submodule) != 0:
-                    package_submodule_name = '.'.join([package_name, submodule])
+                    package_submodule_name = ".".join([package_name, submodule])
                     module = self.import_module(package_submodule_name)
                 else:
                     module = self.import_module(package_name)
 
                 function = getattr(module, reference)
-                documentations.append(self.format_documentation(package_name, self.fetch_documentation(function)))
+                documentations.append(
+                    self.format_documentation(
+                        package_name, self.fetch_documentation(function)
+                    )
+                )
 
         return documentations
 
@@ -152,10 +181,13 @@ class APIDocumentationAnalyzer(FormalAnalyzerInterface):
         return [asname[-1] for asname in asnames], [asname[:-1:1] for asname in asnames]
 
     def get_asnames_from_module(self, module_name: str) -> list[str]:
-        return [reference.split(".")[1::1] for reference in re.findall(fr'{module_name}\.[a-zA-Z_\.0-9]+', self.code)]
+        return [
+            reference.split(".")[1::1]
+            for reference in re.findall(rf"{module_name}\.[a-zA-Z_\.0-9]+", self.code)
+        ]
 
     def get_references_submodules(self, asname: str | list[str]) -> tuple[str, str]:
-        return asname[-1], '.'.join(asname[:-1:1])
+        return asname[-1], ".".join(asname[:-1:1])
 
     def fetch_documentation(self, attribute: Any) -> str:
         return pydoc.render_doc(attribute)

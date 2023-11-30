@@ -1,12 +1,13 @@
 from typing import Any
 
-from llmcoder.analyze.Analyzer import Analyzer
+from llmcoder.Analyzer.Analyzer import Analyzer
 
 
 class AnalyzerFactory:
     """
     Factory class for Analyzer
     """
+
     @staticmethod
     def create_analyzer(analyzer: str, *args: Any, **kwargs: Any) -> Analyzer:
         """
@@ -23,9 +24,10 @@ class AnalyzerFactory:
             The created analyzer
         """
         match analyzer:
-            # case "api_documentation_analyzer_v1":
-            #     from llmcoder.analyze.APIDocumentationAnalyzer import APIDocumentationAnalyzer
-            #     return APIDocumentationAnalyzer(*args, **kwargs)
+            case "api_documentation_analyzer_v1":
+                from llmcoder.Analyzer.APIDocumentationAnalyzer import APIDocumentationAnalyzer
+
+                return APIDocumentationAnalyzer(*args, **kwargs)
             # case "syntax_analyzer_v1":
             #     from llmcoder.analyze.SyntaxAnalyzer import SyntaxAnalyzer
             #     return SyntaxAnalyzer(*args, **kwargs)

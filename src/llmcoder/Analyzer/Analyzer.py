@@ -1,22 +1,11 @@
-# Interface for definition of suggestions' analysis.
-# Inherited by
-# 1. SyntaxAnalyzer
-# 2. UnitTestAnalyzer
-# 3. APIDocumentationAnalyzer
-
-"""
-Python further deviates from other languages in one other aspect.
-It doesn’t require the class that’s implementing the interface to define all of the interface’s abstract methods.
-"""
-
 from abc import ABCMeta, abstractmethod
 
 
-# Interface to follow the Duck Typing principle supported by Python
-# TODO: be defined a wrapper for the BaseDecorator
-class FormalAnalyzerInterface(metaclass=ABCMeta):
+class Analyzer(metaclass=ABCMeta):
+    # Required method for the analyzer to be implemented in concrete component
+
     def __init__(self) -> None:
-        self.code_suggestion = ''
+        self.code_suggestion = ""
 
     # Setter method for code_suggestion
     @classmethod
