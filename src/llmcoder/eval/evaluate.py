@@ -65,9 +65,9 @@ class Evaluation:
         for results_id, result in tqdm(results.items(), desc='Analysis', total=len(results), disable=not verbose):
             self.analysis_results[results_id] = {}
             for f in intrinsic_score_functions:
-                self.analysis_results[results_id][f.__name__] = f(result['messages'][-1]['content'], self.targets[results_id])
+                self.analysis_results[results_id][f.__name__] = f(ground_truth=self.targets[results_id], llmcoder_result=result)
             for f in extrinsic_score_functions:
-                self.analysis_results[results_id][f.__name__] = f(result['messages'][-1]['content'], self.targets[results_id])
+                self.analysis_results[results_id][f.__name__] = f(llmcoder_result=result)
 
         if store:
             self._write_analysis_results(self.analysis_results)

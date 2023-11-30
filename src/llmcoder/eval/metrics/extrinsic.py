@@ -1,17 +1,18 @@
-from difflib import SequenceMatcher, ndiff
-from typing import Callable
+from difflib import SequenceMatcher  # , ndiff
 
 import numpy as np
 from Levenshtein import distance
 from nltk.translate.bleu_score import sentence_bleu
 from openai import OpenAI
-from pyastsim.pyastsim import get_normed_content, get_pair_stats
+# from pyastsim.pyastsim import get_normed_content, get_pair_stats
 from sentence_transformers import SentenceTransformer, util
 
 from llmcoder.utils import get_openai_key
 
+# from typing import Callable
 
-def levenshtein_distance_score(ground_truth: str, completion: str) -> int:
+
+def levenshtein_distance_score(ground_truth: str, llmcoder_result: dict | str) -> int:
     """
     Compute the Levenshtein distance between two strings.
 
@@ -19,18 +20,23 @@ def levenshtein_distance_score(ground_truth: str, completion: str) -> int:
     ----------
     ground_truth : str
         The first string to compare.
-    completion : str
-    The second string to compare.
+    llmcoder_result : dict | str
+        The llmcoder result containing the conversation (the last message is the completion).
 
     Returns
     -------
     int
         The Levenshtein distance between the two strings.
     """
+    if isinstance(llmcoder_result, dict):
+        completion = llmcoder_result['messages'][-1]['content']
+    else:
+        completion = llmcoder_result
+
     return distance(ground_truth, completion)
 
 
-def bleu_score(ground_truth: str | list[str], completion: str) -> float:
+def bleu_score(ground_truth: str | list[str], llmcoder_result: dict | str) -> float:
     """
     Compute the BLEU score between a candidate and a list of references.
 
@@ -38,8 +44,8 @@ def bleu_score(ground_truth: str | list[str], completion: str) -> float:
     ----------
     references : str | list[str]
         The reference string(s) to compare to the candidate.
-    candidate : str
-        The candidate string to compare to the references.
+    llmcoder_result : dict | str
+        The llmcoder result containing the conversation (the last message is the completion).
 
     Returns
     -------
@@ -48,10 +54,16 @@ def bleu_score(ground_truth: str | list[str], completion: str) -> float:
     """
     if isinstance(ground_truth, str):
         ground_truth = [ground_truth]
+
+    if isinstance(llmcoder_result, dict):
+        completion = llmcoder_result['messages'][-1]['content']
+    else:
+        completion = llmcoder_result
+
     return sentence_bleu(ground_truth, completion)
 
 
-def trf_similarity_score(ground_truth: str, completion: str, model: str = "sentence-transformers/all-roberta-large-v1") -> float:
+def trf_similarity_score(ground_truth: str, llmcoder_result: dict | str, model: str = "sentence-transformers/all-roberta-large-v1") -> float:
     """
     Compute the sentence similarity between two strings with a transformer model.
 
@@ -59,8 +71,8 @@ def trf_similarity_score(ground_truth: str, completion: str, model: str = "sente
     ----------
     ground_truth : str
         The first string to compare.
-    completion : str
-        The second string to compare.
+    llmcoder_result : dict | str
+        The llmcoder result containing the conversation (the last message is the completion).
     model : str, optional
         The name of the transformer model to use, by default "all-roberta-large-v1 "
 
@@ -72,71 +84,78 @@ def trf_similarity_score(ground_truth: str, completion: str, model: str = "sente
 
     model = SentenceTransformer(model)
     gt_embedding = model.encode(ground_truth)
+
+    if isinstance(llmcoder_result, dict):
+        completion = llmcoder_result['messages'][-1]['content']
+    else:
+        completion = llmcoder_result
+
     completion_embedding = model.encode(completion)
     return util.pytorch_cos_sim(gt_embedding, completion_embedding).item()
 
 
-def _ast_compare_strings(string1: str, string2: str, threshold: int = 80, show_diff: bool = False, function: Callable = None) -> float:
-    """
-    Compare two strings with ASTs.
+# FIXME: This does not work properly since the code snippets are not full python programs I think
+# def _ast_compare_strings(string1: str, string2: str, threshold: int = 80, show_diff: bool = False, function: Callable = None) -> float:
+#     """
+#     Compare two strings with ASTs.
 
-    Parameters
-    ----------
-    string1 : str
-        The first string to compare.
-    string2 : str
-        The second string to compare.
-    threshold : int, optional
-        The similarity threshold, by default 80
-    show_diff : bool, optional
-        Whether to show the diff between the two strings, by default False
-    function : function, optional
-        The function to use to parse the ASTs, by default None
+#     Parameters
+#     ----------
+#     string1 : str
+#         The first string to compare.
+#     string2 : str
+#         The second string to compare.
+#     threshold : int, optional
+#         The similarity threshold, by default 80
+#     show_diff : bool, optional
+#         Whether to show the diff between the two strings, by default False
+#     function : function, optional
+#         The function to use to parse the ASTs, by default None
 
-    Returns
-    -------
-    float
-        The similarity between the two strings.
-    """
-    # Normalize the content of the strings
-    submissions = [get_normed_content(s, function) for s in [string1, string2]]
+#     Returns
+#     -------
+#     float
+#         The similarity between the two strings.
+#     """
+#     # Normalize the content of the strings
+#     submissions = [get_normed_content(s, function) for s in [string1, string2]]
 
-    # Get the similarity and edit distance between the two strings
-    pair_stats = get_pair_stats(submissions)
+#     # Get the similarity and edit distance between the two strings
+#     pair_stats = get_pair_stats(submissions)
 
-    # Check if the similarity is above the threshold
-    if pair_stats[0] > threshold:
-        print(f"Detected similarity of {int(pair_stats[0])}% with edit distance of {pair_stats[1]}")
+#     # Check if the similarity is above the threshold
+#     if pair_stats[0] > threshold:
+#         print(f"Detected similarity of {int(pair_stats[0])}% with edit distance of {pair_stats[1]}")
 
-        # If show_diff is True, print the diff
-        if show_diff:
-            print('\n'.join(ndiff(submissions[0][1].splitlines(), submissions[1][1].splitlines())))
+#         # If show_diff is True, print the diff
+#         if show_diff:
+#             print('\n'.join(ndiff(submissions[0][1].splitlines(), submissions[1][1].splitlines())))
 
-        return pair_stats[0]
+#         return pair_stats[0]
 
-    return 0
-
-
-def ast_similarity_score(ground_truth: str, completion: str) -> float:
-    """
-    Compute the similarity between two python code snippets with ASTs.
-
-    Parameters
-    ----------
-    ground_truth : str
-        The first string to compare.
-    completion : str
-        The second string to compare.
-
-    Returns
-    -------
-    float
-        The similarity between the two strings.
-    """
-    return _ast_compare_strings(ground_truth, completion)
+#     return 0
 
 
-def sequence_matcher_score(ground_truth: str, completion: str) -> float:
+# def ast_similarity_score(ground_truth: str, completion: str) -> float:
+#     """
+#     Compute the similarity between two python code snippets with ASTs.
+
+#     Parameters
+#     ----------
+#     ground_truth : str
+#         The first string to compare.
+#     completion : str
+#         The second string to compare.
+
+#     Returns
+#     -------
+#     float
+#         The similarity between the two strings.
+#     """
+#     return _ast_compare_strings(ground_truth, completion)
+
+
+def sequence_matcher_score(ground_truth: str, llmcoder_result: dict | str) -> float:
     """
     Compute the similarity between two strings with the SequenceMatcher algorithm.
 
@@ -144,34 +163,39 @@ def sequence_matcher_score(ground_truth: str, completion: str) -> float:
     ----------
     ground_truth : str
         The first string to compare.
-    completion : str
-        The second string to compare.
+    llmcoder_result : dict | str
+        The llmcoder result containing the conversation (the last message is the completion).
 
     Returns
     -------
     float
         The similarity between the two strings.
     """
+    if isinstance(llmcoder_result, dict):
+        completion = llmcoder_result['messages'][-1]['content']
+    else:
+        completion = llmcoder_result
+
     return SequenceMatcher(None, ground_truth, completion).ratio()
 
 
-def _user_prompt_templste(ground_truth: str, completion: str, qualities_list: list[str]) -> str:
+def _user_prompt_templste(code_1: str, code_2: str, qualities_list: list[str]) -> str:
     quality_list_string = '\n'.join([f'- {q}' for q in qualities_list])
     return f"""Assess and compare these two code snippets and evaluate the completions. Do your own analysis and also prip the following criteria:
 {quality_list_string}
 
 CODE 1:
 ```python
-{ground_truth}
+{code_1}
 ```
 
 CODE 2:
 ```python
-{completion}
+{code_2}
 ```"""
 
 
-def gpt_reviewer_score(ground_truth: str, completion: str, model: str = "gpt-3.5-turbo", qualities_list: list[str] | None = None) -> float:
+def gpt_reviewer_score(ground_truth: str, llmcoder_result: dict | str, model: str = "gpt-3.5-turbo", qualities_list: list[str] | None = None) -> float:
     """
     Compute the similarity of qualities of two strings with GPT-3.
 
@@ -179,8 +203,8 @@ def gpt_reviewer_score(ground_truth: str, completion: str, model: str = "gpt-3.5
     ----------
     ground_truth : str
         The first string to compare.
-    completion : str
-        The second string to compare.
+    llmcoder_result : dict
+        The llmcoder result containing the conversation (the last message is the completion).
 
     Returns
     -------
@@ -214,6 +238,11 @@ These scores will later be parsed at this exact location.
             "readability",
             "efficiency"
         ]
+
+    if isinstance(llmcoder_result, dict):
+        completion = llmcoder_result['messages'][-1]['content']
+    else:
+        completion = llmcoder_result
 
     user_prompt = _user_prompt_templste(ground_truth, completion, qualities_list)
 
