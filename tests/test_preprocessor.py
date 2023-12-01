@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, Mock, call, mock_open, patch
 
 import pytest
 
-from llmcoder.data.preprocessor import FineTunePreprocessor, count_lines, get_file_contents, sample_files_from_dir, split_file
+from llmcoder.data.preprocessor import Preprocessor, count_lines, get_file_contents, sample_files_from_dir, split_file
 
 
 # Generated with GPT-4 under supervision
@@ -136,11 +136,7 @@ def test_fine_tune_preprocessor_initialization() -> None:
     custom_system_prompt = "Custom system prompt"
     custom_disallowed_tokens = ["TOKEN1", "TOKEN2"]
 
-    preprocessor_custom = FineTunePreprocessor(dataset_name='pytest',
-                                               scraped_files_dir=custom_scraped_files_dir,
-                                               save_pairs_dir=custom_save_pairs_dir,
-                                               system_prompt=custom_system_prompt,
-                                               disallowed_special_tokens=custom_disallowed_tokens)
+    preprocessor_custom = Preprocessor(dataset_name='pytest', scraped_files_dir=custom_scraped_files_dir, save_pairs_dir=custom_save_pairs_dir, system_prompt=custom_system_prompt, disallowed_special_tokens=custom_disallowed_tokens)
 
     assert preprocessor_custom.scraped_files_dir == custom_scraped_files_dir
     assert preprocessor_custom.save_pairs_dir == custom_save_pairs_dir
@@ -169,7 +165,7 @@ def test_sample_files(mock_os_path_isdir: MagicMock,
     mock_split_file.side_effect = lambda contents: (contents[:5], contents[5:])
 
     # Initialize FineTuner instance
-    preprocessor = FineTunePreprocessor(dataset_name='pytest', scraped_files_dir="/mocked/data/dir/scraped_repos")
+    preprocessor = Preprocessor(dataset_name='pytest', scraped_files_dir="/mocked/data/dir/scraped_repos")
     result = preprocessor.sample_files()
 
     # Assertions
@@ -182,7 +178,7 @@ def test_sample_files(mock_os_path_isdir: MagicMock,
 @patch('random.randint', return_value=5000)
 def test_preprocess(mock_randint: MagicMock) -> None:
     # Initialize FineTuner instance
-    preprocessor = FineTunePreprocessor(dataset_name='pytest')  # Adjust based on how your class is initialized
+    preprocessor = Preprocessor(dataset_name='pytest')  # Adjust based on how your class is initialized
 
     # Simulated split file contents
     split_files_contents = [("A" * 6000, "B" * 3000), ("C" * 4000, "D" * 2000)]
@@ -208,7 +204,7 @@ def test_preprocess(mock_randint: MagicMock) -> None:
 @patch('builtins.open', new_callable=mock_open, read_data="")
 def test_save_pairs(mock_file_open: MagicMock, mock_path_join: MagicMock, mock_makedirs: MagicMock) -> None:
     # Initialize FineTunePreprocessor instance
-    preprocessor = FineTunePreprocessor(dataset_name='pytest', save_pairs_dir="/mocked/data/dir/fine-tune-pairs")
+    preprocessor = Preprocessor(dataset_name='pytest', save_pairs_dir="/mocked/data/dir/fine-tune-pairs")
 
     # Sample data to test
     truncated_split_files_contents = [("input1", "output1"), ("input2", "output2")]
@@ -248,7 +244,7 @@ class TestFineTunePreprocessor(TestCase):
         # Initialize FineTunePreprocessor instance
         system_prompt = "System prompt text"
         disallowed_tokens = ["disallowed_token1", "disallowed_token2"]
-        preprocessor = FineTunePreprocessor(dataset_name='pytest', system_prompt=system_prompt, disallowed_special_tokens=disallowed_tokens)
+        preprocessor = Preprocessor(dataset_name='pytest', system_prompt=system_prompt, disallowed_special_tokens=disallowed_tokens)
 
         # Call build_conversations
         conversations = preprocessor.build_conversations()
@@ -301,7 +297,7 @@ class TestFineTunePreprocessor(TestCase):
         # Initialize FineTunePreprocessor instance
         system_prompt = "System prompt text"
         disallowed_tokens = ["disallowed_token1", "disallowed_token2"]
-        preprocessor = FineTunePreprocessor(dataset_name='pytest', system_prompt=system_prompt, disallowed_special_tokens=disallowed_tokens)
+        preprocessor = Preprocessor(dataset_name='pytest', system_prompt=system_prompt, disallowed_special_tokens=disallowed_tokens)
 
         # Sample conversations
         conversations = [
@@ -322,7 +318,7 @@ class TestFineTunePreprocessor(TestCase):
     @patch('json.dumps')
     def test_save_conversations(self, mock_json_dumps: MagicMock, mock_tqdm: MagicMock, mock_file_open: MagicMock, mock_path_join: MagicMock) -> None:
         # Initialize FineTunePreprocessor instance
-        fine_tuner = FineTunePreprocessor(dataset_name='pytest', save_data_dir="/mocked/data/dir/fine-tune-pairs", system_prompt="pytest")
+        fine_tuner = Preprocessor(dataset_name='pytest', save_data_dir="/mocked/data/dir/fine-tune-pairs", system_prompt="pytest")
 
         # Sample conversations
         conversations = [

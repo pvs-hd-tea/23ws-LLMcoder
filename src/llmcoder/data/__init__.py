@@ -1,2 +1,2 @@
-from .preprocessor import FineTunePreprocessor  # NOQA: F401
+from .preprocessor import Preprocessor  # NOQA: F401
 from .scraper import GitHubScraper  # NOQA: F401

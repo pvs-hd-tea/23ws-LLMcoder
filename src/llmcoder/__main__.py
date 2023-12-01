@@ -35,21 +35,21 @@ def main() -> None:
     # Execute the command
     match args.command:
         case 'preprocess':
-            from llmcoder.data import FineTunePreprocessor, GitHubScraper
+            from llmcoder.data import GitHubScraper, Preprocessor
 
             gh_scraper = GitHubScraper(args.name)
             repos = gh_scraper.accumulate_repositories()  # Use the default repos
             gh_scraper.scrape_repositories(repos=repos)  # Scrape the repos to the default directory
 
-            preprocessor = FineTunePreprocessor(args.name)
+            preprocessor = Preprocessor(args.name)
             split_files_contents = preprocessor.sample_files(n_samples=args.size)
             file_splits = preprocessor.preprocess(split_files_contents)
             preprocessor.save_pairs(file_splits)
 
         case 'export':
-            from llmcoder.data import FineTunePreprocessor
+            from llmcoder.data import Preprocessor
 
-            preprocessor = FineTunePreprocessor(args.name)
+            preprocessor = Preprocessor(args.name)
             conversations = preprocessor.build_conversations()
             preprocessor.validate_conversations(conversations)
             preprocessor.save_conversations(conversations)

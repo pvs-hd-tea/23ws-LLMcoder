@@ -6,7 +6,7 @@ import pandas as pd
 from dynaconf import Dynaconf
 from tqdm import tqdm
 
-from llmcoder.data.io import dump_results_to_json, read_data_from_conversations_file
+from llmcoder.data.io import dump_results_to_json, read_data_from_conversations_file, read_results_from_json
 from llmcoder.LLMCoder import LLMCoder  # Import your LLMCoder class
 from llmcoder.utils import get_data_dir
 
@@ -24,6 +24,14 @@ class Evaluation:
         self.config = config
         self.data: list[tuple[str, str]] | None = None
         self.results: dict | None = None
+        self.time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
+        print(f'Evaluation initialized with configuration: {self.config.settings_file_for_dynaconf[0]}')
+        dataset_path = os.path.abspath(os.path.join(get_data_dir(self.config.get("dataset")), 'conversations.jsonl'))
+        if not os.path.exists(dataset_path):
+            raise FileNotFoundError(f'Dataset not found at {dataset_path}')
+        else:
+            print(f'Found dataset: {self.config.get("dataset")} at {dataset_path}')
 
     def predict(self, store: bool = False, verbose: bool = False) -> dict:
         """
@@ -44,29 +52,80 @@ class Evaluation:
 
         return self.results
 
-    def run(self, verbose: bool = False) -> dict:
+    def run(self, store_predictions: bool = True, store_analysis: bool = True, verbose: bool = False) -> tuple[dict, dict]:
         """
         Run the evaluation end to end (reading inputs from the database and writing results back)
+
+        Parameters
+        ----------
+        store_predictions : bool, optional
+            Whether to store the predictions in the database, by default True
+        store_analysis : bool, optional
+            Whether to store the analysis in the database, by default True
+        verbose : bool, optional
+            Whether to print the results to the console, by default False
+
+        Returns
+        -------
+        tuple[dict, dict]
+            The results from the evaluation and the analysis.
         """
-        results = self.predict(store=True, verbose=verbose)
-        self.analyze(results, store=True, verbose=verbose)
+        self.time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        results = self.predict(store=store_predictions, verbose=verbose)
+        self.analyze(results, store=store_analysis, verbose=verbose)
 
-        return self.analysis_results
+        return results, self.analysis_results
 
-    def analyze(self, results: dict, store: bool = False, verbose: bool = False) -> dict:
+    def analyze(self, results: dict | str, store: bool = False, verbose: bool = False) -> dict:
         """
         Analyze the results from the database given the configuration and store it back in the database.
+
+        Parameters
+        ----------
+        results : dict | str
+            The results to analyze. Either a dictionary of results or the filename of a file containing the results.
+        store : bool, optional
+            Whether to store the analysis in the database, by default False
+        verbose : bool, optional
+            Whether to print the results to the console, by default False
+
+        Returns
+        -------
+        dict
+            The analysis results.
         """
+        if isinstance(results, str):
+            # Try to parse the filename of the results file to get the time
+            try:
+                time_str = '_'.join(results.split('_')[-2:])
+                time_str = time_str.split('.')[0]
+                print(f'Parsed time from {results}: {time_str}')
+                self.time = time_str
+            except Exception:
+                print(f'Could not parse time from {results}. Using default (current) time: {self.time}')
+
+            print(f'Reading results from {results}')
+            results = self._read_results(results)
+
+        if self.data is None:
+            self.data = self._get_data()
+            self.inputs = {i: input for i, (input, _) in enumerate(self.data)}
+            self.targets = {i: target for i, (_, target) in enumerate(self.data)}
+
         intrinsic_score_functions = [getattr(importlib.import_module(f'llmcoder.eval.metrics.{score.split(".")[0]}'), score.split(".")[1]) for score in self.config.scores if score.split(".")[0] == 'intrinsic']
         extrinsic_score_functions = [getattr(importlib.import_module(f'llmcoder.eval.metrics.{score.split(".")[0]}'), score.split(".")[1]) for score in self.config.scores if score.split(".")[0] == 'extrinsic']
 
         self.analysis_results: dict[str, dict] = {}
 
-        for results_id, result in tqdm(results.items(), desc='Analysis', total=len(results), disable=not verbose):
+        pbar = tqdm(results.items(), desc='Analysis', total=len(results), disable=not verbose)
+
+        for results_id, result in pbar:
             self.analysis_results[results_id] = {}
-            for f in intrinsic_score_functions:
-                self.analysis_results[results_id][f.__name__] = f(ground_truth=self.targets[results_id], llmcoder_result=result)
             for f in extrinsic_score_functions:
+                pbar.set_description(f'Analysis: {f.__name__}')
+                self.analysis_results[results_id][f.__name__] = f(ground_truth=self.targets[int(results_id)], llmcoder_result=result)  # FIXME: Support arbitrary keys instead of only integers
+            for f in intrinsic_score_functions:
+                pbar.set_description(f'Analysis: {f.__name__}')
                 self.analysis_results[results_id][f.__name__] = f(llmcoder_result=result)
 
         if store:
@@ -142,7 +201,18 @@ class Evaluation:
         results : dict
             The results to write back to the database.
         """
-        dump_results_to_json(results, os.path.join(get_data_dir(self.config.get('dataset')), f'results_{datetime.now().strftime("%Y%m%d_%H%M%S")}.json'))
+        dump_results_to_json(results, os.path.join(get_data_dir(self.config.get('dataset')), f'results_{self.time}.json'))
+
+    def _read_results(self, results_file: str) -> dict:
+        """
+        Read the results from the database.
+
+        Parameters
+        ----------
+        results : dict
+            The results to read from the database.
+        """
+        return read_results_from_json(os.path.join(get_data_dir(self.config.get('dataset')), results_file))
 
     def _write_analysis_results(self, analysis_results: dict) -> None:
         """
@@ -158,5 +228,4 @@ class Evaluation:
 
         # Write the dataframe to the database
         config_name = os.path.split(self.config.settings_file_for_dynaconf[0])[-1].split('.')[0]
-        datetime_now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        df.to_csv(os.path.join(get_data_dir(self.config.get('dataset')), f'results_{config_name}_{datetime_now}.csv'))
+        df.to_csv(os.path.join(get_data_dir(self.config.get('dataset')), f'results_{config_name}_{self.time}.csv'))

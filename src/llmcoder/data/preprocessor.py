@@ -125,7 +125,7 @@ def sample_files_from_dir(repo_dir: str, n_samples: int = 4, file_extensions: li
     return sampled_files
 
 
-class FineTunePreprocessor:
+class Preprocessor:
     def __init__(self, dataset_name: str, tokenizer: str = "p50k_base", scraped_files_dir: str | None = None, save_pairs_dir: str | None = None, save_data_dir: str | None = None, system_prompt: str | None = None, disallowed_special_tokens: list[str] | None = None) -> None:
         """
         A preprocessor for the fine-tuning data which samples files from scraped repositories, splits them into two parts and saves them in a format that can be used for fine-tuning.
