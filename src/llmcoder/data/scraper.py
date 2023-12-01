@@ -33,7 +33,7 @@ class GitHubScraper:
         self.access_token = access_token
 
         if scraped_files_dir is None:
-            self.scraped_files_dir = get_data_dir(self.name, "scraped_repos")  # /data/scraped_repos
+            self.scraped_files_dir = get_data_dir(self.name, "scraped_repos", create=True)  # /data/scraped_repos
         else:
             self.scraped_files_dir = scraped_files_dir
 

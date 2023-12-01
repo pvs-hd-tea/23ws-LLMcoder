@@ -107,7 +107,7 @@ class LLMCoder:
         str
             The path of the conversation file
         """
-        return os.path.join(get_conversations_dir(), f"{datetime.now()}.jsonl")
+        return os.path.join(get_conversations_dir(create=True), f"{datetime.now()}.jsonl")
 
     def _add_message(self, role: str, model: str = 'gpt-3.5-turbo', message: str | None = None) -> None:
         """

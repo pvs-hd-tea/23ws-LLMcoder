@@ -201,7 +201,8 @@ class Evaluation:
         results : dict
             The results to write back to the database.
         """
-        dump_results_to_json(results, os.path.join(get_data_dir(self.config.get('dataset')), f'results_{self.time}.json'))
+        config_name = os.path.split(self.config.settings_file_for_dynaconf[0])[-1].split('.')[0]
+        dump_results_to_json(results, os.path.join(get_data_dir(self.config.get('dataset'), create=True), f'results_{config_name}_{self.time}.json'))
 
     def _read_results(self, results_file: str) -> dict:
         """
@@ -228,4 +229,4 @@ class Evaluation:
 
         # Write the dataframe to the database
         config_name = os.path.split(self.config.settings_file_for_dynaconf[0])[-1].split('.')[0]
-        df.to_csv(os.path.join(get_data_dir(self.config.get('dataset')), f'results_{config_name}_{self.time}.csv'))
+        df.to_csv(os.path.join(get_data_dir(self.config.get('dataset'), create=True), f'results_{config_name}_{self.time}.csv'))

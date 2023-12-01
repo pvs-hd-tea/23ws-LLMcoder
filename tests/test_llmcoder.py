@@ -55,7 +55,7 @@ class TestLLMCoder(unittest.TestCase):
         self.assertEqual(llmcoder.conversation_file, None)
 
     def test_create_conversation_file(self) -> None:
-        conversations_dir = get_conversations_dir()
+        conversations_dir = get_conversations_dir(create=True)
         conversation_file = LLMCoder._create_conversation_file()
         self.assertEqual(os.path.dirname(conversation_file), conversations_dir)
 

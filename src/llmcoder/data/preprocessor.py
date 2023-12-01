@@ -141,7 +141,7 @@ class Preprocessor:
         save_pairs_dir : str
             The directory to store the sampled files in, defaults to 'pairs'.
         save_data_dir : str
-            The directory to store the preprocessed data in, defaults to 'data'.
+            The directory to store the preprocessed data in, defaults to 'github_mix'.
         system_prompt : str
             The system prompt to use, defaults to the default system prompt.
         disallowed_special_tokens : list[str]
@@ -152,17 +152,17 @@ class Preprocessor:
         self.enc = tiktoken.get_encoding(tokenizer)
 
         if scraped_files_dir is None:
-            self.scraped_files_dir = get_data_dir(self.name, "scraped_repos")  # /data/scraped_repos
+            self.scraped_files_dir = get_data_dir(self.name, "scraped_repos", create=True)  # /data/scraped_repos
         else:
             self.scraped_files_dir = scraped_files_dir
 
         if save_pairs_dir is None:
-            self.save_pairs_dir = get_data_dir(self.name, "pairs")
+            self.save_pairs_dir = get_data_dir(self.name, "pairs", create=True)  # /data/pairs
         else:
             self.save_pairs_dir = save_pairs_dir
 
         if save_data_dir is None:
-            self.save_data_dir = get_data_dir(self.name)
+            self.save_data_dir = get_data_dir(self.name, "github_mix", create=True)  # /data/github_mix
         else:
             self.save_data_dir = save_data_dir
 
