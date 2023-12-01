@@ -195,7 +195,7 @@ CODE 2:
 ```"""
 
 
-def gpt_reviewer_score(ground_truth: str, llmcoder_result: dict | str, model: str = "gpt-3.5-turbo", qualities_list: list[str] | None = None) -> float:
+def gpt_reviewer_score(ground_truth: str, llmcoder_result: dict | str, model: str = "gpt-3.5-turbo", qualities_list: list[str] | None = None, max_iter: int = 5) -> float:
     """
     Compute the similarity of qualities of two strings with GPT-3.
 
@@ -215,19 +215,21 @@ def gpt_reviewer_score(ground_truth: str, llmcoder_result: dict | str, model: st
 
     system_prompt_compare = """You are a data scientist tasked with comparing and evaluating code completions made by a language model.
 The user will submit two code snippets with the same beginning but different completions.
-Given these snippets, you evaluate the completions, and give each a score between 0 and 10, with 0 being the worst (unusable completion that would make a developer frustrated) and 10 being the best (perfect completion that would make a developer happy).
+Given these snippets, you evaluate the completions in a concise way, and give each a score between 0 and 10, with 0 being the worst (unusable completion that would make a developer frustrated) and 10 being the best (perfect completion that would make a developer happy).
 The user may ask you to prioritize different qualities of the code.
-Take this into account when scoring the completions.
-Your output must have the following format:
+Take these priorities into account when scoring the completions.
+Your output must always have the following format:
 ```
+COMPARISON:
 <comparison of the two completions with regard to the requested qualities>
+
 SCORE 1: <score for completion 1, integer between 0 and 10>
 SCORE 2: <score for completion 2, integer between 0 and 10>
 ```
 
 Do not include any other information in your output.
-It is very important that the output following "SCORE 1: " and "SCORE 2: " is a single integer between 0 and 10, with no other characters or spaces.
-These scores will later be parsed at this exact location.
+It is very important that the output following "SCORE 1: " and "SCORE 2: " is a single integer between 0 and 10, with no other characters or spaces since scores will later be parsed at this exact location.
+Therefore, make sure to keep your comparison (the text after COMPARISON:) concise, and adhere to the score format exactly.
 """
 
     if qualities_list is None:
@@ -257,13 +259,22 @@ These scores will later be parsed at this exact location.
         }
     ]
 
-    chat_completion = client.chat.completions.create(messages=messages, model=model, temperature=0.2)  # type: ignore
-    message = chat_completion.choices[0].message.content
+    scores = []
 
-    if message is None:
-        return np.nan
+    for _ in range(max_iter):
 
-    # Get the scores from the messag with regex (the numbers that follow "SCORE 1: " and "SCORE 2: ")
-    scores = [float(s.split(": ")[1]) for s in message.split("\n") if s.startswith("SCORE")]
+        chat_completion = client.chat.completions.create(messages=messages, model=model, temperature=0.2)  # type: ignore
+        message = chat_completion.choices[0].message.content
 
-    return scores[1] - scores[0]
+        if message is None:
+            return np.nan
+
+        # Get the scores from the messag with regex (the numbers that follow "SCORE 1: " and "SCORE 2: ")
+        scores = [float(s.split(": ")[1]) for s in message.split("\n") if s.startswith("SCORE")]
+
+        # If both scores are recognized, break
+        if len(scores) == 2:
+            return scores[1] - scores[0]
+
+    print(f"WARN: Could not parse scores from message: {message}")
+    return np.nan
