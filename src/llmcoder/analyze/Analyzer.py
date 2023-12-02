@@ -1,8 +1,8 @@
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 
 
-class Analyzer(ABCMeta):
+class Analyzer(ABC):
     # Required method for the analyzer to be implemented in concrete component
     @abstractmethod
-    def analyze(self, code: str) -> dict:
+    def analyze(self, input: str, completion: str) -> dict:
         pass
