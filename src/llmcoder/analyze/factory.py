@@ -32,5 +32,8 @@ class AnalyzerFactory:
             # case "unit_test_analyzer_v1":
             #     from llmcoder.analyze.UnitTestAnalyzer import UnitTestAnalyzer
             #     return UnitTestAnalyzer(*args, **kwargs)
+            case "gpt_review_analyzer_v1":
+                from llmcoder.analyze.GPTReviewAnalyzer import GPTReviewAnalyzer_v1
+                return GPTReviewAnalyzer_v1(system_prompt="2023-12-02_GPTReviewAnalyzer_v4.txt")
             case _:
                 raise ValueError(f"Invalid analyzer name: {analyzer}")
