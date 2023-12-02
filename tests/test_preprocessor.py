@@ -222,11 +222,11 @@ def test_save_pairs(mock_file_open: MagicMock, mock_path_join: MagicMock, mock_m
         input_file_path = f"/mocked/data/dir/fine-tune-pairs/pair_{i}/input.txt"
         output_file_path = f"/mocked/data/dir/fine-tune-pairs/pair_{i}/output.txt"
         expected_file_calls.extend([
-            call(input_file_path, 'w', encoding='iso-8859-1'),
+            call(input_file_path, 'w'),
             call().__enter__(),
             call().write(input_content),
             call().__exit__(None, None, None),
-            call(output_file_path, 'w', encoding='iso-8859-1'),
+            call(output_file_path, 'w'),
             call().__enter__(),
             call().write(output_content),
             call().__exit__(None, None, None)
@@ -255,11 +255,11 @@ class TestFineTunePreprocessor(TestCase):
             input_file_path = f"{preprocessor.save_pairs_dir}/pair_{i}/input.txt"
             output_file_path = f"{preprocessor.save_pairs_dir}/pair_{i}/output.txt"
             expected_file_calls.extend([
-                call(input_file_path, 'r', encoding='iso-8859-1'),
+                call(input_file_path, 'r'),
                 call().__enter__(),
                 call().read(),
                 call().__exit__(None, None, None),
-                call(output_file_path, 'r', encoding='iso-8859-1'),
+                call(output_file_path, 'r'),
                 call().__enter__(),
                 call().read(),
                 call().__exit__(None, None, None),
@@ -327,16 +327,16 @@ class TestFineTunePreprocessor(TestCase):
         ]
 
         # Setup mock for json.dumps
-        mock_json_dumps.side_effect = lambda x: f"mocked_json_{x}"
+        mock_json_dumps.side_effect = lambda x, **kwargs: f"mocked_json_{x}"  # kwargs for ensure_ascii=False
 
         # Call save_conversations
         fine_tuner.save_conversations(conversations)
 
         # Verify file creation
-        mock_file_open.assert_called_once_with("/mocked/data/dir/fine-tune-pairs/conversations.jsonl", 'w', encoding='iso-8859-1')
+        mock_file_open.assert_called_once_with("/mocked/data/dir/fine-tune-pairs/conversations.jsonl", 'w')
 
         # Check the calls to json.dumps
-        expected_json_calls = [call({"messages": conversation}) for conversation in conversations]
+        expected_json_calls = [call({"messages": conversation}, ensure_ascii=False) for conversation in conversations]
         mock_json_dumps.assert_has_calls(expected_json_calls, any_order=True)
 
         # Check the content written to the file

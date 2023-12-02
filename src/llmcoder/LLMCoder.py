@@ -137,12 +137,12 @@ class LLMCoder:
             # If the conversation file already exists, only append the last message as a single line
             if os.path.isfile(self.conversation_file):
                 with open(self.conversation_file, "a") as f:
-                    f.write(json.dumps(self.messages[-1]) + "\n")
+                    f.write(json.dumps(self.messages[-1], ensure_ascii=False) + "\n")
             # Otherwise, write the whole conversation
             else:
                 with open(self.conversation_file, "w") as f:
                     for message in self.messages:
-                        f.write(json.dumps(message) + "\n")
+                        f.write(json.dumps(message, ensure_ascii=False) + "\n")
 
     def _reset_loop(self) -> None:
         """

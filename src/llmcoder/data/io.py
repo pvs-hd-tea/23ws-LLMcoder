@@ -149,7 +149,7 @@ def dump_results_to_json(results: dict, output_file: str) -> None:
     """
 
     with open(output_file, 'w') as f:
-        json.dump(results, f, indent=4)
+        json.dump(results, f, indent=4, ensure_ascii=False)
 
 
 def read_results_from_json(input_file: str) -> dict:

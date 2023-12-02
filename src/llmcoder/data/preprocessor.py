@@ -9,7 +9,7 @@ from tqdm import tqdm
 from llmcoder.utils import get_data_dir, get_system_prompt
 
 
-def count_lines(file_path: str, encoding: str = 'iso-8859-1') -> int:
+def count_lines(file_path: str) -> int:
     """
     Count the number of lines in a file.
 
@@ -17,19 +17,17 @@ def count_lines(file_path: str, encoding: str = 'iso-8859-1') -> int:
     ----------
     file_path : str
         The path to the file.
-    encoding : str, optional
-        The encoding of the file, by default 'iso-8859-1'
 
     Returns
     -------
     int
         The number of lines in the file.
     """
-    with open(file_path, 'r', encoding=encoding) as file:
+    with open(file_path, 'r') as file:
         return sum(1 for _ in file)
 
 
-def get_file_contents(file_paths: list[str], encoding: str = 'iso-8859-1') -> list[str]:
+def get_file_contents(file_paths: list[str]) -> list[str]:
     """
     Get the contents of the given files.
 
@@ -37,8 +35,6 @@ def get_file_contents(file_paths: list[str], encoding: str = 'iso-8859-1') -> li
     ----------
     file_paths : list[str]
         A list of paths to the files.
-    encoding : str, optional
-        The encoding of the files, by default 'iso-8859-1'
 
     Returns
     -------
@@ -47,7 +43,7 @@ def get_file_contents(file_paths: list[str], encoding: str = 'iso-8859-1') -> li
     """
     contents = []
     for file_path in file_paths:
-        with open(file_path, 'r', encoding=encoding) as file:
+        with open(file_path, 'r') as file:
             contents.append(file.read())
 
     return contents
@@ -162,7 +158,7 @@ class Preprocessor:
             self.save_pairs_dir = save_pairs_dir
 
         if save_data_dir is None:
-            self.save_data_dir = get_data_dir(self.name, "github_mix", create=True)  # /data/github_mix
+            self.save_data_dir = get_data_dir(self.name, create=True)  # /data/github_mix
         else:
             self.save_data_dir = save_data_dir
 
@@ -273,10 +269,10 @@ class Preprocessor:
 
             os.makedirs(pair_path, exist_ok=True)
 
-            with open(os.path.join(pair_path, "input.txt"), 'w', encoding='iso-8859-1') as file:
+            with open(os.path.join(pair_path, "input.txt"), 'w') as file:
                 file.write(first_part)
 
-            with open(os.path.join(pair_path, "output.txt"), 'w', encoding='iso-8859-1') as file:
+            with open(os.path.join(pair_path, "output.txt"), 'w') as file:
                 file.write(second_part)
 
         # Inform the user that the data is ready for manual truncation
@@ -295,10 +291,10 @@ class Preprocessor:
         # Combine the system prompt, inout and output text into a conversation
         conversations = []
         for input_file, output_file in tqdm(zip(input_files, output_files)):
-            with open(input_file, 'r', encoding='iso-8859-1') as file:
+            with open(input_file, 'r') as file:
                 input_text = file.read()
 
-            with open(output_file, 'r', encoding='iso-8859-1') as file:
+            with open(output_file, 'r') as file:
                 output_text = file.read()
 
             conversation = [
@@ -347,9 +343,9 @@ class Preprocessor:
         """
         # Save the conversations in a jsonl file
         output_file = os.path.join(self.save_data_dir, "conversations.jsonl")
-        with open(output_file, 'w', encoding='iso-8859-1') as file:
+        with open(output_file, 'w') as file:
             for conversation in tqdm(conversations):
-                file.write(json.dumps({"messages": conversation}) + '\n')
+                file.write(json.dumps({"messages": conversation}, ensure_ascii=False) + '\n')
 
         # Inform the user that the data is fully processed and ready to be used in the OpenAI API
         print(f"Data saved in {output_file} and ready to be used in the OpenAI API.")
