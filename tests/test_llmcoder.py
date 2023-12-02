@@ -40,8 +40,9 @@ class TestLLMCoder(unittest.TestCase):
     @patch('llmcoder.LLMCoder.LLMCoder._create_conversation_file', return_value=None)
     @patch('llmcoder.utils.get_conversations_dir', return_value="/mock/conversations/dir")
     @patch('llmcoder.utils.get_system_prompt', return_value="mock_system_prompt")
+    @patch('llmcoder.utils.get_system_prompt_dir', return_value="/mock/system/prompt/dir")
     @patch('openai.OpenAI')
-    def test_init_default_parameters(self, mock_openai: MagicMock, mock_system_prompt: MagicMock, mock_conversations_dir: MagicMock, mock_create_conversation_file: MagicMock) -> None:
+    def test_init_default_parameters(self, mock_openai: MagicMock, mock_system_prompt_dir: MagicMock, mock_system_prompt: MagicMock, mock_conversations_dir: MagicMock, mock_create_conversation_file: MagicMock) -> None:
 
         llmcoder = LLMCoder()
         self.assertEqual(llmcoder.analyzers, [])
@@ -54,7 +55,7 @@ class TestLLMCoder(unittest.TestCase):
         self.assertEqual(llmcoder.conversation_file, None)
 
     def test_create_conversation_file(self) -> None:
-        conversations_dir = get_conversations_dir()
+        conversations_dir = get_conversations_dir(create=True)
         conversation_file = LLMCoder._create_conversation_file()
         self.assertEqual(os.path.dirname(conversation_file), conversations_dir)
 

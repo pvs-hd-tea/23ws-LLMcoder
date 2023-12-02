@@ -9,14 +9,14 @@ from llmcoder.utils import get_conversations_dir, get_data_dir, get_github_acces
 
 # Test get_data_dir function
 def test_get_data_dir() -> None:
-    data_dir = get_data_dir()
+    data_dir = get_data_dir(create=True)
 
     assert os.path.exists(data_dir)
     assert os.path.abspath(data_dir) == os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data'))
 
 
 def test_get_data_dir_argument() -> None:
-    data_dir = get_data_dir("pytest")
+    data_dir = get_data_dir("pytest", create=True)
 
     assert os.path.exists(data_dir)
     assert os.path.abspath(data_dir) == os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'pytest'))
@@ -157,7 +157,7 @@ def test_get_system_prompt_file_not_found() -> None:
 
 # get_conversations_dir
 def test_get_conversations_dir() -> None:
-    conversations_dir = get_conversations_dir()
+    conversations_dir = get_conversations_dir(create=True)
 
     assert os.path.exists(conversations_dir)
     assert os.path.abspath(conversations_dir) == os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'conversations'))

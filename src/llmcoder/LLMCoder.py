@@ -5,7 +5,7 @@ from datetime import datetime
 import openai
 
 from llmcoder.analyze.factory import AnalyzerFactory
-from llmcoder.utils import get_conversations_dir, get_openai_key, get_system_prompt
+from llmcoder.utils import get_conversations_dir, get_openai_key, get_system_prompt, get_system_prompt_dir
 
 
 class LLMCoder:
@@ -50,6 +50,7 @@ class LLMCoder:
             raise ValueError("Inavlid feedback method")
 
         self.iterations = 0
+        self.analyzer_pass_history: list[list[dict]] = []
         self.max_iter = max_iter
         self.feedback_variant = feedback_variant
 
@@ -61,9 +62,13 @@ class LLMCoder:
         self.messages: list = []
 
         if system_prompt is None:
-            system_prompt = get_system_prompt()
+            self.system_prompt = get_system_prompt()
+        elif system_prompt in os.listdir(get_system_prompt_dir()):
+            self.system_prompt = get_system_prompt(system_prompt)
+        else:
+            self.system_prompt = system_prompt
 
-        self._add_message("system", message=system_prompt)
+        self._add_message("system", message=self.system_prompt)
 
     def complete(self, code: str) -> str:
         """
@@ -102,7 +107,7 @@ class LLMCoder:
         str
             The path of the conversation file
         """
-        return os.path.join(get_conversations_dir(), f"{datetime.now()}.jsonl")
+        return os.path.join(get_conversations_dir(create=True), f"{datetime.now()}.jsonl")
 
     def _add_message(self, role: str, model: str = 'gpt-3.5-turbo', message: str | None = None) -> None:
         """
@@ -132,12 +137,31 @@ class LLMCoder:
             # If the conversation file already exists, only append the last message as a single line
             if os.path.isfile(self.conversation_file):
                 with open(self.conversation_file, "a") as f:
-                    f.write(json.dumps(self.messages[-1]) + "\n")
+                    f.write(json.dumps(self.messages[-1], ensure_ascii=False) + "\n")
             # Otherwise, write the whole conversation
             else:
                 with open(self.conversation_file, "w") as f:
                     for message in self.messages:
-                        f.write(json.dumps(message) + "\n")
+                        f.write(json.dumps(message, ensure_ascii=False) + "\n")
+
+    def _reset_loop(self) -> None:
+        """
+        Reset the feedback loop
+        """
+        self.iterations = 0
+        self.analyzer_pass_history = []
+
+    def _update_analyzer_pass_history(self, analyzer_results: list[dict]) -> None:
+        """
+        Add the analyzer results to the analyzer results list
+
+        Parameters
+        ----------
+        analyzer_results : list[dict]
+            The analyzer results to add
+        """
+        self.iterations += 1
+        self.analyzer_pass_history.append([results['pass'] for results in analyzer_results])
 
     def complete_first(self, code: str) -> dict:
         """
@@ -153,7 +177,7 @@ class LLMCoder:
         dict
             The message of the assistant
         """
-        self.iterations = 0
+        self._reset_loop()
 
         # We specify the user code for completion with model by default
         self._add_message("user", message=code)
@@ -195,6 +219,7 @@ class LLMCoder:
         self._add_message("user", message=error_prompt)
         self._add_message("assistant")
 
-        self.iterations += 1
+        # Add the analyzer results to the analyzer results list
+        self._update_analyzer_pass_history(analyzer_results)
 
         return all([results['pass'] for results in analyzer_results])
