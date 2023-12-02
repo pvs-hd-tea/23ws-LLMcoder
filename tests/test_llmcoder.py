@@ -139,7 +139,10 @@ class TestLLMCoder(unittest.TestCase):
 
         # Check if the state of the LLMCoder object is correct
         self.assertEqual(llmcoder.iterations, 1)
-        self.assertEqual(llmcoder.messages[-2]['content'], 'Error message')
+
+        expected_error_prompt = '[INST]\nConsider the following in your next completion:\n[ANALYSIS]\n' + "" + "Error message" + '\n[/ANALYSIS]\nSeamlessly complete the following code:\n[/INST]\n' + 'print("Goodbye, World!")'
+
+        self.assertEqual(llmcoder.messages[-2]['content'], expected_error_prompt)
 
     @patch('json.dumps')
     @patch('builtins.open', new_callable=unittest.mock.mock_open, read_data="mock_data")
