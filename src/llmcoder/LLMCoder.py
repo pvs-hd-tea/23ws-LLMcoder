@@ -205,6 +205,22 @@ class LLMCoder:
         # Return the last message (the completion)
         return self.messages[-1]["content"]
 
+    def _feedback_pattern(self, result_messages: list[str]) -> str:
+        """
+        Create the feedback pattern for the analyzer results
+
+        Parameters
+        ----------
+        result_messages : list[str]
+            The analyzer result messages
+
+        Returns
+        -------
+        str
+            The feedback pattern
+        """
+        return '[INST]\nConsider the following in your next completion:\n[ANALYSIS]\n' + '\n'.join(result_messages) + '\n[/ANALYSIS]\nSeamlessly complete the following code:\n[/INST]\n'
+
     def feedback_step(self) -> bool:
         """
         Run the feedback step of the LLMCoder feedback loop
@@ -236,7 +252,7 @@ class LLMCoder:
             # If all the analyzers passed, return True
             return True
 
-        error_prompt = '[INST]\nConsider the following in your next completion:\n[ANALYSIS]\n' + '\n'.join([results['message'] for results in analyzer_results if not results['pass']]) + '\n[/ANALYSIS]\nSeamlessly complete the following code:\n[/INST]\n'
+        error_prompt = self._feedback_pattern([result['message'] for result in analyzer_results if not result['pass']])
 
         self._add_message("user", message=error_prompt + self.messages[1]['content'])
         self._add_message("assistant")

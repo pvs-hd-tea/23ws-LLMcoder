@@ -25,8 +25,32 @@ class APIDocumentationAnalyzer(Analyzer):
         # To keep track of spec state
         self.spec = None
 
+    def analyze(self, input: str, completion: str) -> dict[str, bool | str]:
+        """
+        analyze analyzes the code that is passed in APIDocumentAnalyze class object and returns the documentation with the API References
+
+        Returns
+        -------
+        documentations : str
+            documentations along with corresponding packages that is being identified and fetched from the code
+        """
+        analysis_results = self._analyze(input, completion)
+
+        # Convert the list of dictionaries to a string
+        documentations = "\n".join(
+            [
+                f"{result['module']}\n{result['documentation']}"
+                for result in analysis_results
+            ]
+        )
+
+        return {
+            "pass": False,  # FIXME: Maks sure that the functions are used correctly!
+            "message": documentations,
+        }
+
     # The implementation of the abstract method
-    def analyze(self, input: str, completion: str) -> list[dict[str, str]]:
+    def _analyze(self, input: str, completion: str) -> list[dict[str, str]]:
         """
         analyze analyzes the code that is passed in APIDocumentAnalyze class object and returns the documentation with the API References
 
@@ -192,14 +216,22 @@ class APIDocumentationAnalyzer(Analyzer):
                     package_submodule_name = package_name
                     module = self.import_module(package_name)
 
-                function = getattr(module, reference)
-                documentations.append(
-                    self.format_documentation(
-                        ".".join([package_submodule_name, reference]),
-                        self.fetch_documentation(function)
-                    )
-                )
+                try:
+                    function = getattr(module, reference)
 
+                    documentations.append(
+                        self.format_documentation(
+                            ".".join([package_submodule_name, reference]),
+                            self.fetch_documentation(function)
+                        )
+                    )
+                except AttributeError as e:
+                    documentations.append(
+                        self.format_documentation(
+                            ".".join([package_submodule_name, reference]),
+                            str(e)
+                        )
+                    )
         return documentations
 
     def get_attributes_submodules_lists(self, asnames: list[str]) -> tuple[list, list]:
