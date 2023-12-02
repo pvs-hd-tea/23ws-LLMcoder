@@ -196,3 +196,6 @@ logs/*
 
 # ipynb checkpoint
 .ipynb_checkpoints
+
+# Evaluation files
+LLMcoder-Eval/
