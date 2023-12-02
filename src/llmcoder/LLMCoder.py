@@ -9,14 +9,16 @@ from llmcoder.utils import get_conversations_dir, get_openai_key, get_system_pro
 
 
 class LLMCoder:
-    def __init__(self,
-                 analyzers: list[str] = None,
-                 model_first: str = "ft:gpt-3.5-turbo-1106:personal::8LCi9Q0d",
-                 model_feedback: str = "gpt-3.5-turbo",
-                 feedback_variant: str = "separate",
-                 system_prompt: str | None = None,
-                 max_iter: int = 10,
-                 log_conversation: bool = True):
+    def __init__(
+        self,
+        analyzers: list[str] = None,
+        model_first: str = "ft:gpt-3.5-turbo-1106:personal::8LCi9Q0d",
+        model_feedback: str = "gpt-3.5-turbo",
+        feedback_variant: str = "separate",
+        system_prompt: str | None = None,
+        max_iter: int = 10,
+        log_conversation: bool = True,
+    ):
         """
         Initialize the LLMCoder
 
@@ -40,7 +42,9 @@ class LLMCoder:
         if analyzers is None:
             self.analyzers = []
         else:
-            self.analyzers = [AnalyzerFactory.create_analyzer(analyzer) for analyzer in analyzers]
+            self.analyzers = [
+                AnalyzerFactory.create_analyzer(analyzer) for analyzer in analyzers
+            ]
 
         self.model_first = model_first
         self.model_feedback = model_feedback
@@ -109,7 +113,9 @@ class LLMCoder:
         """
         return os.path.join(get_conversations_dir(create=True), f"{datetime.now()}.jsonl")
 
-    def _add_message(self, role: str, model: str = 'gpt-3.5-turbo', message: str | None = None) -> None:
+    def _add_message(
+        self, role: str, model: str = "gpt-3.5-turbo", message: str | None = None
+    ) -> None:
         """
         Add a message to the messages list
 
@@ -128,10 +134,12 @@ class LLMCoder:
 
             message = chat_completion.choices[0].message.content
 
-        self.messages.append({
-            "role": role,
-            "content": message,
-        })
+        self.messages.append(
+            {
+                "role": role,
+                "content": message,
+            }
+        )
 
         if self.conversation_file is not None:
             # If the conversation file already exists, only append the last message as a single line
@@ -198,7 +206,7 @@ class LLMCoder:
             True if the completed code passes all the analyzers, False otherwise
         """
         # Construct the full code with the last two messages (i.e. the user code and the assistant code)
-        completed_code = self.messages[-2]['content'] + self.messages[-1]['content']
+        completed_code = self.messages[-2]["content"] + self.messages[-1]["content"]
 
         # Run the analyzers
         analyzer_results: list[dict] = []
@@ -210,11 +218,13 @@ class LLMCoder:
             raise NotImplementedError("Coworker feedback variant not implemented yet")
 
         # Check if all the analyzers passed
-        if all([results['pass'] for results in analyzer_results]):
+        if all([results["pass"] for results in analyzer_results]):
             # If all the analyzers passed, return True
             return True
 
-        error_prompt = '\n'.join([results['message'] for results in analyzer_results if not results['pass']])
+        error_prompt = "\n".join(
+            [results["message"] for results in analyzer_results if not results["pass"]]
+        )
 
         self._add_message("user", message=error_prompt)
         self._add_message("assistant")
@@ -222,4 +232,4 @@ class LLMCoder:
         # Add the analyzer results to the analyzer results list
         self._update_analyzer_pass_history(analyzer_results)
 
-        return all([results['pass'] for results in analyzer_results])
+        return all([results["pass"] for results in analyzer_results])

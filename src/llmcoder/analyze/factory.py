@@ -23,9 +23,9 @@ class AnalyzerFactory:
             The created analyzer
         """
         match analyzer:
-            # case "api_documentation_analyzer_v1":
-            #     from llmcoder.analyze.APIDocumentationAnalyzer import APIDocumentationAnalyzer
-            #     return APIDocumentationAnalyzer(*args, **kwargs)
+            case "api_documentation_analyzer_v1":
+                from llmcoder.analyze.APIDocumentationAnalyzer import APIDocumentationAnalyzer
+                return APIDocumentationAnalyzer(*args, **kwargs)
             # case "syntax_analyzer_v1":
             #     from llmcoder.analyze.SyntaxAnalyzer import SyntaxAnalyzer
             #     return SyntaxAnalyzer(*args, **kwargs)
