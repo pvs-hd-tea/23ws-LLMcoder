@@ -1,4 +1,10 @@
+dynaconf
+levenshtein
+nltk
 openai
+pandas
+pyastsim
 requests
+sentence-transformers
 tiktoken
 tqdm
