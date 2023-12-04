@@ -6,7 +6,8 @@ from llmcoder.analyze.Analyzer import Analyzer
 
 
 class MypyAnalyzer(Analyzer):
-    def analyze(self, code: str, install_stubs=False) -> dict:
+    def analyze(self, input: str, completion: str, install_stubs=True) -> dict:
+        code = input + completion
         with tempfile.NamedTemporaryFile(delete=False, suffix=".py", mode="w") as temp_file:
             temp_file_name = temp_file.name
             temp_file.write(code)
@@ -16,7 +17,7 @@ class MypyAnalyzer(Analyzer):
         if install_stubs and ("install-types" in first_run.stderr or "install-types" in first_run.stdout):
             print("Installing missing stubs...")
             # Install missing stubs
-            subprocess.run(["mypy", "--install-types", "--non-interactive", "--strict"], capture_output=True, text=True)
+            subprocess.run(["mypy", "--install-types", "--non-interactive"], capture_output=True, text=True)
             # Re-run mypy after installing stubs
             second_run = subprocess.run(["mypy", temp_file_name], capture_output=True, text=True)
             result = second_run.stdout if second_run.stdout else second_run.stderr
@@ -25,4 +26,7 @@ class MypyAnalyzer(Analyzer):
             result = first_run.stdout if first_run.stdout else first_run.stderr
 
         os.remove(temp_file_name)
-        return result
+        return {
+            "pass": "error:" not in result,
+            "message": result if result else "No mypy errors found."
+        }
