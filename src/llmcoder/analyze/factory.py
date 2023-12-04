@@ -32,5 +32,8 @@ class AnalyzerFactory:
             # case "unit_test_analyzer_v1":
             #     from llmcoder.analyze.UnitTestAnalyzer import UnitTestAnalyzer
             #     return UnitTestAnalyzer(*args, **kwargs)
+            case "mypy_analyzer_v1":
+                from llmcoder.analyze.MypyAnalyzer import MypyAnalyzer
+                return MypyAnalyzer(*args, **kwargs)
             case _:
                 raise ValueError(f"Invalid analyzer name: {analyzer}")
