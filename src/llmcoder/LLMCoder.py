@@ -219,7 +219,7 @@ class LLMCoder:
         str
             The feedback pattern
         """
-        return '[INST]\nConsider the following in your next completion:\n[ANALYSIS]\n' + '\n'.join(result_messages) + '\n[/ANALYSIS]\nSeamlessly complete the following code:\n[/INST]\n'
+        return '[INST]\nThe completion you provided resulted in the following errors:\n' + '\n'.join(result_messages) + '\n\nFix, improve and rewrite your completion for the following code:\n[/INST]\n'
 
     def feedback_step(self) -> bool:
         """

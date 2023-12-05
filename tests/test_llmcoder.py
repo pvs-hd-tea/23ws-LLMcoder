@@ -140,7 +140,10 @@ class TestLLMCoder(unittest.TestCase):
         # Check if the state of the LLMCoder object is correct
         self.assertEqual(llmcoder.iterations, 1)
 
-        expected_error_prompt = '[INST]\nConsider the following in your next completion:\n[ANALYSIS]\n' + "" + "Error message" + '\n[/ANALYSIS]\nSeamlessly complete the following code:\n[/INST]\n' + 'print("Goodbye, World!")'
+        # expected_error_prompt = '[INST]\nConsider the following in your next completion:\n[ANALYSIS]\n' + "" + "Error message" + '\n[/ANALYSIS]\nSeamlessly complete the following code:\n[/INST]\n' + 'print("Goodbye, World!")'
+        # return '[INST]\nThe completion you provided resulted in the following errors:\n' + '\n'.join(result_messages) + '\n\nFix, improve and rewrite your completion for the following code:\n[/INST]\n'
+
+        expected_error_prompt = '[INST]\nThe completion you provided resulted in the following errors:\n' + 'Error message' + '\n\nFix, improve and rewrite your completion for the following code:\n[/INST]\n' + 'print("Goodbye, World!")'
 
         self.assertEqual(llmcoder.messages[-2]['content'], expected_error_prompt)
 
