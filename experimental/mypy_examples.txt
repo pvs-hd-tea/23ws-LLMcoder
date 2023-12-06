@@ -17,7 +17,7 @@ from aleph_alpha_client import Client, CompletionRequest, Prompt
 
 client = Client(token=os.getenv("AA_TOKEN"))
 request = CompletionRequest(
-    
+
 --------------------------------------------------------------------------------
 ASSISTANT
 prompt=Prompt(text="Write a Python function to remove duplicate elements from a list."),
@@ -41,7 +41,7 @@ from aleph_alpha_client import Client, CompletionRequest, Prompt
 
 client = Client(token=os.getenv("AA_TOKEN"))
 request = CompletionRequest(
-    
+
 --------------------------------------------------------------------------------
 ASSISTANT
 prompt=Prompt(text="Write a Python function to remove duplicate elements from a list."),
@@ -65,7 +65,7 @@ from aleph_alpha_client import Client, CompletionRequest, Prompt
 
 client = Client(token=os.getenv("AA_TOKEN"))
 request = CompletionRequest(
-    
+
 --------------------------------------------------------------------------------
 ASSISTANT
 prompt=Prompt(text="Write a Python function to remove duplicate elements from a list."),

@@ -1,12 +1,12 @@
+import os
 import subprocess
 import tempfile
-import os
 
 from llmcoder.analyze.Analyzer import Analyzer
 
 
 class MypyAnalyzer(Analyzer):
-    def analyze(self, input: str, completion: str, install_stubs=True) -> dict:
+    def analyze(self, input: str, completion: str, install_stubs: bool = True) -> dict:
         code = input + completion
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=".py", mode="w") as temp_file:
@@ -39,10 +39,10 @@ class MypyAnalyzer(Analyzer):
             else:
                 filtered_result.append(line)
 
-        filtered_result = "\n".join(filtered_result).replace(temp_file_name, "your completion")
+        filtered_result_str = "\n".join(filtered_result).replace(temp_file_name, "your completion")
 
         os.remove(temp_file_name)
         return {
-            "pass": "error:" not in filtered_result,
-            "message": filtered_result if filtered_result else "No mypy errors found."
+            "pass": "error:" not in filtered_result_str,
+            "message": filtered_result_str if filtered_result_str else "No mypy errors found."
         }
