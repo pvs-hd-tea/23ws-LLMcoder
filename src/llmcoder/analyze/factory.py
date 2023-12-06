@@ -38,5 +38,8 @@ class AnalyzerFactory:
             case "mypy_analyzer_v1":
                 from llmcoder.analyze.MypyAnalyzer import MypyAnalyzer
                 return MypyAnalyzer(*args, **kwargs)
+            case "signature_analyzer_v1":
+                from llmcoder.analyze.SignatureAnalyzer import SignatureAnalyzer
+                return SignatureAnalyzer(*args, **kwargs)
             case _:
                 raise ValueError(f"Invalid analyzer name: {analyzer}")

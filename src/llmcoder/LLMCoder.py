@@ -41,11 +41,11 @@ class LLMCoder:
             The temperature to use for the completion, by default 0.7
         """
         if analyzers is None:
-            self.analyzers = []
+            self.analyzers = {}
         else:
-            self.analyzers = [
-                AnalyzerFactory.create_analyzer(analyzer) for analyzer in analyzers
-            ]
+            self.analyzers = {
+                analyzer: AnalyzerFactory.create_analyzer(analyzer) for analyzer in analyzers
+            }
 
         self.model_first = model_first
         self.model_feedback = model_feedback
@@ -55,8 +55,8 @@ class LLMCoder:
             raise ValueError("Inavlid feedback method")
 
         self.iterations = 0
-        self.analyzer_pass_history: list[list[dict]] = []
-        self.analyzer_message_history: list[list[dict]] = []
+        self.analyzer_pass_history: list[dict[str, dict]] = []
+        self.analyzer_message_history: list[dict[str, dict]] = []
         self.max_iter = max_iter
         self.feedback_variant = feedback_variant
 
@@ -167,18 +167,18 @@ class LLMCoder:
         self.analyzer_pass_history = []
         self.analyzer_message_history = []
 
-    def _update_analyzer_history(self, analyzer_results: list[dict]) -> None:
+    def _update_analyzer_history(self, analyzer_results: dict[str, dict]) -> None:
         """
         Add the analyzer results to the analyzer results list
 
         Parameters
         ----------
-        analyzer_results : list[dict]
+        analyzer_results : dict[dict]
             The analyzer results to add
         """
         self.iterations += 1
-        self.analyzer_pass_history.append([results['pass'] for results in analyzer_results])
-        self.analyzer_message_history.append([results['message'] for results in analyzer_results])
+        self.analyzer_pass_history.append({analyzer_name: results['pass'] for analyzer_name, results in analyzer_results.items()})
+        self.analyzer_message_history.append({analyzer_name: results['message'] for analyzer_name, results in analyzer_results.items()})
 
     def complete_first(self, code: str) -> dict:
         """
@@ -219,7 +219,7 @@ class LLMCoder:
         str
             The feedback pattern
         """
-        return '[INST]\nThe completion you provided resulted in the following errors:\n' + '\n'.join(result_messages) + '\n\nFix, improve and rewrite your completion for the following code:\n[/INST]\n'
+        return '[INST]\n' + '\n'.join(result_messages) + '\n\nFix, improve and rewrite your completion for the following code:\n[/INST]\n'
 
     def feedback_step(self) -> bool:
         """
@@ -231,28 +231,32 @@ class LLMCoder:
             True if the completed code passes all the analyzers, False otherwise
         """
         # Run the analyzers
-        analyzer_results: list[dict] = []
+        analyzer_results: dict[str, dict] = {}
 
         if self.feedback_variant == "separate":
-            print("Analyzing code...")
-            for analyzer in self.analyzers:
-                print(f"Running {analyzer.__class__.__name__}...")
-                analyzer_results.append(analyzer.analyze(self.messages[1]['content'], self.messages[-1]['content']))
+            print("Analyzing code in a separate mode...")
+            for analyzer_name, analyzer_instance in self.analyzers.items():
+                print(f"Running {analyzer_name}...")
+                # analyzer_results.append(analyzer.analyze(self.messages[1]['content'], self.messages[-1]['content']))
+                analyzer_results[analyzer_name] = analyzer_instance.analyze(self.messages[1]['content'], self.messages[-1]['content'])
         if self.feedback_variant == "coworker":
-            raise NotImplementedError("Coworker feedback variant not implemented yet")
+            print("Analyzing code in a coworker mode...")
+            for analyzer_name, analyzer_instance in self.analyzers.items():
+                print(f"Running {analyzer_name}...")
+                analyzer_results[analyzer_name] = analyzer_instance.analyze(self.messages[1]['content'], self.messages[-1]['content'], context=analyzer_results)
 
         # Print how many analyzers have passed
-        print(f"{sum([results['pass'] for results in analyzer_results if results['pass'] is not None])} / {len(analyzer_results)} analyzers passed")
+        print(f"{sum([results['pass'] for results in analyzer_results.values() if type(results['pass']) is bool])} / {len([results for results in analyzer_results.values() if type(results['pass']) is bool])} analyzers passed")
 
         # Add the analyzer results to the analyzer results list
         self._update_analyzer_history(analyzer_results)
 
         # Check if all the analyzers passed
-        if all([results['pass'] for results in analyzer_results if results['pass'] is not None]):
+        if all([results['pass'] for results in analyzer_results.values() if type(results["pass"]) is bool]):  # Could also be "ignore" or "info" for example
             # If all the analyzers passed, return True
             return True
 
-        error_prompt = self._feedback_pattern([result['message'] for result in analyzer_results if not result['pass']])
+        error_prompt = self._feedback_pattern([result['message'] for result in analyzer_results.values() if not result['pass'] or result['pass'] == "info"])
 
         self._add_message("user", message=error_prompt + self.messages[1]['content'])
         self._add_message("assistant")

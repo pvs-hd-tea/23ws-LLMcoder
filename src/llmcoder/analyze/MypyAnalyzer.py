@@ -1,4 +1,5 @@
 import os
+import re
 import subprocess
 import tempfile
 
@@ -6,25 +7,42 @@ from llmcoder.analyze.Analyzer import Analyzer
 
 
 class MypyAnalyzer(Analyzer):
-    def analyze(self, input: str, completion: str, install_stubs: bool = True) -> dict:
+    def analyze(self, input: str, completion: str, install_stubs: bool = True, mypy_args: list[str] | None = None, context: dict[str, dict[str, bool | str]] | None = None) -> dict:
         code = input + completion
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=".py", mode="w") as temp_file:
             temp_file_name = temp_file.name
             temp_file.write(code)
 
+        if mypy_args is None:
+            # mypy_args = ["--disable-error-code=import-untyped"]  #FiXME: Should resolve error: Skipping analyzing "sklearn.ensemble": module is installed, but missing library stubs or py.typed marker  [import-untyped] but doesn't
+            mypy_args = []
+
         # First run of mypy to check for missing stubs
-        first_run = subprocess.run(["mypy", temp_file_name], capture_output=True, text=True)
-        if install_stubs and ("install-types" in first_run.stderr or "install-types" in first_run.stdout):
+        mypy_run = subprocess.run(["mypy", temp_file_name, *mypy_args], capture_output=True, text=True)
+
+        # Check if mypy reported missing stubs
+        indicators = ["install-types"]
+        missing_stubs = any(indicator in mypy_run.stdout or indicator in mypy_run.stderr for indicator in indicators)
+
+        # Install stubs if missing
+        if install_stubs and missing_stubs:
             print("Installing missing stubs...")
+
             # Install missing stubs
-            subprocess.run(["mypy", "--install-types", "--non-interactive"], capture_output=True, text=True)
+            subprocess.run(["mypy", "--install-types", "--non-interactive", *mypy_args], capture_output=True, text=True)
+
             # Re-run mypy after installing stubs
-            second_run = subprocess.run(["mypy", temp_file_name], capture_output=True, text=True)
-            result = second_run.stdout if second_run.stdout else second_run.stderr
+            mypy_run = subprocess.run(["mypy", temp_file_name, *mypy_args], capture_output=True, text=True)
         else:
             print("No missing stubs found.")
-            result = first_run.stdout if first_run.stdout else first_run.stderr
+
+        result = mypy_run.stdout if mypy_run.stdout else mypy_run.stderr
+
+        # Remove all colors from the mypy output
+        result = re.sub(r"\x1b\[[0-9;]*m", "", result)
+
+        print(result)
 
         # Get the number of lines of the input code
         n_input_lines = len(input.split("\n")) - 1
@@ -39,10 +57,25 @@ class MypyAnalyzer(Analyzer):
             else:
                 filtered_result.append(line)
 
-        filtered_result_str = "\n".join(filtered_result).replace(temp_file_name, "your completion")
+        # Replace the temp file name with "your completion". This helps the LLM understand that the error is caused by its completion.
+        filtered_result = [line.replace(temp_file_name, "your completion") for line in filtered_result]
+
+        # Remove the error message "your completion:2: \x1b[1m\x1b[31merror:\x1b[m Skipping analyzing..." since it cannot be resolved by installing stubs
+        filtered_result = [line for line in filtered_result if not re.match(r"your completion:\d+: \x1b\[1m\x1b\[31merror:\x1b\[m Skipping analyzing...", line)]
+
+        if len(filtered_result) == 0:
+            filtered_result_str = "No mypy errors found."
+        else:
+            filtered_result_str = "The completion you provided resulted in the following errors:\n"
+            filtered_result_str += "\n".join(filtered_result)
+
+        if "error:" not in filtered_result_str:
+            passed = True
+        else:
+            passed = False
 
         os.remove(temp_file_name)
         return {
-            "pass": "error:" not in filtered_result_str,
+            "pass": passed,
             "message": filtered_result_str if filtered_result_str else "No mypy errors found."
         }

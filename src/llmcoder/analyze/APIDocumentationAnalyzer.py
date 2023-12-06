@@ -25,7 +25,7 @@ class APIDocumentationAnalyzer(Analyzer):
         # To keep track of spec state
         self.spec = None
 
-    def analyze(self, input: str, completion: str) -> dict[str, bool | str]:
+    def analyze(self, input: str, completion: str, context: dict[str, dict[str, bool | str]] | None = None) -> dict[str, bool | str]:
         """
         analyze analyzes the code that is passed in APIDocumentAnalyze class object and returns the documentation with the API References
 
