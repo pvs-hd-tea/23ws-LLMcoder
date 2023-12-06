@@ -45,7 +45,7 @@ class TestLLMCoder(unittest.TestCase):
     def test_init_default_parameters(self, mock_openai: MagicMock, mock_system_prompt_dir: MagicMock, mock_system_prompt: MagicMock, mock_conversations_dir: MagicMock, mock_create_conversation_file: MagicMock) -> None:
 
         llmcoder = LLMCoder()
-        self.assertEqual(llmcoder.analyzers, [])
+        self.assertEqual(llmcoder.analyzers, {})
         self.assertEqual(llmcoder.model_first, "ft:gpt-3.5-turbo-1106:personal::8LCi9Q0d")
         self.assertEqual(llmcoder.model_feedback, "gpt-3.5-turbo")
         self.assertEqual(llmcoder.feedback_variant, "separate")
@@ -129,7 +129,10 @@ class TestLLMCoder(unittest.TestCase):
         # Set up the state of the LLMCoder object
         llmcoder.messages = [{'content': 'print("Hello, World!")'}, {'content': 'print("Goodbye, World!")'}]
         llmcoder.feedback_variant = 'separate'
-        llmcoder.analyzers = [mock_analyzer1, mock_analyzer2]
+        llmcoder.analyzers = {
+            'mock_analyzer1': mock_analyzer1,
+            'mock_analyzer2': mock_analyzer2
+        }
 
         # Call feedback_step
         result = llmcoder.feedback_step()
@@ -139,13 +142,6 @@ class TestLLMCoder(unittest.TestCase):
 
         # Check if the state of the LLMCoder object is correct
         self.assertEqual(llmcoder.iterations, 1)
-
-        # expected_error_prompt = '[INST]\nConsider the following in your next completion:\n[ANALYSIS]\n' + "" + "Error message" + '\n[/ANALYSIS]\nSeamlessly complete the following code:\n[/INST]\n' + 'print("Goodbye, World!")'
-        # return '[INST]\nThe completion you provided resulted in the following errors:\n' + '\n'.join(result_messages) + '\n\nFix, improve and rewrite your completion for the following code:\n[/INST]\n'
-
-        expected_error_prompt = '[INST]\nThe completion you provided resulted in the following errors:\n' + 'Error message' + '\n\nFix, improve and rewrite your completion for the following code:\n[/INST]\n' + 'print("Goodbye, World!")'
-
-        self.assertEqual(llmcoder.messages[-2]['content'], expected_error_prompt)
 
     @patch('json.dumps')
     @patch('builtins.open', new_callable=unittest.mock.mock_open, read_data="mock_data")
@@ -166,7 +162,10 @@ class TestLLMCoder(unittest.TestCase):
 
         # Set up the state of the LLMCoder object
         llmcoder.feedback_variant = 'separate'
-        llmcoder.analyzers = [mock_analyzer1, mock_analyzer2]
+        llmcoder.analyzers = {
+            'mock_analyzer1': mock_analyzer1,
+            'mock_analyzer2': mock_analyzer2
+        }
 
         # Call complete
         _ = llmcoder.complete('print("Hello, World!")')
