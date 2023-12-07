@@ -124,30 +124,30 @@ class SignatureAnalyzer(Analyzer):
         query = []
         if context:
             print(f"Using context from previous analyzers: {list(context.keys())}")
-            if not isinstance(context['mypy_analyzer_v1']['message'], str):
-                print("Cannot use context from previous analyzers. The context is not a string.")
-            else:
+            if 'mypy_analyzer_v1' in context and isinstance(context['mypy_analyzer_v1']['message'], str):
                 for line in context['mypy_analyzer_v1']['message'].split("\n"):
                     if line.startswith("your completion:"):
                         # Extract the problematic function or class name from the mypy_analyzer_v1 result
                         # Mypy will wrap the name in quotation marks like "foo" if it is a function, and in quotation marks and parentheses like "Foo" if it is a class.
                         # Find the quotation marks and extract the name.
                         # E.g. from `your completion:6: error: Argument 1 to "Client" has incompatible type "str | None"; expected "str"  [arg-type] Found 1 error in 1 file (checked 1 source file)`extract the name "Client".
-                        matches = re.findall(r'\"(.+?)\" has', line)
+
+                        matches_has = re.findall(r'\"(.+?)\" has', line)
+                        matches_for = re.findall(r'for \"(.+?)\"', line)
+
+                        matches = matches_has + matches_for
+
                         for match in matches:
                             print(f"Found problematic function or class: {match}")
+
+                            # Sometimes, the queries are "type[ElasticsearchStore]" instead of "ElasticsearchStore".
+                            # Extract the class name from the query.
+                            if match.startswith("type["):
+                                match = match[5:-1]
+
                             query.append(match)
 
-                        matches = re.findall(r'for \"(.+?)\"', line)
-                        for match in matches:
-                            print(f"Found problematic function or class: {match}")
-                            query.append(match)
-
-        # Sometimes, the queries are "type[ElasticsearchStore]" instead of "ElasticsearchStore".
-        # Extract the class name from the query.
-        for i, q in enumerate(query):
-            if q.startswith("type["):
-                query[i] = q[5:-1]
+        query = list(set([q for q in query if q.strip() != ""]))
 
         if len(query) == 0:
             print("No problematic functions or classes found in the context.")
