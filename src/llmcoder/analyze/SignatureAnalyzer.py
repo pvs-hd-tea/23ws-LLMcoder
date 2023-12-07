@@ -39,7 +39,7 @@ class SignatureAnalyzer(Analyzer):
                 if node.module is None:
                     continue
                 for alias in node.names:
-                    module = node.module.split('.')
+                    module = node.module.split('.')  # type: ignore
                     name = alias.name
                     asname = alias.asname if alias.asname else name
                     if query:
@@ -50,9 +50,25 @@ class SignatureAnalyzer(Analyzer):
 
         # TODO: Handle builtins
 
-    def find_function_calls(self, code: str, query: str | list[str] | None):
+    def find_function_calls(self, code: str, query: str | list[str] | None) -> list[tuple[str | None, str]]:
+        """
+        Find all function calls in the code that match the query.
+
+        Parameters
+        ----------
+        code : str
+            The code to analyze.
+        query : str | list[str] | None
+            The query string to search for. E.g. a function name or a class name.
+
+        Returns
+        -------
+        list[tuple[str | None, str]]
+            A list of tuples containing the module alias and the function name of every match to the query.
+        """
+
         root = ast.parse(code)
-        function_calls = []
+        function_calls: list[tuple[str | None, str]] = []
 
         if isinstance(query, str):
             query = [query]
@@ -65,7 +81,7 @@ class SignatureAnalyzer(Analyzer):
                     current = node.func
                     while isinstance(current, ast.Attribute):
                         attribute_chain.append(current.attr)
-                        current = current.value
+                        current = current.value  # type: ignore
                     if isinstance(current, ast.Name):
                         attribute_chain.append(current.id)
                     attribute_chain.reverse()
@@ -144,11 +160,11 @@ class SignatureAnalyzer(Analyzer):
                     module = __import__(module_path, fromlist=[parts[0]])
                     attr = module
                     for part in parts:
-                        attr = getattr(attr, part, None)
+                        attr = getattr(attr, part, None)  # type: ignore
                 elif func_name in direct_imports:  # Handle direct imports
                     module_name = direct_imports[func_name]
                     module = __import__(module_name, fromlist=[func_name])
-                    attr = getattr(module, func_name, None)
+                    attr = getattr(module, func_name, None)  # type: ignore
                 else:
                     attr = None
 
@@ -176,6 +192,24 @@ class SignatureAnalyzer(Analyzer):
         return signature_and_doc
 
     def analyze(self, input: str, completion: str, context: dict[str, dict[str, bool | str]] | None = None) -> dict:
+        """
+        Analyze the completion and return a message.
+
+        Parameters
+        ----------
+        input : str
+            The input code.
+        completion : str
+            The completion code.
+        context : dict[str, dict[str, bool | str]] | None
+            The context from the previous analyzers.
+
+        Returns
+        -------
+        dict
+            A dictionary containing the result of the analysis.
+        """
+
         code = input + completion
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=".py", mode="w") as temp_file:

@@ -8,6 +8,28 @@ from llmcoder.analyze.Analyzer import Analyzer
 
 class MypyAnalyzer(Analyzer):
     def analyze(self, input: str, completion: str, install_stubs: bool = True, mypy_args: list[str] | None = None, context: dict[str, dict[str, bool | str]] | None = None) -> dict:
+        """
+        Analyzes the completion using mypy.
+
+        Parameters
+        ----------
+        input : str
+            The input code.
+        completion : str
+            The completion to analyze.
+        install_stubs : bool, optional
+            Whether to install missing stubs, by default True.
+
+        Returns
+        -------
+        dict
+            A dictionary containing the following keys:
+            - pass: bool
+                Whether the completion passed the analysis.
+            - message: str
+                The message returned by mypy.
+        """
+
         code = input + completion
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=".py", mode="w") as temp_file:
