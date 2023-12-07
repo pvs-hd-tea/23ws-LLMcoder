@@ -1,7 +1,7 @@
 import os
 
 
-def get_data_dir(*args: str) -> str:
+def get_data_dir(*args: str, create: bool = False) -> str:
     """
     Get the path to the data directory.
 
@@ -9,15 +9,40 @@ def get_data_dir(*args: str) -> str:
     ----------
     args : str
         The path to the data directory.
+    create : bool
+        Whether to create the directory if it does not exist.
 
     Returns
     -------
     str
-        The path to the data directory.s
+        The path to the data directory.
     """
-    os.makedirs(os.path.join(os.path.dirname(__file__), '..', '..', 'data', *args), exist_ok=True)
+    if create:
+        os.makedirs(os.path.join(os.path.dirname(__file__), '..', '..', 'data', *args), exist_ok=True)
 
-    return os.path.join(os.path.dirname(__file__), '..', '..', 'data', *args)
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'data', *args))
+
+
+def get_config_dir(*args: str, create: bool = False) -> str:
+    """
+    Get the path to the configs directory.
+
+    Parameters
+    ----------
+    args : str
+        The path to the configs directory.
+    create : bool
+        Whether to create the directory if it does not exist.
+
+    Returns
+    -------
+    str
+        The path to the configs directory.
+    """
+    if create:
+        os.makedirs(os.path.join(os.path.dirname(__file__), '..', '..', 'configs', *args), exist_ok=True)
+
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'configs', *args))
 
 
 def get_openai_key(key: str = "") -> str:
@@ -117,7 +142,29 @@ def get_system_prompt(name: str = "2023-11-15_GPT-Builder.txt") -> str:
         return f.read().strip()
 
 
-def get_conversations_dir(*args: str) -> str:
+def get_system_prompt_dir(*args: str, create: bool = False) -> str:
+    """
+    Get the path to the system prompts directory.
+
+    Parameters
+    ----------
+    args : str
+        The path to the system prompts directory.
+    create : bool
+        Whether to create the directory if it does not exist.
+
+    Returns
+    -------
+    str
+        The path to the system prompts directory.
+    """
+    if create:
+        os.makedirs(os.path.join(os.path.dirname(__file__), '..', '..', 'system_prompts', *args), exist_ok=True)
+
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'system_prompts', *args))
+
+
+def get_conversations_dir(*args: str, create: bool = False) -> str:
     """
     Get the path to the log directory.
 
@@ -125,12 +172,15 @@ def get_conversations_dir(*args: str) -> str:
     ----------
     args : str
         The path to the log directory.
+    create : bool
+        Whether to create the directory if it does not exist.
 
     Returns
     -------
     str
         The path to the log directory.
     """
-    os.makedirs(os.path.join(os.path.dirname(__file__), '..', '..', 'conversations', *args), exist_ok=True)
+    if create:
+        os.makedirs(os.path.join(os.path.dirname(__file__), '..', '..', 'conversations', *args), exist_ok=True)
 
-    return os.path.join(os.path.dirname(__file__), '..', '..', 'conversations', *args)
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'conversations', *args))

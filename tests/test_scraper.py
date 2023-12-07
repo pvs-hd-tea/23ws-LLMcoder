@@ -2,8 +2,8 @@ import os
 import unittest
 from unittest.mock import Mock, patch
 
-from llmcoder.finetune import GitHubScraper
-from llmcoder.finetune.scraper import GITHUB_API
+from llmcoder.data import GitHubScraper
+from llmcoder.data.scraper import GITHUB_API
 
 
 # Generated with GPT-4 under supervision
@@ -12,7 +12,7 @@ class TestGitHubScraper(unittest.TestCase):
         """
         Test the __init__ method with default parameters.
         """
-        scraper = GitHubScraper()
+        scraper = GitHubScraper(dataset_name='pytest', )
 
         self.assertEqual(scraper.access_token, None)
 
@@ -31,7 +31,7 @@ class TestGitHubScraper(unittest.TestCase):
         mock_response.status_code = 200
         mock_get.return_value = mock_response
 
-        scraper = GitHubScraper(access_token='test_token')
+        scraper = GitHubScraper(dataset_name='pytest', access_token='test_token')
         query = 'test_query'
         num_repos = 1
 
@@ -56,7 +56,7 @@ class TestGitHubScraper(unittest.TestCase):
         mock_response.status_code = 404
         mock_get.return_value = mock_response
 
-        scraper = GitHubScraper()
+        scraper = GitHubScraper(dataset_name='pytest', )
         query = 'test_query'
         num_repos = 1
 
@@ -78,7 +78,7 @@ class TestGitHubScraper(unittest.TestCase):
         mock_response.status_code = 200
         mock_get.return_value = mock_response
 
-        scraper = GitHubScraper()
+        scraper = GitHubScraper(dataset_name='pytest', )
         query = 'test_query'
         num_repos = 1
 
@@ -106,7 +106,7 @@ class TestGitHubScraper(unittest.TestCase):
             {'id': 4, 'html_url': 'https://github.com/repo4'},
             {'id': 5, 'html_url': 'https://github.com/repo5'}
         ]
-        scraper = GitHubScraper()
+        scraper = GitHubScraper(dataset_name='pytest', )
 
         # Default queries
         default_queries = [
@@ -133,7 +133,7 @@ class TestGitHubScraper(unittest.TestCase):
         # Setup
         custom_queries = ['test_query1', 'test_query2']
         mock_get_repos_with_query.return_value = [{'id': 3, 'html_url': 'https://github.com/repo1'}, {'id': 4, 'html_url': 'https://github.com/repo2'}]
-        scraper = GitHubScraper()
+        scraper = GitHubScraper(dataset_name='pytest', )
 
         # Exercise
         result = scraper.get_popular_repos(num_repos_per_query=1, queries=custom_queries)
@@ -154,7 +154,7 @@ class TestGitHubScraper(unittest.TestCase):
             {'id': 1, 'html_url': 'https://github.com/repo1'}
         ]
         mock_get_repos_with_query.return_value = duplicate_repos
-        scraper = GitHubScraper()
+        scraper = GitHubScraper(dataset_name='pytest', )
 
         # Exercise
         result = scraper.get_popular_repos()
@@ -176,7 +176,7 @@ class TestGitHubScraper(unittest.TestCase):
         # Setup
         mock_exists.return_value = False
 
-        scraper = GitHubScraper()
+        scraper = GitHubScraper(dataset_name='pytest', )
 
         # Exercise
         scraper.clone_repo(repo_url, output_dir)
@@ -201,7 +201,7 @@ class TestGitHubScraper(unittest.TestCase):
         # Adjusted to reflect the actual structure returned by os.walk
         mock_walk.return_value = [(os.path.join(repo_dir, root), [], [file]) for root, file in python_files]
 
-        scraper = GitHubScraper()
+        scraper = GitHubScraper(dataset_name='pytest', )
 
         # Exercise
         scraper.extract_python_files(repo_dir, output_dir)
@@ -217,13 +217,13 @@ class TestGitHubScraper(unittest.TestCase):
         """
         # Setup
         mock_get_popular_repos.return_value = ['https://github.com/popular/repo1', 'https://github.com/popular/repo2']
-        scraper = GitHubScraper()
+        scraper = GitHubScraper(dataset_name='pytest')
 
         # Exercise
         result = scraper.accumulate_repositories()
 
         # Verify
-        mock_get_popular_repos.assert_called_once_with(num_repos_per_query=3)
+        mock_get_popular_repos.assert_called_once_with(num_repos_per_query=6)  # Default number of repos per query
         self.assertTrue(isinstance(result, list))
         # Check that popular repositories are included in the result
         self.assertIn(('https://github.com/popular/repo1', 'repo1'), result)
@@ -235,7 +235,7 @@ class TestGitHubScraper(unittest.TestCase):
         """
         Test `accumulate_repositories` with custom repository sets.
         """
-        scraper = GitHubScraper()
+        scraper = GitHubScraper(dataset_name='pytest', )
         custom_sets = [
             ['https://github.com/custom/repo1', 'https://github.com/custom/repo2'],
             ['https://github.com/another/repo1']
@@ -255,7 +255,7 @@ class TestGitHubScraper(unittest.TestCase):
         """
         Test `accumulate_repositories` for handling duplicates.
         """
-        scraper = GitHubScraper()
+        scraper = GitHubScraper(dataset_name='pytest', )
         duplicate_sets = [
             ['https://github.com/duplicate/repo', 'https://github.com/unique/repo'],
             ['https://github.com/duplicate/repo']

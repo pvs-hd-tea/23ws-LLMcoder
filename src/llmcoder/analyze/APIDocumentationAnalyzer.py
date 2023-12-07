@@ -5,7 +5,7 @@ import re
 from types import ModuleType
 from typing import Any
 
-from .Analyzer import Analyzer
+from llmcoder.analyze.Analyzer import Analyzer
 
 
 class APIDocumentationAnalyzer(Analyzer):
@@ -25,7 +25,32 @@ class APIDocumentationAnalyzer(Analyzer):
         # To keep track of spec state
         self.spec = None
 
-    def analyze(self, code: str) -> list[dict[str, str]]:
+    def analyze(self, input: str, completion: str, context: dict[str, dict[str, bool | str]] | None = None) -> dict[str, bool | str]:
+        """
+        analyze analyzes the code that is passed in APIDocumentAnalyze class object and returns the documentation with the API References
+
+        Returns
+        -------
+        documentations : str
+            documentations along with corresponding packages that is being identified and fetched from the code
+        """
+        analysis_results = self._analyze(input, completion)
+
+        # Convert the list of dictionaries to a string
+        documentations = "\n".join(
+            [
+                f"{result['module']}\n{result['documentation']}"
+                for result in analysis_results
+            ]
+        )
+
+        return {
+            "pass": False,  # FIXME: Maks sure that the functions are used correctly!
+            "message": documentations,
+        }
+
+    # The implementation of the abstract method
+    def _analyze(self, input: str, completion: str) -> list[dict[str, str]]:
         """
         analyze analyzes the code that is passed in APIDocumentAnalyze class object and returns the documentation with the API References
 
@@ -34,9 +59,10 @@ class APIDocumentationAnalyzer(Analyzer):
         documentations : list[str]
             list documentations along with corresponding packages that is being identified and fetched from the code
         """
-        # Call the abstract class method
-        super().analyze(code)
-        self.code = super().get_code_suggestion()
+        self.input = input
+        self.completion = completion
+
+        self.code = self.input + self.completion
 
         # List to save all documentations
         documentations: list[dict[str, str]] = list()
@@ -79,6 +105,9 @@ class APIDocumentationAnalyzer(Analyzer):
             module = self.import_module(node_module)
 
             if not hasattr(module, module_name):
+                print("Is not an Attribute")
+                print(module_name, module_asname)
+
                 attributes: list[str] = list()
 
                 # Check if a alias is used for a submodule or for an attribute
@@ -91,25 +120,40 @@ class APIDocumentationAnalyzer(Analyzer):
 
                 # Attributes used in the code suggestion
                 # Submodules used in the code suggestion
+                print(f"ASName: {asnames}")
                 attributes, submodules = self.get_attributes_submodules_lists(asnames)
 
                 # Check if submodules are used directly to access an attribute
                 # Get docs from all the attributes of the associated module
                 if len(submodules) > 0:
-                    for attribute, submodule in zip(attributes, submodules):
-                        # Create a submodule with module to import module.submodule
-                        module_submodule_name = ".".join([node_module, submodule])
-                        # Import the module.submodule
-                        module = self.import_module(module_submodule_name)
-                        # Get the attribute that is associated with the module.submodule
-                        attribute = getattr(module, attribute)
-                        # Fetch the documentation of the module.submodule.attribute
-                        documentations.append(
-                            self.format_documentation(
-                                ".".join([module_submodule_name, attribute]),
-                                self.fetch_documentation(attribute),
+                    if len(submodules[0]) > 0:
+                        print(submodules, attributes)
+                        for attribute, submodule in zip(attributes, submodules):
+                            print(submodule, attribute)
+                            # Create a submodule with module to import module.submodule
+                            module_submodule_name = ".".join([node_module, submodule])
+                            # Import the module.submodule
+                            module = self.import_module(module_submodule_name)
+                            # Get the attribute that is associated with the module.submodule
+                            attribute = getattr(module, attribute)
+                            # Fetch the documentation of the module.submodule.attribute
+                            documentations.append(
+                                self.format_documentation(
+                                    ".".join([module_submodule_name, attribute]),
+                                    self.fetch_documentation(attribute)
+                                )
                             )
-                        )
+                    else:
+                        for attribute in attributes:
+                            module_submodule_name = ".".join([node_module, module_name])
+                            module = self.import_module(module_submodule_name)
+                            attrib = getattr(module, attribute)
+                            documentations.append(
+                                self.format_documentation(
+                                    ".".join([module_submodule_name, attribute]),
+                                    self.fetch_documentation(attrib)
+                                )
+                            )
                 else:
                     # Create the module with submodule module.submodule
                     module_submodule_name = ".".join([node_module, module_name])
@@ -119,23 +163,26 @@ class APIDocumentationAnalyzer(Analyzer):
                     # Traverse over all the attributes of the module.submodule
                     for attribute in attributes:
                         # Get the attribute that is associated with the module.submodule
-                        attrib = getattr(module, attribute)
+                        attribute = getattr(module, attribute)
                         # Fetch the documentation of the module.submodule.attribute
                         documentations.append(
                             self.format_documentation(
                                 ".".join([module_submodule_name, attribute]),
-                                self.fetch_documentation(attrib),
+                                self.fetch_documentation(attribute)
                             )
                         )
             # If the the import after from is an attribute then directly get the documentation
             else:
                 # No need to import the module as it was done before while checking hasattr
                 # Get the attribute that is associated with the module
-                attribute = getattr(module, attribute)
+                print("Is an Submodule")
+                print(node_module, module_name)
+                attribute = getattr(module, module_name)
                 # Fetch the documentation of the module.attribute
                 documentations.append(
                     self.format_documentation(
-                        node_module, self.fetch_documentation(attribute)
+                        ".".join([node_module, module_name]),
+                        self.fetch_documentation(attribute)
                     )
                 )
 
@@ -166,18 +213,29 @@ class APIDocumentationAnalyzer(Analyzer):
                     package_submodule_name = ".".join([package_name, submodule])
                     module = self.import_module(package_submodule_name)
                 else:
+                    package_submodule_name = package_name
                     module = self.import_module(package_name)
 
-                function = getattr(module, reference)
-                documentations.append(
-                    self.format_documentation(
-                        package_name, self.fetch_documentation(function)
-                    )
-                )
+                try:
+                    function = getattr(module, reference)
 
+                    documentations.append(
+                        self.format_documentation(
+                            ".".join([package_submodule_name, reference]),
+                            self.fetch_documentation(function)
+                        )
+                    )
+                except AttributeError as e:
+                    documentations.append(
+                        self.format_documentation(
+                            ".".join([package_submodule_name, reference]),
+                            str(e)
+                        )
+                    )
         return documentations
 
     def get_attributes_submodules_lists(self, asnames: list[str]) -> tuple[list, list]:
+        print(f"ASNames: \n{asnames}\n\n")
         return [asname[-1] for asname in asnames], [asname[:-1:1] for asname in asnames]
 
     def get_asnames_from_module(self, module_name: str) -> list[str]:
@@ -196,7 +254,7 @@ class APIDocumentationAnalyzer(Analyzer):
         return {"module": module, "documentation": documentation}
 
     def get_node_module_names(self, node: Any) -> tuple[str, list[Any]]:
-        return node.module, node.name
+        return node.module, node.names
 
     def get_module_name_asname(self, names: Any) -> tuple[str, str]:
         return names.name, names.asname
@@ -208,6 +266,7 @@ class APIDocumentationAnalyzer(Analyzer):
             module: ModuleType | str = importlib.util.module_from_spec(spec)
             if module is not None:
                 spec.loader.exec_module(module)
+                print(f"Module: \n{module}\n\n")
                 return module
 
         return package
