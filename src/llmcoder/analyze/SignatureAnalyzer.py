@@ -15,52 +15,73 @@ Import = namedtuple("Import", ["module", "name", "alias"])
 class SignatureAnalyzer(Analyzer):
 
     def get_imports(self, path: str, query: str | list[str] | None = None) -> Generator:
-        """
-        Get all imports from a Python file that match the query, if specified.
-
-        Parameters
-        ----------
-        path : str
-            Path to the Python file. Can be temporary.
-        query : str | list[str] | None
-            The query string to search for. E.g. a function name or a class name.
-
-        Returns
-        -------
-        Generator
-            A generator that yields Import objects that match the query, if specified.
-        """
         if isinstance(query, str):
             query = [query]
-
-        elif isinstance(query, list):
-            if len(query) == 0:
-                print("Empty query specified.")
-                return
+        elif isinstance(query, list) and not query:
+            print("Empty query specified.")
+            return
 
         with open(path) as fh:
             root = ast.parse(fh.read(), path)
 
         for node in ast.walk(root):
             if isinstance(node, ast.Import):
-                module = []
+                for alias in node.names:
+                    module = alias.name
+                    module_name = alias.asname if alias.asname else alias.name
+                    if query:
+                        for q in query:
+                            if q.startswith(module_name + ".") or q == module_name:
+                                yield Import([module], q.split('.')[-1], module_name)
+                    else:
+                        yield Import([module], None, module_name)
             elif isinstance(node, ast.ImportFrom):
                 if node.module is None:
                     continue
-                module = node.module.split('.')
-            else:
-                continue
-
-            for n in node.names:  # type: ignore
-                if query:
-                    if n.name in query:
-                        print(f"Name {n.name} matches query {query}")
-                        yield Import(module, n.name.split('.'), n.asname)
-                else:
-                    print(f"Name {n.name} matches wildcard query")
-                    yield Import(module, n.name.split('.'), n.asname)
+                for alias in node.names:
+                    module = node.module.split('.')
+                    name = alias.name
+                    asname = alias.asname if alias.asname else name
+                    if query:
+                        if name in query or asname in query:
+                            yield Import(module, name, asname)
+                    else:
+                        yield Import(module, name, asname)
 
         # TODO: Handle builtins
+
+    def find_function_calls(self, code: str, query: str | list[str] | None):
+        root = ast.parse(code)
+        function_calls = []
+
+        if isinstance(query, str):
+            query = [query]
+
+        for node in ast.walk(root):
+            if isinstance(node, ast.Call):
+                if isinstance(node.func, ast.Attribute):
+                    # Handle nested attributes
+                    attribute_chain = []
+                    current = node.func
+                    while isinstance(current, ast.Attribute):
+                        attribute_chain.append(current.attr)
+                        current = current.value
+                    if isinstance(current, ast.Name):
+                        attribute_chain.append(current.id)
+                    attribute_chain.reverse()
+                    module_alias = attribute_chain[0]
+                    func_name = '.'.join(attribute_chain[1:])
+                elif isinstance(node.func, ast.Name):
+                    # Direct function call
+                    module_alias = None
+                    func_name = node.func.id
+                else:
+                    continue
+
+                if not query or func_name in query or func_name.split(".")[-1] in query or '.'.join(attribute_chain) in query:
+                    function_calls.append((module_alias, func_name))
+
+        return function_calls
 
     def get_signature_and_doc(self, path: str, query: str | list[str] | None) -> list[dict]:
         """
@@ -79,36 +100,78 @@ class SignatureAnalyzer(Analyzer):
             A list of dictionaries containing the signature and documentation of every match to the query.
         """
         signature_and_doc = []
+        import_aliases = {}
+        direct_imports = {}  # Store direct imports
 
-        for imp in self.get_imports(path, query):
-            if imp.module:
-                module = '.'.join(imp.module)
+        with open(path) as file:
+            code = file.read()
+
+        # Get all imports
+        for imp in self.get_imports(path):
+            full_module = '.'.join(imp.module) if imp.module else imp.name[0]
+            if imp.module and imp.name:  # Correctly identify direct imports
+                direct_imports[imp.name] = full_module
             else:
-                module = imp.name[0]
+                alias = imp.alias if imp.alias else imp.name[-1] if imp.name else full_module
+                import_aliases[alias] = full_module
 
-            name = imp.alias if imp.alias else imp.name[0]
+        print(f"{import_aliases=}")
+        print(f"{direct_imports=}")
 
+        # Find all function calls that match the query
+        function_calls = self.find_function_calls(code, query)
+
+        function_calls = list(set(function_calls))
+
+        print(f"{function_calls=}")
+
+        # Match the function calls to the imports
+        matched_function_calls = []
+        for module_alias, func_name in function_calls:
+            if module_alias and module_alias in import_aliases:
+                matched_function_calls.append((module_alias, func_name))
+            elif func_name in direct_imports:
+                matched_function_calls.append((direct_imports[func_name], func_name))
+            else:
+                print(f"No import found for {func_name}")
+
+        for module_alias, func_name in matched_function_calls:
+            print(f"{module_alias=} {func_name=}")
             try:
-                obj = __import__(module, fromlist=[name])
-                obj = getattr(obj, name)
+                if module_alias and module_alias in import_aliases:
+                    module_path = import_aliases[module_alias]
+                    parts = func_name.split('.')
+                    module = __import__(module_path, fromlist=[parts[0]])
+                    attr = module
+                    for part in parts:
+                        attr = getattr(attr, part, None)
+                elif func_name in direct_imports:  # Handle direct imports
+                    module_name = direct_imports[func_name]
+                    module = __import__(module_name, fromlist=[func_name])
+                    attr = getattr(module, func_name, None)
+                else:
+                    attr = None
 
-                try:
-                    sig = inspect.signature(obj)  # type: ignore
-                    doc = inspect.getdoc(obj)
-                except ValueError:
-                    # Built-in function
-                    sig = inspect.signature(obj.__call__)
-                    doc = inspect.getdoc(obj.__call__)
+                if attr and callable(attr):
+                    try:
+                        sig = inspect.signature(attr)
+                        doc = inspect.getdoc(attr)
+                        signature_and_doc.append({
+                            "name": func_name,
+                            "signature": str(sig),
+                            "doc": doc
+                        })
+                    except ValueError:
+                        signature_and_doc.append({
+                            "name": func_name,
+                            "signature": None,
+                            "doc": inspect.getdoc(attr)
+                        })
+                else:
+                    print(f"No callable attribute {func_name} found")
 
-                signature_and_doc.append({
-                    "name": name,
-                    "signature": str(sig),
-                    "doc": doc
-                })
-
-            except (ImportError, AttributeError):
-                print(f"Cannot get signature and documentation of {name}")
-                continue
+            except (ImportError, AttributeError) as e:
+                print(f"Error importing {func_name}: {e}")
 
         return signature_and_doc
 
