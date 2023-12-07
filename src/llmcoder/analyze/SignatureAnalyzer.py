@@ -197,8 +197,9 @@ class SignatureAnalyzer(Analyzer):
 
                         matches_has = re.findall(r'\"(.+?)\" has', line)
                         matches_for = re.findall(r'for \"(.+?)\"', line)
+                        matches_gets = re.findall(r'\"(.+?)\" gets', line)
 
-                        matches = matches_has + matches_for
+                        matches = matches_has + matches_for + matches_gets
 
                         for match in matches:
                             print(f"Found problematic function or class: {match}")
@@ -222,9 +223,14 @@ class SignatureAnalyzer(Analyzer):
         else:
             result = self.get_signature_and_doc(temp_file_name, list(set(query)))
 
-            print("Got signatures:")
+            # Truncate the documentation to the first line (i.e. the signature)
             for r in result:
-                print(r['signature'])
+                if r['doc']:
+                    r['doc'] = r['doc'].split("\n")[0]
+
+            print("Got signatures and documentations:")
+            for r in result:
+                print(f"{r['name']}: {r['signature']}, {r['doc']}")
 
             if len(result) == 0:
                 os.remove(temp_file_name)
@@ -234,7 +240,7 @@ class SignatureAnalyzer(Analyzer):
                 }
 
             result_str = "To fix these errors, use these ground truth signatures as a reference for your next completion:\n"
-            result_str += "\n".join([f"{r['name']}: {r['signature']}" for r in result])
+            result_str += "\n".join([f"{r['name']}: {r['signature'] if r['signature'] else r['doc']}" for r in result])
 
             os.remove(temp_file_name)
             return {
