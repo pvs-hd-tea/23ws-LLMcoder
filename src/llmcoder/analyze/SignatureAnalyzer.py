@@ -75,9 +75,9 @@ class SignatureAnalyzer(Analyzer):
 
         for node in ast.walk(root):
             if isinstance(node, ast.Call):
+                attribute_chain = []
                 if isinstance(node.func, ast.Attribute):
                     # Handle nested attributes
-                    attribute_chain = []
                     current = node.func
                     while isinstance(current, ast.Attribute):
                         attribute_chain.append(current.attr)

@@ -95,7 +95,7 @@ class LLMCoder:
         # Add the system prompt to the messages
         self._add_message("system", message=self.system_prompt)
 
-    def to(self, device: str | torch.device) -> None:
+    def to(self, device: str | torch.device) -> "LLMCoder":
         """
         Move the scoring model to the specified device
 
@@ -111,6 +111,8 @@ class LLMCoder:
         else:
             raise TypeError("Invalid device type")
         self.completion_score_model = self.completion_score_model.to(self.device)
+
+        return self
 
     def complete(self, code: str, temperature: float = 0.7, n: int = 14) -> str:
         """
@@ -179,16 +181,35 @@ class LLMCoder:
         if role == "assistant" and message is None:
             chat_completions = self.client.chat.completions.create(messages=self.messages, model=model, temperature=temperature, n=n)  # type: ignore
 
+            user_code = self.messages[1]["content"]
             messages = [choice.message.content for choice in chat_completions.choices]
 
+            completed_code_candidates = [user_code + choice.message.content for choice in chat_completions.choices]
+
             # Get the best message according to the scoring model
-            scores = self.completion_score_tokenizer(messages, padding=True, truncation=True, return_tensors="pt")
+            completed_code_candidates_tokenized = self.completion_score_tokenizer(completed_code_candidates, padding=True, truncation=True, return_tensors="pt")
+
+            # Truncate the code from the start if it is too long
+            max_length = 512
+            if completed_code_candidates_tokenized.input_ids.shape[1] > max_length:
+                completed_code_candidates_tokenized.input_ids = completed_code_candidates_tokenized.input_ids[:, -max_length:]
+                completed_code_candidates_tokenized.attention_mask = completed_code_candidates_tokenized.attention_mask[:, -max_length:]
 
             with torch.no_grad():
-                scores = self.completion_score_model(**scores.to(self.device)).logits[:, 0].cpu().numpy()  # The first class captures the code quality, the second one the need for comments (not used here))
+                scores = self.completion_score_model(**completed_code_candidates_tokenized.to(self.device)).logits[:, 0].cpu().numpy()  # The first class captures the code quality, the second one the need for comments (not used here))
+
+            # print("Considering completions:")
+            # for i, message in enumerate(messages):
+            #     print(f"{i} ({scores[i]:.6f}):\n{message}\n")
+
+            print(f"Considering {len(messages)} completions")
+
+            best_message_id = scores.argmax()
 
             # Get the best message according to the scoring model
-            message = messages[scores.argmax()]
+            message = messages[best_message_id]
+
+            print(f"Choosing message {best_message_id} with score {scores.max()}")
 
         self.messages.append(
             {
