@@ -1,10 +1,11 @@
 import json
 import os
+import numpy as np
 from datetime import datetime
 
 import openai
 import torch
-from transformers import AutoModelForSequenceClassification, AutoTokenizer
+# from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
 from llmcoder.analyze.factory import AnalyzerFactory
 from llmcoder.utils import get_conversations_dir, get_openai_key, get_system_prompt, get_system_prompt_dir
@@ -17,6 +18,7 @@ class LLMCoder:
                  model_feedback: str = "gpt-3.5-turbo",
                  feedback_variant: str = "separate",
                  system_prompt: str | None = None,
+                 scoring_prompt: str | None = None,
                  max_iter: int = 10,
                  log_conversation: bool = True,
                  device: str | torch.device | None = None):
@@ -35,6 +37,8 @@ class LLMCoder:
             The feedback variant to use, by default "separate"
         system_prompt : str, optional
             The system prompt to use, by default the one used for preprocessing and fine-tuning
+        scoring_prompt : str, optional
+            The scoring prompt to use, by default the one used for scoring
         max_iter : int, optional
             The maximum number of iterations to run the feedback loop, by default 10
         log_conversation : bool, optional
@@ -72,9 +76,6 @@ class LLMCoder:
         elif isinstance(device, str):
             self.device = torch.device(device)
 
-        self.completion_score_tokenizer = AutoTokenizer.from_pretrained("microsoft/CodeBERT-base")
-        self.completion_score_model = AutoModelForSequenceClassification.from_pretrained("microsoft/CodeBERT-base").to(self.device)
-
         # Set up the OpenAI API
         self.client = openai.OpenAI(api_key=get_openai_key())
 
@@ -92,27 +93,34 @@ class LLMCoder:
         else:
             self.system_prompt = system_prompt
 
+        if scoring_prompt is None:
+            self.scoring_prompt = get_system_prompt("2023-12-09_Scorer_v2.txt")
+        elif scoring_prompt in os.listdir(get_system_prompt_dir()):
+            self.scoring_prompt = get_system_prompt(scoring_prompt)
+        else:
+            self.scoring_prompt = scoring_prompt
+
         # Add the system prompt to the messages
         self._add_message("system", message=self.system_prompt)
 
-    def to(self, device: str | torch.device) -> "LLMCoder":
-        """
-        Move the scoring model to the specified device
+    # def to(self, device: str | torch.device) -> "LLMCoder":
+    #     """
+    #     Move the scoring model to the specified device
 
-        Parameters
-        ----------
-        device : str | torch.device
-            The device to use
-        """
-        if isinstance(device, str):
-            device = torch.device(device)
-        elif isinstance(device, torch.device):
-            self.device = device
-        else:
-            raise TypeError("Invalid device type")
-        self.completion_score_model = self.completion_score_model.to(self.device)
+    #     Parameters
+    #     ----------
+    #     device : str | torch.device
+    #         The device to use
+    #     """
+    #     if isinstance(device, str):
+    #         device = torch.device(device)
+    #     elif isinstance(device, torch.device):
+    #         self.device = device
+    #     else:
+    #         raise TypeError("Invalid device type")
+    #     self.completion_score_model = self.completion_score_model.to(self.device)
 
-        return self
+    #     return self
 
     def complete(self, code: str, temperature: float = 0.7, n: int = 14) -> str:
         """
@@ -160,6 +168,30 @@ class LLMCoder:
         """
         return os.path.join(get_conversations_dir(create=True), f"{datetime.now()}.jsonl")
 
+    def score_code(self, code: str, reduction: str = "geo") -> float:
+        messages = [
+            {
+                "role": "system",
+                "content": self.scoring_prompt
+            }, {
+                "role": "user",
+                "content": code
+            }
+        ]
+        completions = self.client.chat.completions.create(messages=messages, model="gpt-3.5-turbo", temperature=0)
+
+        scores = np.array([float(s) for s in completions.choices[0].message.content.split("\n")])
+
+        match reduction:
+            case "mean":
+                return scores.mean()
+            case "max":
+                return scores.max()
+            case "geo":
+                return scores.prod() ** (1 / len(scores))
+            case _:
+                raise ValueError("Invalid reduction method")
+
     def _add_message(self, role: str, model: str = 'gpt-3.5-turbo', message: str | None = None, temperature: float = 0.7, n: int = 14) -> None:
         """
         Add a message to the messages list
@@ -188,32 +220,19 @@ class LLMCoder:
                 # These are completions that have lead to an error, and we do not want to consider them again
                 valid_choices = [choice for choice in chat_completions.choices if choice not in [message["content"] for message in self.messages if message["role"] == "assistant"]]
 
-                print(f"[CodeBERT] Considering {len(valid_choices)} completions, ignoring {len(chat_completions.choices) - len(valid_choices)}")
+                print(f"[Scoring] Considering {len(valid_choices)} completions, ignoring {len(chat_completions.choices) - len(valid_choices)}")
 
                 completed_code_candidates = [user_code + choice.message.content for choice in valid_choices]
 
-                # Get the best message according to the scoring model
-                completed_code_candidates_tokenized = self.completion_score_tokenizer(completed_code_candidates, padding=True, truncation=True, return_tensors="pt")
-
-                # Truncate the code from the start if it is too long
-                max_length = 512
-                if completed_code_candidates_tokenized.input_ids.shape[1] > max_length:
-                    completed_code_candidates_tokenized.input_ids = completed_code_candidates_tokenized.input_ids[:, -max_length:]
-                    completed_code_candidates_tokenized.attention_mask = completed_code_candidates_tokenized.attention_mask[:, -max_length:]
-
-                with torch.no_grad():
-                    scores = self.completion_score_model(**completed_code_candidates_tokenized.to(self.device)).logits[:, 0].cpu().numpy()  # The first class captures the code quality, the second one the need for comments (not used here))
-
-                # print("[CodeBERT] Considering completions:")
-                # for i, message in enumerate(messages):
-                #     print(f"{i} ({scores[i]:.6f}):\n{message}\n")
+                # Score the completions
+                scores = np.array([self.score_code(code) for code in completed_code_candidates])
 
                 best_message_id = scores.argmax()
 
                 # Get the best message according to the scoring model
                 message = valid_choices[best_message_id].message.content
 
-                print(f"[CodeBERT] Choosing message {best_message_id} with score {scores.max()}")
+                print(f"[Scoring] Choosing message {best_message_id} with score {scores.max()}")
             else:
                 message = chat_completions.choices[0].message.content
 
