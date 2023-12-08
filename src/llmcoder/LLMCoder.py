@@ -133,14 +133,14 @@ class LLMCoder:
             The completed code
         """
         # Get the first completion with
-        print("Creating first completion...")
+        print("[LLMcoder] Creating first completion...")
         self.complete_first(code, temperature, n)
 
-        print("Starting feedback loop...")
+        print("[LLMcoder] Starting feedback loop...")
         if len(self.analyzers) > 0:
             # Run the feedback loop until the code is correct or the max_iter is reached
             for i in range(self.max_iter):
-                print(f"Starting feedback iteration {i + 1}...")
+                print(f"[LLMcoder] Starting feedback iteration {i + 1}...")
                 if self.feedback_step(temperature, n):
                     # If the feedback is correct, break the loop and return the code
                     break
@@ -181,35 +181,41 @@ class LLMCoder:
         if role == "assistant" and message is None:
             chat_completions = self.client.chat.completions.create(messages=self.messages, model=model, temperature=temperature, n=n)  # type: ignore
 
-            user_code = self.messages[1]["content"]
-            messages = [choice.message.content for choice in chat_completions.choices]
+            if n > 1:
+                user_code = self.messages[1]["content"]
 
-            completed_code_candidates = [user_code + choice.message.content for choice in chat_completions.choices]
+                # Filter out messages that already appear in the conversation
+                # These are completions that have lead to an error, and we do not want to consider them again
+                valid_choices = [choice for choice in chat_completions.choices if choice not in [message["content"] for message in self.messages if message["role"] == "assistant"]]
 
-            # Get the best message according to the scoring model
-            completed_code_candidates_tokenized = self.completion_score_tokenizer(completed_code_candidates, padding=True, truncation=True, return_tensors="pt")
+                print(f"[CodeBERT] Considering {len(valid_choices)} completions, ignoring {len(chat_completions.choices) - len(valid_choices)}")
 
-            # Truncate the code from the start if it is too long
-            max_length = 512
-            if completed_code_candidates_tokenized.input_ids.shape[1] > max_length:
-                completed_code_candidates_tokenized.input_ids = completed_code_candidates_tokenized.input_ids[:, -max_length:]
-                completed_code_candidates_tokenized.attention_mask = completed_code_candidates_tokenized.attention_mask[:, -max_length:]
+                completed_code_candidates = [user_code + choice.message.content for choice in valid_choices]
 
-            with torch.no_grad():
-                scores = self.completion_score_model(**completed_code_candidates_tokenized.to(self.device)).logits[:, 0].cpu().numpy()  # The first class captures the code quality, the second one the need for comments (not used here))
+                # Get the best message according to the scoring model
+                completed_code_candidates_tokenized = self.completion_score_tokenizer(completed_code_candidates, padding=True, truncation=True, return_tensors="pt")
 
-            # print("Considering completions:")
-            # for i, message in enumerate(messages):
-            #     print(f"{i} ({scores[i]:.6f}):\n{message}\n")
+                # Truncate the code from the start if it is too long
+                max_length = 512
+                if completed_code_candidates_tokenized.input_ids.shape[1] > max_length:
+                    completed_code_candidates_tokenized.input_ids = completed_code_candidates_tokenized.input_ids[:, -max_length:]
+                    completed_code_candidates_tokenized.attention_mask = completed_code_candidates_tokenized.attention_mask[:, -max_length:]
 
-            print(f"Considering {len(messages)} completions")
+                with torch.no_grad():
+                    scores = self.completion_score_model(**completed_code_candidates_tokenized.to(self.device)).logits[:, 0].cpu().numpy()  # The first class captures the code quality, the second one the need for comments (not used here))
 
-            best_message_id = scores.argmax()
+                # print("[CodeBERT] Considering completions:")
+                # for i, message in enumerate(messages):
+                #     print(f"{i} ({scores[i]:.6f}):\n{message}\n")
 
-            # Get the best message according to the scoring model
-            message = messages[best_message_id]
+                best_message_id = scores.argmax()
 
-            print(f"Choosing message {best_message_id} with score {scores.max()}")
+                # Get the best message according to the scoring model
+                message = valid_choices[best_message_id].message.content
+
+                print(f"[CodeBERT] Choosing message {best_message_id} with score {scores.max()}")
+            else:
+                message = chat_completions.choices[0].message.content
 
         self.messages.append(
             {
@@ -236,6 +242,10 @@ class LLMCoder:
         self.iterations = 0
         self.analyzer_pass_history = []
         self.analyzer_message_history = []
+        self.messages = []
+
+        # Add the system prompt to the messages
+        self._add_message("system", message=self.system_prompt)
 
     def _update_analyzer_history(self, analyzer_results: dict[str, dict]) -> None:
         """
@@ -315,19 +325,19 @@ class LLMCoder:
         analyzer_results: dict[str, dict] = {}
 
         if self.feedback_variant == "separate":
-            print("Analyzing code in a separate mode...")
+            print("[LLMcoder] Analyzing code in a separate mode...")
             for analyzer_name, analyzer_instance in self.analyzers.items():
-                print(f"Running {analyzer_name}...")
+                print(f"[LLMcoder] Running {analyzer_name}...")
                 # analyzer_results.append(analyzer.analyze(self.messages[1]['content'], self.messages[-1]['content']))
                 analyzer_results[analyzer_name] = analyzer_instance.analyze(self.messages[1]['content'], self.messages[-1]['content'])
         if self.feedback_variant == "coworker":
-            print("Analyzing code in a coworker mode...")
+            print("[LLMcoder] Analyzing code in a coworker mode...")
             for analyzer_name, analyzer_instance in self.analyzers.items():
-                print(f"Running {analyzer_name}...")
+                print(f"[LLMcoder] Running {analyzer_name}...")
                 analyzer_results[analyzer_name] = analyzer_instance.analyze(self.messages[1]['content'], self.messages[-1]['content'], context=analyzer_results)
 
         # Print how many analyzers have passed
-        print(f"{sum([results['pass'] for results in analyzer_results.values() if type(results['pass']) is bool])} / {len([results for results in analyzer_results.values() if type(results['pass']) is bool])} analyzers passed")
+        print(f"[LLMcoder] {sum([results['pass'] for results in analyzer_results.values() if type(results['pass']) is bool])} / {len([results for results in analyzer_results.values() if type(results['pass']) is bool])} analyzers passed")
 
         # Add the analyzer results to the analyzer results list
         self._update_analyzer_history(analyzer_results)

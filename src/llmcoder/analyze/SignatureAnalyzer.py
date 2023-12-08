@@ -18,7 +18,7 @@ class SignatureAnalyzer(Analyzer):
         if isinstance(query, str):
             query = [query]
         elif isinstance(query, list) and not query:
-            print("Empty query specified.")
+            print("[Signatures] Empty query specified.")
             return
 
         with open(path) as fh:
@@ -131,15 +131,15 @@ class SignatureAnalyzer(Analyzer):
                 alias = imp.alias if imp.alias else imp.name[-1] if imp.name else full_module
                 import_aliases[alias] = full_module
 
-        print(f"{import_aliases=}")
-        print(f"{direct_imports=}")
+        print(f"[Signatures] {import_aliases=}")
+        print(f"[Signatures] {direct_imports=}")
 
         # Find all function calls that match the query
         function_calls = self.find_function_calls(code, query)
 
         function_calls = list(set(function_calls))
 
-        print(f"{function_calls=}")
+        print(f"[Signatures] {function_calls=}")
 
         # Match the function calls to the imports
         matched_function_calls = []
@@ -149,10 +149,10 @@ class SignatureAnalyzer(Analyzer):
             elif func_name in direct_imports:
                 matched_function_calls.append((direct_imports[func_name], func_name))
             else:
-                print(f"No import found for {func_name}")
+                print(f"[Signatures] No import found for {func_name}")
 
         for module_alias, func_name in matched_function_calls:
-            print(f"{module_alias=} {func_name=}")
+            print(f"[Signatures] {module_alias=} {func_name=}")
             try:
                 if module_alias and module_alias in import_aliases:
                     module_path = import_aliases[module_alias]
@@ -184,10 +184,10 @@ class SignatureAnalyzer(Analyzer):
                             "doc": inspect.getdoc(attr)
                         })
                 else:
-                    print(f"No callable attribute {func_name} found")
+                    print(f"[Signatures] No callable attribute {func_name} found")
 
             except (ImportError, AttributeError) as e:
-                print(f"Error importing {func_name}: {e}")
+                print(f"[Signatures] Error importing {func_name}: {e}")
 
         return signature_and_doc
 
@@ -220,7 +220,7 @@ class SignatureAnalyzer(Analyzer):
         # and use them as the query for the get_signature_and_doc function.
         query = []
         if context:
-            print(f"Using context from previous analyzers: {list(context.keys())}")
+            print(f"[Signatures] Using context from previous analyzers: {list(context.keys())}")
             if 'mypy_analyzer_v1' in context and isinstance(context['mypy_analyzer_v1']['message'], str):
                 for line in context['mypy_analyzer_v1']['message'].split("\n"):
                     if line.startswith("your completion:"):
@@ -236,7 +236,7 @@ class SignatureAnalyzer(Analyzer):
                         matches = matches_has + matches_for + matches_gets
 
                         for match in matches:
-                            print(f"Found problematic function or class: {match}")
+                            print(f"[Signatures] Found problematic function or class: {match}")
 
                             # Sometimes, the queries are "type[ElasticsearchStore]" instead of "ElasticsearchStore".
                             # Extract the class name from the query.
@@ -248,7 +248,7 @@ class SignatureAnalyzer(Analyzer):
         query = list(set([q for q in query if q.strip() != ""]))
 
         if len(query) == 0:
-            print("No problematic functions or classes found in the context.")
+            print("[Signatures] No problematic functions or classes found in the context.")
             os.remove(temp_file_name)
             return {
                 "pass": "info",
@@ -262,9 +262,9 @@ class SignatureAnalyzer(Analyzer):
                 if r['doc']:
                     r['doc'] = r['doc'].split("\n")[0]
 
-            print("Got signatures and documentations:")
+            print("[Signatures] Got signatures and documentations:")
             for r in result:
-                print(f"{r['name']}: {r['signature']}, {r['doc']}")
+                print(f"[Signatures] {r['name']}: {r['signature']}, {r['doc']}")
 
             if len(result) == 0:
                 os.remove(temp_file_name)

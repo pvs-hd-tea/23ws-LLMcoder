@@ -49,7 +49,7 @@ class MypyAnalyzer(Analyzer):
 
         # Install stubs if missing
         if install_stubs and missing_stubs:
-            print("Installing missing stubs...")
+            print("[Mypy] Installing missing stubs...")
 
             # Install missing stubs
             subprocess.run(["mypy", "--install-types", "--non-interactive", *mypy_args], capture_output=True, text=True)
@@ -57,14 +57,15 @@ class MypyAnalyzer(Analyzer):
             # Re-run mypy after installing stubs
             mypy_run = subprocess.run(["mypy", temp_file_name, *mypy_args], capture_output=True, text=True)
         else:
-            print("No missing stubs found.")
+            print("[Mypy] No missing stubs found.")
 
         result = mypy_run.stdout if mypy_run.stdout else mypy_run.stderr
 
         # Remove all colors from the mypy output
         result = re.sub(r"\x1b\[[0-9;]*m", "", result)
 
-        print(result)
+        for line in result.split("\n"):
+            print(f"[Mypy] {line}")
 
         # Get the number of lines of the input code
         n_input_lines = len(input.split("\n")) - 1
@@ -82,8 +83,11 @@ class MypyAnalyzer(Analyzer):
         # Replace the temp file name with "your completion". This helps the LLM understand that the error is caused by its completion.
         filtered_result = [line.replace(temp_file_name, "your completion") for line in filtered_result]
 
-        # Remove the error message "your completion:2: \x1b[1m\x1b[31merror:\x1b[m Skipping analyzing..." since it cannot be resolved by installing stubs
-        filtered_result = [line for line in filtered_result if not re.match(r"your completion:\d+: \x1b\[1m\x1b\[31merror:\x1b\[m Skipping analyzing...", line)]
+        # Remove the error message "your completion:2: error: Skipping analyzing." since it cannot be resolved by installing stubs
+        filtered_result = [line for line in filtered_result if not re.match(r"your completion:\d+: error: Skipping analyzing", line)]
+
+        # Remove the error message "your completion:16: note: See https:" since it does not provide any useful information
+        filtered_result = [line for line in filtered_result if not re.match(r"your completion:\d+: note: See https:", line)]
 
         if len(filtered_result) == 0:
             filtered_result_str = "No mypy errors found."
