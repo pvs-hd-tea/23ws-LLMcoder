@@ -7,7 +7,7 @@ from llmcoder.analyze.Analyzer import Analyzer
 
 
 class MypyAnalyzer(Analyzer):
-    def analyze(self, input: str, completion: str, install_stubs: bool = True, mypy_args: list[str] | None = None, context: dict[str, dict[str, bool | str]] | None = None) -> dict:
+    def analyze(self, input: str, completion: str, install_stubs: bool = True, mypy_args: list[str] | None = None, context: dict[str, dict[str, float | int | str]] | None = None) -> dict:
         """
         Analyzes the completion using mypy.
 
@@ -23,11 +23,7 @@ class MypyAnalyzer(Analyzer):
         Returns
         -------
         dict
-            A dictionary containing the following keys:
-            - pass: bool
-                Whether the completion passed the analysis.
-            - message: str
-                The message returned by mypy.
+            The analysis result.
         """
 
         code = input + completion
@@ -96,13 +92,13 @@ class MypyAnalyzer(Analyzer):
             filtered_result_str = "The completion you provided resulted in the following errors:\n"
             filtered_result_str += "\n".join(filtered_result)
 
-        if "error:" not in filtered_result_str:
-            passed = True
-        else:
-            passed = False
+        passed = "error:" not in filtered_result_str
 
         os.remove(temp_file_name)
+
         return {
+            "type": "critical",
+            "score": - len(re.findall(r"your completion:\d+: error:", filtered_result_str)),  # The more errors, the lower the score
             "pass": passed,
             "message": filtered_result_str if filtered_result_str else "No mypy errors found."
         }

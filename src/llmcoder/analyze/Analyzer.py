@@ -9,5 +9,5 @@ class Analyzer(ABC):
         self.completion = ""
 
     @abstractmethod
-    def analyze(self, input: str, completion: str, context: dict[str, dict[str, bool | str]] | None = None) -> dict:
+    def analyze(self, input: str, completion: str, context: dict[str, dict[str, float | int | str]] | None = None) -> dict:
         raise NotImplementedError

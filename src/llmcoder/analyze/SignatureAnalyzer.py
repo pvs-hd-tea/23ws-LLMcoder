@@ -191,7 +191,7 @@ class SignatureAnalyzer(Analyzer):
 
         return signature_and_doc
 
-    def analyze(self, input: str, completion: str, context: dict[str, dict[str, bool | str]] | None = None) -> dict:
+    def analyze(self, input: str, completion: str, context: dict[str, dict[str, float | int | str]] | None = None) -> dict:
         """
         Analyze the completion and return a message.
 
@@ -201,7 +201,7 @@ class SignatureAnalyzer(Analyzer):
             The input code.
         completion : str
             The completion code.
-        context : dict[str, dict[str, bool | str]] | None
+        context : dict[str, dict[str, float | int | str]] | None
             The context from the previous analyzers.
 
         Returns
@@ -251,7 +251,9 @@ class SignatureAnalyzer(Analyzer):
             print("[Signatures] No problematic functions or classes found in the context.")
             os.remove(temp_file_name)
             return {
-                "pass": "info",
+                "pass": True,
+                "type": "info",
+                "score": 0,
                 "message": "All functions and classes in your completion are called correctly (their signatures match with the documentation)."
             }
         else:
@@ -269,7 +271,9 @@ class SignatureAnalyzer(Analyzer):
             if len(result) == 0:
                 os.remove(temp_file_name)
                 return {
-                    "pass": "info",
+                    "pass": False,
+                    "type": "info",
+                    "score": 0,
                     "message": "Cannot find the relevant signatures of " + ", ".join(query)
                 }
 
@@ -278,6 +282,8 @@ class SignatureAnalyzer(Analyzer):
 
             os.remove(temp_file_name)
             return {
-                "pass": "info",
+                "pass": True,
+                "type": "info",
+                "score": - len(result),  # The more errors, the lower the score
                 "message": result_str
             }
