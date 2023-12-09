@@ -1,9 +1,10 @@
 import json
 import os
-from datetime import datetime
-
+import numpy as np
 import openai
 import torch
+
+from datetime import datetime
 
 from llmcoder.analyze.factory import AnalyzerFactory
 from llmcoder.utils import get_conversations_dir, get_openai_key, get_system_prompt, get_system_prompt_dir
@@ -98,28 +99,6 @@ class LLMCoder:
         else:
             self.scoring_prompt = scoring_prompt
 
-        # Add the system prompt to the messages
-        self._add_message("system", message=self.system_prompt)
-
-    # def to(self, device: str | torch.device) -> "LLMCoder":
-    #     """
-    #     Move the scoring model to the specified device
-
-    #     Parameters
-    #     ----------
-    #     device : str | torch.device
-    #         The device to use
-    #     """
-    #     if isinstance(device, str):
-    #         device = torch.device(device)
-    #     elif isinstance(device, torch.device):
-    #         self.device = device
-    #     else:
-    #         raise TypeError("Invalid device type")
-    #     self.completion_score_model = self.completion_score_model.to(self.device)
-
-    #     return self
-
     def complete(self, code: str, temperature: float = 0.7, n: int = 14) -> str:
         """
         Complete the provided code with the LLMCoder feedback loop
@@ -166,82 +145,127 @@ class LLMCoder:
         """
         return os.path.join(get_conversations_dir(create=True), f"{datetime.now()}.jsonl")
 
-    # @classmethod
-    # def score_prompt(cls, code_list: list[str]) -> str:
-    #     """Concatenates the code snippets with the scoring prompt in the following format:
+    @classmethod
+    def score_prompt(cls, code_list: list[str]) -> str:
+        """Concatenates the code snippets with the scoring prompt in the following format:
 
-    #     Code snippet 1:
-    #     ```python
-    #     <code>
-    #     ```
+        Code snippet 1:
+        ```python
+        <code>
+        ```
 
-    #     Code snippet 2:
-    #     ```python
-    #     <code>
-    #     ```
-    #     ...
-    #     """
+        Code snippet 2:
+        ```python
+        <code>
+        ```
+        ...
 
-    #     prompt = ""
-    #     for i, code in enumerate(code_list):
-    #         prompt += f"Code snippet {i + 1}:\n```python\n{code}\n```\n\n"
+        Parameters
+        ----------
+        code_list : list[str]
+            The list of code snippets to score
 
-    #     return prompt
+        Returns
+        -------
+        str
+        """
 
-    # @classmethod
-    # def score_code(cls, code: str | list[str], client: openai.OpenAI, scoring_prompt: str, reduction: str | None = "geo") -> float:
-    #     if isinstance(code, str):
-    #         code = [code]
+        prompt = ""
+        for i, code in enumerate(code_list):
+            prompt += f"Code snippet {i + 1}:\n```python\n{code}\n```\n\n"
 
-    #     messages = [
-    #         {
-    #             "role": "system",
-    #             "content": scoring_prompt
-    #         }, {
-    #             "role": "user",
-    #             "content": cls.score_prompt(code)
-    #         }
-    #     ]
-    #     completions = client.chat.completions.create(messages=messages, model="gpt-3.5-turbo", temperature=0)
+        return prompt
 
-    #     lines = completions.choices[0].message.content.split("\n")
+    @classmethod
+    def score_code(cls, code: str | list[str], client: openai.OpenAI, scoring_prompt: str, reduction: str | None = "geo") -> float:
+        """
+        Score the provided code snippet() using the scoring model
 
-    #     # Extract the scores from the response
-    #     scores = []
-    #     if "Code snippet" in lines[0]:
-    #         for i, line in enumerate(lines):
-    #             scores_for_snippet = []
-    #             if line.startswith("Code snippet"):
-    #                 for j in range(4):
-    #                     try:
-    #                         scores_for_snippet.append(float(lines[i + j + 1][lines[i + j + 1].index(":") + 1:]))
-    #                     except ValueError:
-    #                         print(f"[Scoring] Error while scoring code. Expected float, got: {completions.choices[0].message.content}")
-    #                         scores_for_snippet.append(np.nan)
-    #                 scores.append(scores_for_snippet)
-    #     elif len(code) == 1:
-    #         for i in range(4):
-    #             try:
-    #                 scores.append(float(lines[i][lines[i].index(":") + 1:]))
-    #             except ValueError:
-    #                 print(f"[Scoring] Error while scoring code. Expected float, got: {completions.choices[0].message.content}")
-    #                 scores.append(np.nan)
+        Parameters
+        ----------
+        code : str | list[str]
+            The code snippet(s) to score
+        client : openai.OpenAI
+            The OpenAI client to use
+        scoring_prompt : str
+            The scoring prompt to use
+        reduction : str | None, optional
+            The reduction method to use, by default "geo"
 
-    #     scores = np.atleast_2d(np.array(scores))
+        Returns
+        -------
+        float
+            The score of the code snippet(s)
+        """
 
-    #     match reduction:
-    #         case "mean":
-    #             return scores.mean(axis=1)
-    #         case "max":
-    #             return scores.max(axis=1)
-    #         case "geo":
-    #             return scores.prod(axis=1) ** (1 / scores.shape[1])
-    #         case None:
-    #             return scores
-    #         case _:
-    #             raise ValueError("Invalid reduction method")
+        if isinstance(code, str):
+            code = [code]
 
-    def _add_message(self, role: str, model: str = 'gpt-3.5-turbo', message: str | None = None, temperature: float = 0.7, n: int = 14) -> None:
+        messages = [
+            {
+                "role": "system",
+                "content": scoring_prompt
+            }, {
+                "role": "user",
+                "content": cls.score_prompt(code)
+            }
+        ]
+        completions = client.chat.completions.create(messages=messages, model="gpt-3.5-turbo", temperature=0)
+
+        lines = completions.choices[0].message.content.split("\n")
+
+        # Extract the scores from the response
+        scores = []
+        if "Code snippet" in lines[0]:
+            for i, line in enumerate(lines):
+                scores_for_snippet = []
+                if line.startswith("Code snippet"):
+                    for j in range(4):
+                        try:
+                            scores_for_snippet.append(float(lines[i + j + 1][lines[i + j + 1].index(":") + 1:]))
+                        except ValueError:
+                            print(f"[Scoring] Error while scoring code. Expected float, got: {completions.choices[0].message.content}")
+                            scores_for_snippet.append(np.nan)
+                    scores.append(scores_for_snippet)
+        elif len(code) == 1:
+            for i in range(4):
+                try:
+                    scores.append(float(lines[i][lines[i].index(":") + 1:]))
+                except ValueError:
+                    print(f"[Scoring] Error while scoring code. Expected float, got: {completions.choices[0].message.content}")
+                    scores.append(np.nan)
+
+        scores = np.atleast_2d(np.array(scores))
+
+        match reduction:
+            case "mean":
+                return scores.mean(axis=1)
+            case "max":
+                return scores.max(axis=1)
+            case "geo":
+                return scores.prod(axis=1) ** (1 / scores.shape[1])
+            case None:
+                return scores
+            case _:
+                raise ValueError("Invalid reduction method")
+
+    def _is_bad_completion(self, completion: str) -> bool:
+        """
+        Check if the completion already appeared in the conversation. If the assistant repeats a mistake, we do not want to consider it again
+
+        Parameters
+        ----------
+        completion : str
+            The completion to check
+
+        Returns
+        -------
+        bool
+            True if the completion already appeared in the conversation, False otherwise
+        """
+        return completion in [message["content"] for message in self.messages if message["role"] == "assistant"]
+
+    def _add_message(self, role: str, model: str = 'gpt-3.5-turbo', message: str | None = None, temperature: float = 0.7, n: int = 14) -> bool:
         """
         Add a message to the messages list
 
@@ -257,33 +281,49 @@ class LLMCoder:
             The temperature to use for the completion, by default 0.7
         n : int, optional
             The number of choices to generate, by default 14
+
+        Returns
+        -------
+        bool
+            True if the message was added, False otherwise
         """
         # If the user is the assistant, generate a response
         if role == "assistant" and message is None:
-            chat_completions = self.client.chat.completions.create(messages=self.messages, model=model, temperature=temperature, n=1)  # type: ignore
+            chat_completions = self.client.chat.completions.create(messages=self.messages, model=model, temperature=temperature, n=n)  # type: ignore
+            valid_choices = [completion for completion in chat_completions.choices if not self._is_bad_completion(completion.message.content)]
 
-            # if n > 1:
-            #     user_code = self.messages[1]["content"]
+            # If all completions are repetitions of previous mistakes, increase the temperature and the number of choices until we get a valid completion
+            increased_temperature = temperature
+            increased_n = n
+            MAX_REPEATS = 10
+            repetition = 0
+            while len(valid_choices) == 0 and repetition < MAX_REPEATS:
+                print(f"[LLMcoder] All completions are repetitions of previous mistakes. Increasing temperature to {increased_temperature} and number of choices to {increased_n}... [repetition {repetition + 1}/{MAX_REPEATS}]")
+                chat_completions = self.client.chat.completions.create(messages=self.messages, model=model, temperature=increased_temperature, n=increased_n)  # type: ignore
+                valid_choices = [completion for completion in chat_completions.choices if not self._is_bad_completion(completion.message.content)]
+                increased_temperature += 0.1
+                increased_n *= 2
+                repetition += 1
 
-            #     # Filter out messages that already appear in the conversation
-            #     # These are completions that have lead to an error, and we do not want to consider them again
-            #     valid_choices = [choice for choice in chat_completions.choices if choice not in [message["content"] for message in self.messages if message["role"] == "assistant"]]
+            if repetition >= MAX_REPEATS:
+                print("[LLMcoder] All completions are repetitions of previous mistakes. Aborting...")
+                return False
 
-            #     print(f"[Scoring] Considering {len(valid_choices)} completions, ignoring {len(chat_completions.choices) - len(valid_choices)}")
+            if n > 1:
+                print(f"[Scoring] Considering {len(valid_choices)} completions, ignoring {len(chat_completions.choices) - len(valid_choices)}")
 
-            #     completed_code_candidates = [user_code + choice.message.content for choice in valid_choices]
+                completed_code_candidates = [self.messages[1]["content"] + choice.message.content for choice in valid_choices]
 
-            #     # Score the completions
-            #     scores = np.array([self.score_code(code, self.client, self.scoring_prompt) for code in completed_code_candidates])
+                # Score the completions
+                scores = np.array([self.score_code(code, self.client, self.scoring_prompt) for code in completed_code_candidates])
 
-            #     best_message_id = scores.argmax()
+                # Get the best message according to the scoring model
+                best_message_id = scores.argmax()
+                message = valid_choices[best_message_id].message.content
 
-            #     # Get the best message according to the scoring model
-            #     message = valid_choices[best_message_id].message.content
-
-            #     print(f"[Scoring] Choosing message {best_message_id} with score {scores.max()}")
-            # else:
-            message = chat_completions.choices[0].message.content
+                print(f"[Scoring] Choosing message {best_message_id} with score {scores.max()}")
+            else:
+                message = chat_completions.choices[0].message.content
 
         self.messages.append(
             {
@@ -302,6 +342,8 @@ class LLMCoder:
                 with open(self.conversation_file, "w") as f:
                     for message in self.messages:
                         f.write(json.dumps(message, ensure_ascii=False) + "\n")
+
+        return True
 
     def _reset_loop(self) -> None:
         """
@@ -418,6 +460,6 @@ class LLMCoder:
         error_prompt = self._feedback_pattern([result['message'] for result in analyzer_results.values() if not result['pass'] or result['pass'] == "info"])
 
         self._add_message("user", message=error_prompt + self.messages[1]['content'])
-        self._add_message("assistant", model=self.model_first, temperature=temperature, n=n)  # model_first works quite good here
+        added_valid_completion = self._add_message("assistant", model=self.model_first, temperature=temperature, n=n)  # model_first works quite good here
 
-        return False
+        return not added_valid_completion  # If all completions are invalid, signal that the loop should be stopped

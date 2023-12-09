@@ -65,7 +65,8 @@ class MypyAnalyzer(Analyzer):
         result = re.sub(r"\x1b\[[0-9;]*m", "", result)
 
         for line in result.split("\n"):
-            print(f"[Mypy] {line}")
+            if line.strip() != "":
+                print(f"[Mypy] {line}")
 
         # Get the number of lines of the input code
         n_input_lines = len(input.split("\n")) - 1
