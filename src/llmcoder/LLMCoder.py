@@ -1,11 +1,9 @@
 import json
 import os
-import numpy as np
 from datetime import datetime
 
 import openai
 import torch
-# from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
 from llmcoder.analyze.factory import AnalyzerFactory
 from llmcoder.utils import get_conversations_dir, get_openai_key, get_system_prompt, get_system_prompt_dir
@@ -94,7 +92,7 @@ class LLMCoder:
             self.system_prompt = system_prompt
 
         if scoring_prompt is None:
-            self.scoring_prompt = get_system_prompt("2023-12-09_Scorer_v2.txt")
+            self.scoring_prompt = get_system_prompt("2023-12-09_Scorer_v1.1.txt")
         elif scoring_prompt in os.listdir(get_system_prompt_dir()):
             self.scoring_prompt = get_system_prompt(scoring_prompt)
         else:
@@ -156,8 +154,8 @@ class LLMCoder:
         # Return the last message
         return self.messages[-1]["content"]
 
-    @staticmethod
-    def _create_conversation_file() -> str:
+    @classmethod
+    def _create_conversation_file(cls) -> str:
         """
         Create the conversation file
 
@@ -168,29 +166,80 @@ class LLMCoder:
         """
         return os.path.join(get_conversations_dir(create=True), f"{datetime.now()}.jsonl")
 
-    def score_code(self, code: str, reduction: str = "geo") -> float:
-        messages = [
-            {
-                "role": "system",
-                "content": self.scoring_prompt
-            }, {
-                "role": "user",
-                "content": code
-            }
-        ]
-        completions = self.client.chat.completions.create(messages=messages, model="gpt-3.5-turbo", temperature=0)
+    # @classmethod
+    # def score_prompt(cls, code_list: list[str]) -> str:
+    #     """Concatenates the code snippets with the scoring prompt in the following format:
 
-        scores = np.array([float(s) for s in completions.choices[0].message.content.split("\n")])
+    #     Code snippet 1:
+    #     ```python
+    #     <code>
+    #     ```
 
-        match reduction:
-            case "mean":
-                return scores.mean()
-            case "max":
-                return scores.max()
-            case "geo":
-                return scores.prod() ** (1 / len(scores))
-            case _:
-                raise ValueError("Invalid reduction method")
+    #     Code snippet 2:
+    #     ```python
+    #     <code>
+    #     ```
+    #     ...
+    #     """
+
+    #     prompt = ""
+    #     for i, code in enumerate(code_list):
+    #         prompt += f"Code snippet {i + 1}:\n```python\n{code}\n```\n\n"
+
+    #     return prompt
+
+    # @classmethod
+    # def score_code(cls, code: str | list[str], client: openai.OpenAI, scoring_prompt: str, reduction: str | None = "geo") -> float:
+    #     if isinstance(code, str):
+    #         code = [code]
+
+    #     messages = [
+    #         {
+    #             "role": "system",
+    #             "content": scoring_prompt
+    #         }, {
+    #             "role": "user",
+    #             "content": cls.score_prompt(code)
+    #         }
+    #     ]
+    #     completions = client.chat.completions.create(messages=messages, model="gpt-3.5-turbo", temperature=0)
+
+    #     lines = completions.choices[0].message.content.split("\n")
+
+    #     # Extract the scores from the response
+    #     scores = []
+    #     if "Code snippet" in lines[0]:
+    #         for i, line in enumerate(lines):
+    #             scores_for_snippet = []
+    #             if line.startswith("Code snippet"):
+    #                 for j in range(4):
+    #                     try:
+    #                         scores_for_snippet.append(float(lines[i + j + 1][lines[i + j + 1].index(":") + 1:]))
+    #                     except ValueError:
+    #                         print(f"[Scoring] Error while scoring code. Expected float, got: {completions.choices[0].message.content}")
+    #                         scores_for_snippet.append(np.nan)
+    #                 scores.append(scores_for_snippet)
+    #     elif len(code) == 1:
+    #         for i in range(4):
+    #             try:
+    #                 scores.append(float(lines[i][lines[i].index(":") + 1:]))
+    #             except ValueError:
+    #                 print(f"[Scoring] Error while scoring code. Expected float, got: {completions.choices[0].message.content}")
+    #                 scores.append(np.nan)
+
+    #     scores = np.atleast_2d(np.array(scores))
+
+    #     match reduction:
+    #         case "mean":
+    #             return scores.mean(axis=1)
+    #         case "max":
+    #             return scores.max(axis=1)
+    #         case "geo":
+    #             return scores.prod(axis=1) ** (1 / scores.shape[1])
+    #         case None:
+    #             return scores
+    #         case _:
+    #             raise ValueError("Invalid reduction method")
 
     def _add_message(self, role: str, model: str = 'gpt-3.5-turbo', message: str | None = None, temperature: float = 0.7, n: int = 14) -> None:
         """
@@ -211,30 +260,30 @@ class LLMCoder:
         """
         # If the user is the assistant, generate a response
         if role == "assistant" and message is None:
-            chat_completions = self.client.chat.completions.create(messages=self.messages, model=model, temperature=temperature, n=n)  # type: ignore
+            chat_completions = self.client.chat.completions.create(messages=self.messages, model=model, temperature=temperature, n=1)  # type: ignore
 
-            if n > 1:
-                user_code = self.messages[1]["content"]
+            # if n > 1:
+            #     user_code = self.messages[1]["content"]
 
-                # Filter out messages that already appear in the conversation
-                # These are completions that have lead to an error, and we do not want to consider them again
-                valid_choices = [choice for choice in chat_completions.choices if choice not in [message["content"] for message in self.messages if message["role"] == "assistant"]]
+            #     # Filter out messages that already appear in the conversation
+            #     # These are completions that have lead to an error, and we do not want to consider them again
+            #     valid_choices = [choice for choice in chat_completions.choices if choice not in [message["content"] for message in self.messages if message["role"] == "assistant"]]
 
-                print(f"[Scoring] Considering {len(valid_choices)} completions, ignoring {len(chat_completions.choices) - len(valid_choices)}")
+            #     print(f"[Scoring] Considering {len(valid_choices)} completions, ignoring {len(chat_completions.choices) - len(valid_choices)}")
 
-                completed_code_candidates = [user_code + choice.message.content for choice in valid_choices]
+            #     completed_code_candidates = [user_code + choice.message.content for choice in valid_choices]
 
-                # Score the completions
-                scores = np.array([self.score_code(code) for code in completed_code_candidates])
+            #     # Score the completions
+            #     scores = np.array([self.score_code(code, self.client, self.scoring_prompt) for code in completed_code_candidates])
 
-                best_message_id = scores.argmax()
+            #     best_message_id = scores.argmax()
 
-                # Get the best message according to the scoring model
-                message = valid_choices[best_message_id].message.content
+            #     # Get the best message according to the scoring model
+            #     message = valid_choices[best_message_id].message.content
 
-                print(f"[Scoring] Choosing message {best_message_id} with score {scores.max()}")
-            else:
-                message = chat_completions.choices[0].message.content
+            #     print(f"[Scoring] Choosing message {best_message_id} with score {scores.max()}")
+            # else:
+            message = chat_completions.choices[0].message.content
 
         self.messages.append(
             {
