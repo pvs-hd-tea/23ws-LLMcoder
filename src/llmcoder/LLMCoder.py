@@ -79,6 +79,8 @@ class LLMCoder:
         else:
             self.system_prompt = system_prompt
 
+        self._add_message("system", message=self.system_prompt)
+
     def _check_passing(self) -> bool:
         """
         Check if all the analyzers passed in the last iteration
@@ -409,6 +411,8 @@ class LLMCoder:
 
         # Get a completion from the assistant
         success = self._add_message("assistant", model=self.model_first, temperature=temperature, n=n)  # model_first works quite good here
+
+        self.iterations += 1
 
         # If the completion generation failed, abort
         if not success:
