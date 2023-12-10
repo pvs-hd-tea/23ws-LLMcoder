@@ -7,6 +7,9 @@ from llmcoder.analyze.Analyzer import Analyzer
 
 
 class MypyAnalyzer(Analyzer):
+    """
+    Analyzer that runs mypy on the code with the completion and returns the result.
+    """
     def analyze(self, input: str, completion: str, install_stubs: bool = True, mypy_args: list[str] | None = None, context: dict[str, dict[str, float | int | str]] | None = None) -> dict:
         """
         Analyzes the completion using mypy.
@@ -25,7 +28,7 @@ class MypyAnalyzer(Analyzer):
         dict
             The analysis result.
         """
-
+        # Combine the input code and the completion
         code = input + completion
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=".py", mode="w") as temp_file:
@@ -86,16 +89,20 @@ class MypyAnalyzer(Analyzer):
         # Remove the error message "your completion:16: note: See https:" since it does not provide any useful information
         filtered_result = [line for line in filtered_result if not re.match(r"your completion:\d+: note: See https:", line)]
 
+        # Construct the feedback string from the filtered result
         if len(filtered_result) == 0:
             filtered_result_str = "No mypy errors found."
         else:
             filtered_result_str = "The completion you provided resulted in the following errors:\n"
             filtered_result_str += "\n".join(filtered_result)
 
+        # If there is no error in the mypy output, the completion passes the analysis
         passed = "error:" not in filtered_result_str
 
+        # Clean up
         os.remove(temp_file_name)
 
+        # Return the result
         return {
             "type": "critical",
             "score": - len(re.findall(r"your completion:\d+: error:", filtered_result_str)),  # The more errors, the lower the score

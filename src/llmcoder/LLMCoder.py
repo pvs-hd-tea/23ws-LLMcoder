@@ -10,37 +10,35 @@ from llmcoder.utils import get_conversations_dir, get_openai_key, get_system_pro
 
 
 class LLMCoder:
+    """
+    Initialize the LLMCoder
+
+    Parameters
+    ----------
+    analyzers : list[str], optional
+        The list of analyzers to use, by default []
+    model_first : str, optional
+        The model to use for the first completion, by default "ft:gpt-3.5-turbo-1106:personal::8LCi9Q0d"
+    model_feedback : str, optional
+        The model to use for the feedback loop, by default "gpt-3.5-turbo"
+    feedback_variant : str, optional
+        The feedback variant to use, by default "separate"
+    system_prompt : str, optional
+        The system prompt to use, by default the one used for preprocessing and fine-tuning
+    max_iter : int, optional
+        The maximum number of iterations to run the feedback loop, by default 10
+    log_conversation : bool, optional
+        Whether to log the conversation, by default False
+    """
     def __init__(self,
                  analyzers: list[str] = None,
                  model_first: str = "ft:gpt-3.5-turbo-1106:personal::8LCi9Q0d",
                  model_feedback: str = "gpt-3.5-turbo",
                  feedback_variant: str = "separate",
                  system_prompt: str | None = None,
-                 scoring_prompt: str | None = None,
                  max_iter: int = 10,
-                 log_conversation: bool = True):
-        """
-        Initialize the LLMCoder
+                 log_conversation: bool = True) -> None:
 
-        Parameters
-        ----------
-        analyzers : list[str], optional
-            The list of analyzers to use, by default []
-        model_first : str, optional
-            The model to use for the first completion, by default "ft:gpt-3.5-turbo-1106:personal::8LCi9Q0d"
-        model_feedback : str, optional
-            The model to use for the feedback loop, by default "gpt-3.5-turbo"
-        feedback_variant : str, optional
-            The feedback variant to use, by default "separate"
-        system_prompt : str, optional
-            The system prompt to use, by default the one used for preprocessing and fine-tuning
-        scoring_prompt : str, optional
-            The scoring prompt to use, by default the one used for scoring
-        max_iter : int, optional
-            The maximum number of iterations to run the feedback loop, by default 10
-        log_conversation : bool, optional
-            Whether to log the conversation, by default False
-        """
         # Check for invalid feedback variants
         if feedback_variant not in ["separate", "coworker"]:
             raise ValueError("Inavlid feedback method")
@@ -81,27 +79,29 @@ class LLMCoder:
         else:
             self.system_prompt = system_prompt
 
-        if scoring_prompt is None:
-            self.scoring_prompt = get_system_prompt("2023-12-09_Scorer_v1.1.txt")
-        elif scoring_prompt in os.listdir(get_system_prompt_dir()):
-            self.scoring_prompt = get_system_prompt(scoring_prompt)
-        else:
-            self.scoring_prompt = scoring_prompt
-
     def _check_passing(self) -> bool:
+        """
+        Check if all the analyzers passed in the last iteration
+
+        Returns
+        -------
+        bool
+            True if all the analyzers passed, False otherwise
+        """
+        # If there was no iteration yet, return True
         if len(self.analyzer_results_history) == 0:
-            return False
+            return True
 
         # Print how many analyzers have passed
         n_passed = sum([results['pass'] for results in self.analyzer_results_history[-1].values() if results['type'] == "critical"])
         n_total = len([results for results in self.analyzer_results_history[-1].values() if results['type'] == "critical"])
         print(f"[LLMcoder] {n_passed} / {n_total} analyzers passed")
 
-        # Check if all the analyzers passed
+        # If all the analyzers passed, return True
         if n_passed == n_total:
-            # If all the analyzers passed, return True
             return True
 
+        # Otherwise, return False
         return False
 
     def complete(self, code: str, temperature: float = 0.7, n: int = 1) -> str:
@@ -122,28 +122,38 @@ class LLMCoder:
         str
             The completed code
         """
-        # Reset the feedback loop
+        # Reset the feedback loop and internal variables
         self._reset_loop()
 
         # Get the first completion with
         print("[LLMcoder] Creating first completion...")
-        self.step(code, temperature, n)
+        completion = self.step(code, temperature, n)
 
+        if completion is None:
+            raise RuntimeError("Completion generation failed")
+
+        # If the first completion is already correct, return it
         if self._check_passing():
             return self.messages[-1]["content"]
 
+        # Otherwise, start the feedback loop (but only if there are analyzers that can be used)
         print("[LLMcoder] Starting feedback loop...")
         if len(self.analyzers) > 0:
             # Run the feedback loop until the code is correct or the max_iter is reached
             for i in range(self.max_iter):
                 print(f"[LLMcoder] Starting feedback iteration {i + 1}...")
 
-                self.step(code, temperature, n)
+                completion = self.step(code, temperature, n)
 
+                if completion is None:
+                    print("[LLMcoder] Completion generation failed. Stopping early...")
+                    break
+
+                # If the code is correct, break the loop
                 if self._check_passing():
                     break
 
-        # Return the last message
+        # Return the last message regardless of whether it is correct or not
         return self.messages[-1]["content"]
 
     @classmethod
@@ -154,7 +164,7 @@ class LLMCoder:
         Returns
         -------
         str
-            The path of the conversation file
+            The path to the conversation file
         """
         return os.path.join(get_conversations_dir(create=True), f"{datetime.now()}.jsonl")
 
@@ -175,7 +185,27 @@ class LLMCoder:
         return completion in [message["content"] for message in self.messages if message["role"] == "assistant"]
 
     def _get_completions(self, model: str = 'gpt-3.5-turbo', temperature: float = 0.7, n: int = 1) -> str | None:
+        """
+        Use OpenAI's API to get completion(s) for the user's code
+
+        Parameters
+        ----------
+        model : str, optional
+            The model to use for the completion, by default 'gpt-3.5-turbo'
+        temperature : float, optional
+            The temperature to use for the completion, by default 0.7
+        n : int, optional
+            The number of choices to generate, by default 1
+
+        Returns
+        -------
+        str | None
+            The completion(s) or None if all completions are repetitions of previous mistakes
+        """
+        # Get the completions from OpenAI's API
         candidates = self.client.chat.completions.create(messages=self.messages, model=model, temperature=temperature, n=n)  # type: ignore
+
+        # Filter out completions that are repetitions of previous mistakes
         valid_choices = [completion for completion in candidates.choices if not self._is_bad_completion(completion.message.content)]
 
         # If all completions are repetitions of previous mistakes, increase the temperature and the number of choices until we get a valid completion
@@ -193,6 +223,7 @@ class LLMCoder:
             increased_n = min(32, increased_n * 2)
             repetition += 1
 
+        # If we still do not have valid choices, abort
         if repetition >= MAX_RETRIES:
             print("[LLMcoder] All completions are repetitions of previous mistakes. Aborting...")
             return None
@@ -202,6 +233,7 @@ class LLMCoder:
             analysis_results = []
             print(f"[LLMcoder] Analyzing {len(candidates.choices)} completions...")
 
+            # Collect the results of the analyzers for each completion
             for i, choice in enumerate(valid_choices):
                 print(f"[LLMcoder] Analyzing completion {i}...")
                 analysis_results.append(self.run_analyzers(self.messages[1]["content"], choice.message.content))
@@ -209,25 +241,30 @@ class LLMCoder:
             # Choose the completion with the highest score
             candidate_scores = [sum([results["score"] for results in result.values()]) for result in analysis_results]
             best_completion_id = np.argmax(candidate_scores)
+            print(f"[Scoring] Choosing message {best_completion_id} with score {candidate_scores[best_completion_id]}")
 
+            # Select the best completion
             message = valid_choices[best_completion_id].message.content
 
+            # Update the analyzer results history with the results of the best completion
             self.analyzer_results_history.append(analysis_results[best_completion_id])
-
-            print(f"[Scoring] Choosing message {best_completion_id} with score {candidate_scores[best_completion_id]}")
         else:
+            # If we only have one completion, still run the analyzers on it
             print("[LLMcoder] Analyzing completion...")
             analysis_results = self.run_analyzers(self.messages[1]["content"], valid_choices[0].message.content)
 
-            self.analyzer_results_history.append(analysis_results)
-
+            # There is only one valid choice
             message = valid_choices[0].message.content
 
+            # Update the analyzer results history with the results of the completion
+            self.analyzer_results_history.append(analysis_results)
+
+        # Return the best (or only) completion
         return message
 
     def _add_message(self, role: str, model: str = 'gpt-3.5-turbo', message: str | None = None, temperature: float = 0.7, n: int = 1) -> bool:
         """
-        Add a message to the messages list
+        Add a message to the messages list. Used as a unified way to add messages to the conversation
 
         Parameters
         ----------
@@ -238,9 +275,9 @@ class LLMCoder:
         message : str, optional
             The message to add, by default None
         temperature : float, optional
-            The temperature to use for the completion, by default 0.7
+            The temperature to use for the assistant completion, by default 0.7
         n : int, optional
-            The number of choices to generate, by default 1
+            The number of assistant choices to generate, by default 1
 
         Returns
         -------
@@ -251,6 +288,11 @@ class LLMCoder:
         if role == "assistant" and message is None:
             message = self._get_completions(model, temperature, n)
 
+            # If the completion generation did not work, abort
+            if message is None:
+                return False
+
+        # If the role is user or system, or if the assistant message should be overwritten, add the message
         self.messages.append(
             {
                 "role": role,
@@ -258,6 +300,7 @@ class LLMCoder:
             }
         )
 
+        # If the conversation should be logged, log it
         if self.conversation_file is not None:
             # If the conversation file already exists, only append the last message as a single line
             if os.path.isfile(self.conversation_file):
@@ -269,12 +312,14 @@ class LLMCoder:
                     for message in self.messages:
                         f.write(json.dumps(message, ensure_ascii=False) + "\n")
 
+        # The message was added successfully
         return True
 
     def _reset_loop(self) -> None:
         """
-        Reset the feedback loop
+        Reset the feedback loop and internal variables. Also re-add the system prompt as the first message
         """
+        # Reset the feedback loop variables
         self.iterations = 0
         self.analyzer_results_history = []
         self.messages = []
@@ -283,24 +328,43 @@ class LLMCoder:
         self._add_message("system", message=self.system_prompt)
 
     def run_analyzers(self, code: str, completion: str) -> dict[str, dict]:
+        """
+        Run the analyzers on the code and completion
+
+        Parameters
+        ----------
+        code : str
+            The code to analyze
+        completion : str
+            The completion to analyze
+
+        Returns
+        -------
+        dict[str, dict]
+            The analyzer results
+        """
         analyzer_results: dict[str, dict] = {}
 
+        # In separete mode, each analyzer is run separately without a shared context
         if self.feedback_variant == "separate":
             print("[LLMcoder] Analyzing code in separate mode...")
             for analyzer_name, analyzer_instance in self.analyzers.items():
                 print(f"[LLMcoder] Running {analyzer_name}...")
                 analyzer_results[analyzer_name] = analyzer_instance.analyze(code, completion)
-        if self.feedback_variant == "coworker":
+
+        # In coworker mode, the analyzers are run in parallel and share a context
+        elif self.feedback_variant == "coworker":
             print("[LLMcoder] Analyzing code in coworker mode...")
             for analyzer_name, analyzer_instance in self.analyzers.items():
                 print(f"[LLMcoder] Running {analyzer_name}...")
                 analyzer_results[analyzer_name] = analyzer_instance.analyze(code, completion, context=analyzer_results)
 
+        # Return the collected analyzer results
         return analyzer_results
 
-    def _feedback_pattern(self, result_messages: list[str]) -> str:
+    def _feedback_prompt_template(self, result_messages: list[str]) -> str:
         """
-        Create the feedback pattern for the analyzer results
+        Create the feedback prompt template for the analyzer results
 
         Parameters
         ----------
@@ -310,13 +374,13 @@ class LLMCoder:
         Returns
         -------
         str
-            The feedback pattern
+            The feedback prompt template
         """
         return '[INST]\n' + '\n'.join(result_messages) + '\n\nFix, improve and rewrite your completion for the following code:\n[/INST]\n'
 
-    def step(self, code: str, temperature: float = 0.7, n: int = 1) -> str:
+    def step(self, code: str, temperature: float = 0.7, n: int = 1) -> str | None:
         """
-        Run the first completion of the LLMCoder without any feedback
+        Complete the provided code with the OpenAI model and feedback, if available
 
         Parameters
         ----------
@@ -329,16 +393,26 @@ class LLMCoder:
 
         Returns
         -------
-        str
-            The completed code
+        str | None
+            The completed code or None if the completion generation failed
         """
+        # If there is feedback available from previous analyses, add it to the prompt
         if len(self.analyzer_results_history) > 0:
-            feedback_prompt = self._feedback_pattern([result['message'] for result in self.analyzer_results_history[-1].values() if not result['pass'] or result['type'] == "info"])
+            feedback_prompt = self._feedback_prompt_template([result['message'] for result in self.analyzer_results_history[-1].values() if not result['pass'] or result['type'] == "info"])
+
+        # If there is not feedback available, the prompt will just be the user's code
         else:
             feedback_prompt = ""
 
+        # Add the prompt to the messages
         self._add_message("user", message=feedback_prompt + code)
-        self._add_message("assistant", model=self.model_first, temperature=temperature, n=n)  # model_first works quite good here
+
+        # Get a completion from the assistant
+        success = self._add_message("assistant", model=self.model_first, temperature=temperature, n=n)  # model_first works quite good here
+
+        # If the completion generation failed, abort
+        if not success:
+            return None
 
         # Return the last message (the completion)
         return self.messages[-1]["content"]

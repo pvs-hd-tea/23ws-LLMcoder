@@ -2,8 +2,8 @@ import ast
 import inspect
 import os
 import re
-# import builtins
 import tempfile
+
 from collections import namedtuple
 from typing import Generator
 
@@ -13,38 +13,77 @@ Import = namedtuple("Import", ["module", "name", "alias"])
 
 
 class SignatureAnalyzer(Analyzer):
-
+    """
+    Analyzer that fetches the signatures and documentations of functions and classes in the code.
+    """
     def get_imports(self, path: str, query: str | list[str] | None = None) -> Generator:
+        """
+        Find and yield all imports in the code.
+
+        Parameters
+        ----------
+        path : str
+            Path to the Python file. Can be temporary.
+        query : str | list[str] | None
+            The query string to search for. E.g. a function name or a class name.
+
+        Yields
+        ------
+        Generator
+            A generator that yields Import objects.
+        """
+        # Convert the query to a list if it is a string for convenience
         if isinstance(query, str):
             query = [query]
+
+        # If the query is an empty list, return
         elif isinstance(query, list) and not query:
             print("[Signatures] Empty query specified.")
             return
 
+        # Parse the code with the ast module
+        # FIXME: This will fail if the code is invalid
         with open(path) as fh:
             root = ast.parse(fh.read(), path)
 
+        # Walk through the AST and find all imports
         for node in ast.walk(root):
+            # Found an import statement
             if isinstance(node, ast.Import):
                 for alias in node.names:
                     module = alias.name
+
+                    # Set the module_name to the alias if it exists, otherwise to the module name
                     module_name = alias.asname if alias.asname else alias.name
                     if query:
                         for q in query:
+                            # Check if the query is a module name or a function name
                             if q.startswith(module_name + ".") or q == module_name:
                                 yield Import([module], q.split('.')[-1], module_name)
+
+                    # In case ther is no query, yield all imports
                     else:
                         yield Import([module], None, module_name)
+
+            # Found an import from statement
             elif isinstance(node, ast.ImportFrom):
+                # If there is no module, this is a relative import
+                # FIXME: Find a way to handle relative imports
                 if node.module is None:
                     continue
+
                 for alias in node.names:
                     module = node.module.split('.')  # type: ignore
                     name = alias.name
+
+                    # Set the module_name to the alias if it exists, otherwise to the module name
                     asname = alias.asname if alias.asname else name
                     if query:
+                        # Match the query to the module name or asname
                         if name in query or asname in query:
                             yield Import(module, name, asname)
+
+                    # In case ther is no query, yield all imports
                     else:
                         yield Import(module, name, asname)
 
@@ -67,12 +106,15 @@ class SignatureAnalyzer(Analyzer):
             A list of tuples containing the module alias and the function name of every match to the query.
         """
 
+        # Parse the code with the ast module
         root = ast.parse(code)
         function_calls: list[tuple[str | None, str]] = []
 
+        # Convert the query to a list if it is a string for convenience
         if isinstance(query, str):
             query = [query]
 
+        # Walk through the AST and find all function calls
         for node in ast.walk(root):
             if isinstance(node, ast.Call):
                 attribute_chain = []
@@ -119,6 +161,7 @@ class SignatureAnalyzer(Analyzer):
         import_aliases = {}
         direct_imports = {}  # Store direct imports
 
+        # Read the code
         with open(path) as file:
             code = file.read()
 
@@ -131,15 +174,15 @@ class SignatureAnalyzer(Analyzer):
                 alias = imp.alias if imp.alias else imp.name[-1] if imp.name else full_module
                 import_aliases[alias] = full_module
 
-        print(f"[Signatures] {import_aliases=}")
-        print(f"[Signatures] {direct_imports=}")
+        # print(f"[Signatures] {import_aliases=}")
+        # print(f"[Signatures] {direct_imports=}")
 
         # Find all function calls that match the query
         function_calls = self.find_function_calls(code, query)
 
         function_calls = list(set(function_calls))
 
-        print(f"[Signatures] {function_calls=}")
+        # print(f"[Signatures] {function_calls=}")
 
         # Match the function calls to the imports
         matched_function_calls = []
@@ -232,6 +275,7 @@ class SignatureAnalyzer(Analyzer):
                         matches_has = re.findall(r'\"(.+?)\" has', line)
                         matches_for = re.findall(r'for \"(.+?)\"', line)
                         matches_gets = re.findall(r'\"(.+?)\" gets', line)
+                        # TODO: There may be more
 
                         matches = matches_has + matches_for + matches_gets
 
@@ -245,8 +289,10 @@ class SignatureAnalyzer(Analyzer):
 
                             query.append(match)
 
+        # Remove duplicates
         query = list(set([q for q in query if q.strip() != ""]))
 
+        # If there is no query, there is nothing to do
         if len(query) == 0:
             print("[Signatures] No problematic functions or classes found in the context.")
             os.remove(temp_file_name)
@@ -256,10 +302,13 @@ class SignatureAnalyzer(Analyzer):
                 "score": 0,
                 "message": "All functions and classes in your completion are called correctly (their signatures match with the documentation)."
             }
+
+        # If there is a query, get the signatures and documentations of the functions and classes that match the query
         else:
             result = self.get_signature_and_doc(temp_file_name, list(set(query)))
 
             # Truncate the documentation to the first line (i.e. the signature)
+            # Otherwise, the message will be too long
             for r in result:
                 if r['doc']:
                     r['doc'] = r['doc'].split("\n")[0]
@@ -268,6 +317,7 @@ class SignatureAnalyzer(Analyzer):
             for r in result:
                 print(f"[Signatures] {r['name']}: {r['signature']}, {r['doc']}")
 
+            # If the analyzer could not find any signatures, return an error message
             if len(result) == 0:
                 os.remove(temp_file_name)
                 return {
@@ -277,10 +327,14 @@ class SignatureAnalyzer(Analyzer):
                     "message": "Cannot find the relevant signatures of " + ", ".join(query)
                 }
 
+            # Construct the feedback message
             result_str = "To fix these errors, use these ground truth signatures as a reference for your next completion:\n"
             result_str += "\n".join([f"{r['name']}: {r['signature'] if r['signature'] else r['doc']}" for r in result])
 
+            # Clean up the temporary file
             os.remove(temp_file_name)
+
+            # Return the result
             return {
                 "pass": True,
                 "type": "info",
