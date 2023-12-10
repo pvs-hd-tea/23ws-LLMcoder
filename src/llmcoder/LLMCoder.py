@@ -1,9 +1,9 @@
 import json
 import os
+from datetime import datetime
+
 import numpy as np
 import openai
-
-from datetime import datetime
 
 from llmcoder.analyze.factory import AnalyzerFactory
 from llmcoder.utils import get_conversations_dir, get_openai_key, get_system_prompt, get_system_prompt_dir
@@ -50,7 +50,7 @@ class LLMCoder:
 
         # Set the feedback loop variables
         self.iterations = 0
-        self.analyzer_results_history: list[list[dict[str, float | int | str | bool]]] = []
+        self.analyzer_results_history: list[dict[str, dict[str, float | int | str | bool]]] = []
         self.max_iter = max_iter
         self.messages: list = []
 
@@ -95,8 +95,10 @@ class LLMCoder:
             return True
 
         # Print how many analyzers have passed
-        n_passed = sum([results['pass'] for results in self.analyzer_results_history[-1].values() if results['type'] == "critical"])
-        n_total = len([results for results in self.analyzer_results_history[-1].values() if results['type'] == "critical"])
+        n_passed = sum(results['pass'] for results in self.analyzer_results_history[-1].values()
+                       if (results['type'] == "critical" and type(results['pass']) is bool))
+        n_total = len([results for results in self.analyzer_results_history[-1].values()
+                      if results['type'] == "critical"])
         print(f"[LLMcoder] {n_passed} / {n_total} analyzers passed")
 
         # If all the analyzers passed, return True
@@ -232,16 +234,16 @@ class LLMCoder:
 
         # Now that we have valid choices, run the analyzers on them in parallel and determine the best one
         if n > 1:
-            analysis_results = []
+            analysis_results_list = []
             print(f"[LLMcoder] Analyzing {len(candidates.choices)} completions...")
 
             # Collect the results of the analyzers for each completion
             for i, choice in enumerate(valid_choices):
                 print(f"[LLMcoder] Analyzing completion {i}...")
-                analysis_results.append(self.run_analyzers(self.messages[1]["content"], choice.message.content))
+                analysis_results_list.append(self.run_analyzers(self.messages[1]["content"], choice.message.content))
 
             # Choose the completion with the highest score
-            candidate_scores = [sum([results["score"] for results in result.values()]) for result in analysis_results]
+            candidate_scores = [sum([results["score"] for results in result.values()]) for result in analysis_results_list]
             best_completion_id = np.argmax(candidate_scores)
             print(f"[Scoring] Choosing message {best_completion_id} with score {candidate_scores[best_completion_id]}")
 
@@ -249,7 +251,7 @@ class LLMCoder:
             message = valid_choices[best_completion_id].message.content
 
             # Update the analyzer results history with the results of the best completion
-            self.analyzer_results_history.append(analysis_results[best_completion_id])
+            self.analyzer_results_history.append(analysis_results_list[best_completion_id])
         else:
             # If we only have one completion, still run the analyzers on it
             print("[LLMcoder] Analyzing completion...")
@@ -400,7 +402,8 @@ class LLMCoder:
         """
         # If there is feedback available from previous analyses, add it to the prompt
         if len(self.analyzer_results_history) > 0:
-            feedback_prompt = self._feedback_prompt_template([result['message'] for result in self.analyzer_results_history[-1].values() if not result['pass'] or result['type'] == "info"])
+            feedback_prompt = self._feedback_prompt_template([str(result['message']) for result in self.analyzer_results_history[-1].values()
+                                                              if (not result['pass'] or result['type'] == "info")])
 
         # If there is not feedback available, the prompt will just be the user's code
         else:

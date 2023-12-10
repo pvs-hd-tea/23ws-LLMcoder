@@ -3,7 +3,6 @@ import inspect
 import os
 import re
 import tempfile
-
 from collections import namedtuple
 from typing import Generator
 

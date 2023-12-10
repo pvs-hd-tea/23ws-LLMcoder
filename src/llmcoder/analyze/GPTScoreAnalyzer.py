@@ -2,7 +2,7 @@ import numpy as np
 from openai import OpenAI
 
 from llmcoder.analyze.Analyzer import Analyzer
-from llmcoder.utils import get_system_prompt, get_openai_key
+from llmcoder.utils import get_openai_key, get_system_prompt
 
 
 class GPTScoreAnalyzer(Analyzer):
@@ -53,7 +53,7 @@ class GPTScoreAnalyzer(Analyzer):
 
         return prompt
 
-    def score_code(self, code: str | list[str]) -> float:
+    def score_code(self, code: str | list[str]) -> np.ndarray:
         """
         Score the provided code snippet() using the scoring model
 
@@ -70,8 +70,8 @@ class GPTScoreAnalyzer(Analyzer):
 
         Returns
         -------
-        float
-            The score of the code snippet(s)
+        np.ndarray
+            The scores for the provided code snippet(s)
         """
 
         if isinstance(code, str):
@@ -91,7 +91,7 @@ class GPTScoreAnalyzer(Analyzer):
         lines = completions.choices[0].message.content.split("\n")
 
         # Extract the scores from the response
-        scores = []
+        scores: list[float | list[float]] = []
         if "Code snippet" in lines[0]:
             for i, line in enumerate(lines):
                 scores_for_snippet = []
@@ -111,17 +111,17 @@ class GPTScoreAnalyzer(Analyzer):
                     print(f"[Scoring] Error while scoring code. Expected float, got: {completions.choices[0].message.content}")
                     scores.append(np.nan)
 
-        scores = np.atleast_2d(np.array(scores))
+        scores_array = np.atleast_2d(np.array(scores))
 
         match self.reduction:
             case "mean":
-                return scores.mean(axis=1)
+                return scores_array.mean(axis=1)
             case "max":
-                return scores.max(axis=1)
+                return scores_array.max(axis=1)
             case "geo":
-                return scores.prod(axis=1) ** (1 / scores.shape[1])
+                return scores_array.prod(axis=1) ** (1 / scores_array.shape[1])
             case None:
-                return scores
+                return scores_array
             case _:
                 raise ValueError("Invalid reduction method")
 
