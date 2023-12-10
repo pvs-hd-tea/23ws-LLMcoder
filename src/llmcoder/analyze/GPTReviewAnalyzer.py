@@ -79,7 +79,7 @@ class GPTReviewAnalyzer_v1(Analyzer):
             "role": "user",
             "content": self._prompt_template(input, completion)
         })
-        chat_completion = self.client.chat.completions.create(messages=self.messages, model=self.model, temperature=self.temperature)  # type: ignore
+        chat_completion = self.client.chat.completions.create(
 
         self.messages.append({
             "role": "assistant",
