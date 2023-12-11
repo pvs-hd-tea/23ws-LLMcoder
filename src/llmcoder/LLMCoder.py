@@ -1,6 +1,5 @@
 import json
 import os
-
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
@@ -260,7 +259,13 @@ class LLMCoder:
                         analysis_results_list.append(analysis_results)
                     except Exception as exc:
                         print(f"[LLMcoder] An exception occurred during analysis of choice: {exc}")
-                        analysis_results_list.append(None)  # or handle the error appropriately
+                        raise exc
+                        # analysis_results_list.append({
+                        #     "score": -np.inf,
+                        #     "type": "ignore",
+                        #     "message": "An exception occured during analysis",
+                        #     "pass": False,
+                        # })
 
             # Choose the completion with the highest score
             candidate_scores = [sum([results["score"] for results in result.values()]) for result in analysis_results_list]
