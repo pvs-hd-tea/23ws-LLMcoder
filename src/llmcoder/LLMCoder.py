@@ -1,5 +1,7 @@
 import json
 import os
+
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
 import numpy as np
@@ -29,6 +31,8 @@ class LLMCoder:
         The maximum number of iterations to run the feedback loop, by default 10
     log_conversation : bool, optional
         Whether to log the conversation, by default False
+    n_procs : int, optional
+        The number of processes to use for the analyzers, by default 1
     """
     def __init__(self,
                  analyzers: list[str] = None,
@@ -37,7 +41,8 @@ class LLMCoder:
                  feedback_variant: str = "separate",
                  system_prompt: str | None = None,
                  max_iter: int = 10,
-                 log_conversation: bool = True) -> None:
+                 log_conversation: bool = True,
+                 n_procs: int = 1) -> None:
 
         # Check for invalid feedback variants
         if feedback_variant not in ["separate", "coworker"]:
@@ -64,6 +69,9 @@ class LLMCoder:
 
         # Set up the OpenAI API
         self.client = openai.OpenAI(api_key=get_openai_key())
+
+        # Set up the number of processes to use for the analyzers
+        self.n_procs = n_procs
 
         # Set up logging
         if log_conversation:
@@ -233,14 +241,26 @@ class LLMCoder:
             return None
 
         # Now that we have valid choices, run the analyzers on them in parallel and determine the best one
-        if n > 1:
-            analysis_results_list = []
+        if n > 1 and len(valid_choices) > 1:
             print(f"[LLMcoder] Analyzing {len(candidates.choices)} completions...")
 
-            # Collect the results of the analyzers for each completion
-            for i, choice in enumerate(valid_choices):
-                print(f"[LLMcoder] Analyzing completion {i}...")
-                analysis_results_list.append(self.run_analyzers(self.messages[1]["content"], choice.message.content))
+            with ThreadPoolExecutor(max_workers=self.n_procs) as executor:
+                # Create a mapping of future to completion choice
+                choice_to_future = {
+                    i: executor.submit(self.run_analyzers, self.messages[1]["content"], choice.message.content)
+                    for i, choice in enumerate(valid_choices)
+                }
+
+                # Retrieve results in the order of valid_choices
+                analysis_results_list = []
+                for i in range(len(valid_choices)):
+                    future = choice_to_future[i]
+                    try:
+                        analysis_results = future.result()
+                        analysis_results_list.append(analysis_results)
+                    except Exception as exc:
+                        print(f"[LLMcoder] An exception occurred during analysis of choice: {exc}")
+                        analysis_results_list.append(None)  # or handle the error appropriately
 
             # Choose the completion with the highest score
             candidate_scores = [sum([results["score"] for results in result.values()]) for result in analysis_results_list]
