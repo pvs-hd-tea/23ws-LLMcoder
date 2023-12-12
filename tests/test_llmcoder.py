@@ -160,3 +160,33 @@ class TestLLMCoder(unittest.TestCase):
         self.assertEqual(llmcoder.messages[0]['role'], 'system')
         self.assertEqual(llmcoder.messages[1]['role'], 'user')
         self.assertEqual(llmcoder.messages[2]['role'], 'assistant')
+
+    def test_check_passing_no_iteration(self) -> None:
+        coder = LLMCoder()
+        self.assertTrue(coder._check_passing())
+
+    def test_check_passing_all_passed(self) -> None:
+        coder = LLMCoder()
+        coder.analyzer_results_history.append({
+            'analyzer1': {'type': 'critical', 'pass': True},
+            'analyzer2': {'type': 'critical', 'pass': True}
+        })
+        self.assertTrue(coder._check_passing())
+
+    def test_check_passing_not_all_passed(self) -> None:
+        coder = LLMCoder()
+        coder.analyzer_results_history.append({
+            'analyzer1': {'type': 'critical', 'pass': True},
+            'analyzer2': {'type': 'critical', 'pass': False}
+        })
+        self.assertFalse(coder._check_passing())
+
+    def test_is_bad_completion(self) -> None:
+        coder = LLMCoder()
+
+        # Create a message history
+        coder._add_message("user", message="test_user")
+        coder._add_message("assistant", message="test_assistant")
+
+        # Now, check if "test_assistant" would be a bad completion (it is)
+        self.assertTrue(coder._is_bad_completion("test_assistant"))

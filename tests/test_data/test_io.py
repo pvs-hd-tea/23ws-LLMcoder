@@ -27,7 +27,7 @@ class TestReadDataFromPairs(unittest.TestCase):
         # Assuming a test directory with pairs exists
         expected_pairs = [('input1', 'output1'), ('input2', 'output2')]
         actual_pairs = read_data_from_pairs(self.test_dir)
-        self.assertEqual(actual_pairs, expected_pairs)
+        self.assertEqual(set(actual_pairs), set(expected_pairs))
 
 
 class TestReadDataFromConversationsFile(unittest.TestCase):

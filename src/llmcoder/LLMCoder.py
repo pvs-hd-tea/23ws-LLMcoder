@@ -291,7 +291,7 @@ class LLMCoder:
         # Return the best (or only) completion
         return message
 
-    def _add_message(self, role: str, model: str = 'gpt-3.5-turbo', message: str | None = None, temperature: float = 0.7, n: int = 1) -> bool:
+    def _add_message(self, role: str, message: str | None = None, model: str = 'gpt-3.5-turbo', temperature: float = 0.7, n: int = 1) -> bool:
         """
         Add a message to the messages list. Used as a unified way to add messages to the conversation
 
@@ -299,10 +299,10 @@ class LLMCoder:
         ----------
         role : str
             The role of the message
-        model : str, optional
-            The model to use for the completion, by default 'gpt-3.5-turbo'
         message : str, optional
             The message to add, by default None
+        model : str, optional
+            The model to use for the completion, by default 'gpt-3.5-turbo'
         temperature : float, optional
             The temperature to use for the assistant completion, by default 0.7
         n : int, optional
