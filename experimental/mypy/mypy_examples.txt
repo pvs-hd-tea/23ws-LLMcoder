@@ -1,0 +1,137 @@
+SYSTEM
+You are AutocompleteGPT, a useful AI autocomplete tool that provides code completions based on the user's code.
+You are a precision-focused tool for code autocompletion, adept in languages like Python, JavaScript, C++, and SQL.
+Precisely continue the code from the point of interruption and do not repeat or modify the original code, even if it is incorrect or the code interrupts in the middle of a line.
+Your code is well documented with comments and annotations, and you should provide a clear explanation of the code's purpose in your code completion.
+Your unique capability is to provide completions without altering, repeating, or commenting on the original code.
+You offer only the necessary code to complete the snippet, ensuring the response is exclusively code, with no additional comments, explanations, or annotations.
+This approach makes you an ideal assistant for users seeking straightforward and efficient code extensions, enhancing their work with accurate, logic-driven completions while maintaining the integrity and simplicity of the original input.
+Your response begins with the next characters of the line if the last line of the user'S code is incomplete, or the next line if the last line of the user's code is complete.
+Your application is a VSCode extension like GitHub Copilot, which provides seamless code completions based on the user's code at the point of interruption.
+--------------------------------------------------------------------------------
+USER
+import os
+from aleph_alpha_client import Client, CompletionRequest, Prompt
+
+
+
+client = Client(token=os.getenv("AA_TOKEN"))
+request = CompletionRequest(
+
+--------------------------------------------------------------------------------
+ASSISTANT
+prompt=Prompt(text="Write a Python function to remove duplicate elements from a list."),
+     max_tokens=64
+)
+response = client.request_completions(request)
+--------------------------------------------------------------------------------
+USER
+[INST]
+The completion you provided resulted in the following errors:
+your completion:11: error: "Client" has no attribute "request_completions"  [attr-defined]
+Found 4 errors in 1 file (checked 1 source file)
+
+
+Fix, improve and rewrite your completion for the following code:
+[/INST]
+import os
+from aleph_alpha_client import Client, CompletionRequest, Prompt
+
+
+
+client = Client(token=os.getenv("AA_TOKEN"))
+request = CompletionRequest(
+
+--------------------------------------------------------------------------------
+ASSISTANT
+prompt=Prompt(text="Write a Python function to remove duplicate elements from a list."),
+     max_tokens=64
+)
+response = client.complete(request)
+--------------------------------------------------------------------------------
+USER
+[INST]
+The completion you provided resulted in the following errors:
+your completion:11: error: Missing positional argument "model" in call to "complete" of "Client"  [call-arg]
+Found 4 errors in 1 file (checked 1 source file)
+
+
+Fix, improve and rewrite your completion for the following code:
+[/INST]
+import os
+from aleph_alpha_client import Client, CompletionRequest, Prompt
+
+
+
+client = Client(token=os.getenv("AA_TOKEN"))
+request = CompletionRequest(
+
+--------------------------------------------------------------------------------
+ASSISTANT
+prompt=Prompt(text="Write a Python function to remove duplicate elements from a list."),
+     max_tokens=64
+)
+response = client.complete(request, model="gpt-3.5-turbo")
+--------------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SYSTEM
+You are AutocompleteGPT, a useful AI autocomplete tool that provides code completions based on the user's code.
+You are a precision-focused tool for code autocompletion, adept in languages like Python, JavaScript, C++, and SQL.
+Precisely continue the code from the point of interruption and do not repeat or modify the original code, even if it is incorrect or the code interrupts in the middle of a line.
+Your code is well documented with comments and annotations, and you should provide a clear explanation of the code's purpose in your code completion.
+Your unique capability is to provide completions without altering, repeating, or commenting on the original code.
+You offer only the necessary code to complete the snippet, ensuring the response is exclusively code, with no additional comments, explanations, or annotations.
+This approach makes you an ideal assistant for users seeking straightforward and efficient code extensions, enhancing their work with accurate, logic-driven completions while maintaining the integrity and simplicity of the original input.
+Your response begins with the next characters of the line if the last line of the user'S code is incomplete, or the next line if the last line of the user's code is complete.
+Your application is a VSCode extension like GitHub Copilot, which provides seamless code completions based on the user's code at the point of interruption.
+--------------------------------------------------------------------------------
+USER
+import os
+from aleph_alpha_client import Client, CompletionRequest, Prompt
+
+
+
+client = Client(os.
+--------------------------------------------------------------------------------
+ASSISTANT
+getenv("ALEPH_API_KEY"))
+--------------------------------------------------------------------------------
+USER
+[INST]
+The completion you provided resulted in the following errors:
+your completion:6: error: Argument 1 to "Client" has incompatible type "str | None"; expected "str"  [arg-type]
+Found 1 error in 1 file (checked 1 source file)
+
+
+Fix, improve and rewrite your completion for the following code:
+[/INST]
+import os
+from aleph_alpha_client import Client, CompletionRequest, Prompt
+
+
+
+client = Client(os.
+--------------------------------------------------------------------------------
+ASSISTANT
+getenv("ALEPH_API_KEY", ""))
+--------------------------------------------------------------------------------

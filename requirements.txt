@@ -1,5 +1,6 @@
 dynaconf
 levenshtein
+mypy
 nltk
 openai
 pandas

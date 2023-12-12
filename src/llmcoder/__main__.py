@@ -15,6 +15,7 @@ def main() -> None:
     # Add specific arguments to the preprocess command
     preprocess_parser = subparsers.add_parser('preprocess')
     preprocess_parser.add_argument('-n', '--name', type=str, help='Name of the dataset')
+    preprocess_parser.add_argument('-s', '--size', type=int, help='Number of samples to extract per repository')
 
     export_parser = subparsers.add_parser('export')
     # Add specific arguments to the export command
