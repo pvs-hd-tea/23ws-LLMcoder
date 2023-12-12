@@ -89,6 +89,9 @@ class MypyAnalyzer(Analyzer):
         # Remove the error message "your completion:16: note: See https:" since it does not provide any useful information
         filtered_result = [line for line in filtered_result if not re.match(r"your completion:\d+: note: See https:", line)]
 
+        # Remove empty lines
+        filtered_result = [line for line in filtered_result if line.strip() != ""]
+
         # Construct the feedback string from the filtered result
         if len(filtered_result) == 0:
             filtered_result_str = "No mypy errors found."

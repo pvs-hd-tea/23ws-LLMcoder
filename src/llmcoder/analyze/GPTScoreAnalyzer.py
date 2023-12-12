@@ -6,19 +6,20 @@ from llmcoder.utils import get_openai_key, get_system_prompt
 
 
 class GPTScoreAnalyzer(Analyzer):
-    def __init__(self, client: OpenAI | None = None, scoring_prompt: str | None = None, reduction: str | None = "geo"):
-        """
-        Create a new GPTScoreAnalyzer
+    """
+    Create a new GPTScoreAnalyzer
 
-        Parameters
-        ----------
-        client : openai.OpenAI
-            The OpenAI client to use
-        scoring_prompt : str
-            The scoring prompt to use
-        reduction : str | None, optional
-            The reduction method to use, by default "geo"
-        """
+    Parameters
+    ----------
+    client : openai.OpenAI
+        The OpenAI client to use
+    scoring_prompt : str
+        The scoring prompt to use
+    reduction : str | None, optional
+        The reduction method to use, by default "geo"
+    """
+
+    def __init__(self, client: OpenAI | None = None, scoring_prompt: str | None = None, reduction: str | None = "geo"):
         self.client = client or OpenAI(api_key=get_openai_key())
         self.scoring_prompt = scoring_prompt or get_system_prompt("2023-12-09_Scorer_v1.1.txt")
         self.reduction = reduction
@@ -90,13 +91,19 @@ class GPTScoreAnalyzer(Analyzer):
 
         lines = completions.choices[0].message.content.split("\n")
 
+        print(code)
+
+        print(lines[0])
+
         # Extract the scores from the response
         scores: list[float | list[float]] = []
-        if "Code snippet" in lines[0]:
+        if lines[0].startswith("Code snippet"):
+            # Multiple code snippets
             for i, line in enumerate(lines):
                 scores_for_snippet = []
                 if line.startswith("Code snippet"):
                     for j in range(4):
+                        print(f"{lines[i + j + 1] = }")
                         try:
                             scores_for_snippet.append(float(lines[i + j + 1][lines[i + j + 1].index(":") + 1:]))
                         except ValueError:
@@ -104,6 +111,7 @@ class GPTScoreAnalyzer(Analyzer):
                             scores_for_snippet.append(np.nan)
                     scores.append(scores_for_snippet)
         elif len(code) == 1:
+            # Single code snippet
             for i in range(4):
                 try:
                     scores.append(float(lines[i][lines[i].index(":") + 1:]))

@@ -23,19 +23,8 @@ class AnalyzerFactory:
             The created analyzer
         """
         match analyzer:
-            case "api_documentation_analyzer_v1":
-                from llmcoder.analyze.APIDocumentationAnalyzer import APIDocumentationAnalyzer
-                return APIDocumentationAnalyzer(*args, **kwargs)
-            # case "syntax_analyzer_v1":
-            #     from llmcoder.analyze.SyntaxAnalyzer import SyntaxAnalyzer
-            #     return SyntaxAnalyzer(*args, **kwargs)
-            # case "unit_test_analyzer_v1":
-            #     from llmcoder.analyze.UnitTestAnalyzer import UnitTestAnalyzer
-            #     return UnitTestAnalyzer(*args, **kwargs)
             case "gpt_review_analyzer_v1":
                 raise DeprecationWarning("GPTReviewAnalyzer_v1 is deprecated")
-                # from llmcoder.analyze.GPTReviewAnalyzer import GPTReviewAnalyzer_v1
-                # return GPTReviewAnalyzer_v1(system_prompt="2023-12-02_GPTReviewAnalyzer_v4.txt")
             case "mypy_analyzer_v1":
                 from llmcoder.analyze.MypyAnalyzer import MypyAnalyzer
                 return MypyAnalyzer(*args, **kwargs)
