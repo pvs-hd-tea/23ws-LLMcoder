@@ -32,6 +32,8 @@ class LLMCoder:
         Whether to log the conversation, by default False
     n_procs : int, optional
         The number of processes to use for the analyzers, by default 1
+    verbose : bool, optional
+        Whether to print verbose output, by default True
     """
     def __init__(self,
                  analyzers: list[str] = None,
@@ -41,7 +43,8 @@ class LLMCoder:
                  system_prompt: str | None = None,
                  max_iter: int = 10,
                  log_conversation: bool = True,
-                 n_procs: int = 1) -> None:
+                 n_procs: int = 1,
+                 verbose: bool = True) -> None:
 
         # Check for invalid feedback variants
         if feedback_variant not in ["separate", "coworker"]:
@@ -63,7 +66,7 @@ class LLMCoder:
             self.analyzers = {}
         else:
             self.analyzers = {
-                analyzer: AnalyzerFactory.create_analyzer(analyzer) for analyzer in analyzers
+                analyzer: AnalyzerFactory.create_analyzer(analyzer, verbose=verbose) for analyzer in analyzers
             }
 
         # Set up the OpenAI API
@@ -86,6 +89,8 @@ class LLMCoder:
         else:
             self.system_prompt = system_prompt
 
+        self.verbose = verbose
+
         self._add_message("system", message=self.system_prompt)
 
     def _check_passing(self) -> bool:
@@ -106,7 +111,9 @@ class LLMCoder:
                        if (results['type'] == "critical" and type(results['pass']) is bool))
         n_total = len([results for results in self.analyzer_results_history[-1].values()
                       if results['type'] == "critical"])
-        print(f"[LLMcoder] {n_passed} / {n_total} analyzers passed")
+
+        if self.verbose:
+            print(f"[LLMcoder] {n_passed} / {n_total} analyzers passed")
 
         # If all the analyzers passed, return True
         if n_passed == n_total:
@@ -137,7 +144,8 @@ class LLMCoder:
         self._reset_loop()
 
         # Get the first completion with
-        print("[LLMcoder] Creating first completion...")
+        if self.verbose:
+            print("[LLMcoder] Creating first completion...")
         completion = self.step(code, temperature, n)
 
         if completion is None:
@@ -148,16 +156,19 @@ class LLMCoder:
             return self.messages[-1]["content"]
 
         # Otherwise, start the feedback loop (but only if there are analyzers that can be used)
-        print("[LLMcoder] Starting feedback loop...")
+        if self.verbose:
+            print("[LLMcoder] Starting feedback loop...")
         if len(self.analyzers) > 0:
             # Run the feedback loop until the code is correct or the max_iter is reached
             for i in range(self.max_iter):
-                print(f"[LLMcoder] Starting feedback iteration {i + 1}...")
+                if self.verbose:
+                    print(f"[LLMcoder] Starting feedback iteration {i + 1}...")
 
                 completion = self.step(code, temperature, n)
 
                 if completion is None:
-                    print("[LLMcoder] Completion generation failed. Stopping early...")
+                    if self.verbose:
+                        print("[LLMcoder] Completion generation failed. Stopping early...")
                     break
 
                 # If the code is correct, break the loop
@@ -226,7 +237,8 @@ class LLMCoder:
         repetition = 0
 
         while len(valid_choices) == 0 and repetition < MAX_RETRIES:
-            print(f"[LLMcoder] All completions are repetitions of previous mistakes. Increasing temperature to {increased_temperature} and number of choices to {increased_n}... [repetition {repetition + 1}/{MAX_RETRIES}]")
+            if self.verbose:
+                print(f"[LLMcoder] All completions are repetitions of previous mistakes. Increasing temperature to {increased_temperature} and number of choices to {increased_n}... [repetition {repetition + 1}/{MAX_RETRIES}]")
             candidates = self.client.chat.completions.create(messages=self.messages, model=model, temperature=increased_temperature, n=increased_n)  # type: ignore
             valid_choices = [completion for completion in candidates.choices if not self._is_bad_completion(completion.message.content)]
 
@@ -236,12 +248,14 @@ class LLMCoder:
 
         # If we still do not have valid choices, abort
         if repetition >= MAX_RETRIES:
-            print("[LLMcoder] All completions are repetitions of previous mistakes. Aborting...")
+            if self.verbose:
+                print("[LLMcoder] All completions are repetitions of previous mistakes. Aborting...")
             return None
 
         # Now that we have valid choices, run the analyzers on them in parallel and determine the best one
         if n > 1 and len(valid_choices) > 1:
-            print(f"[LLMcoder] Analyzing {len(candidates.choices)} completions...")
+            if self.verbose:
+                print(f"[LLMcoder] Analyzing {len(candidates.choices)} completions...")
 
             with ThreadPoolExecutor(max_workers=self.n_procs) as executor:
                 # Create a mapping of future to completion choice
@@ -258,7 +272,8 @@ class LLMCoder:
                         analysis_results = future.result()
                         analysis_results_list.append(analysis_results)
                     except Exception as exc:
-                        print(f"[LLMcoder] An exception occurred during analysis of choice: {exc}")
+                        if self.verbose:
+                            print(f"[LLMcoder] An exception occurred during analysis of choice: {exc}")
                         raise exc
                         # analysis_results_list.append({
                         #     "score": -np.inf,
@@ -270,7 +285,8 @@ class LLMCoder:
             # Choose the completion with the highest score
             candidate_scores = [sum([results["score"] for results in result.values()]) for result in analysis_results_list]
             best_completion_id = np.argmax(candidate_scores)
-            print(f"[Scoring] Choosing message {best_completion_id} with score {candidate_scores[best_completion_id]}")
+            if self.verbose:
+                print(f"[Scoring] Choosing message {best_completion_id} with score {candidate_scores[best_completion_id]}")
 
             # Select the best completion
             message = valid_choices[best_completion_id].message.content
@@ -279,7 +295,8 @@ class LLMCoder:
             self.analyzer_results_history.append(analysis_results_list[best_completion_id])
         else:
             # If we only have one completion, still run the analyzers on it
-            print("[LLMcoder] Analyzing completion...")
+            if self.verbose:
+                print("[LLMcoder] Analyzing completion...")
             analysis_results = self.run_analyzers(self.messages[1]["content"], valid_choices[0].message.content)
 
             # There is only one valid choice
@@ -376,16 +393,20 @@ class LLMCoder:
 
         # In separete mode, each analyzer is run separately without a shared context
         if self.feedback_variant == "separate":
-            print("[LLMcoder] Analyzing code in separate mode...")
+            if self.verbose:
+                print("[LLMcoder] Analyzing code in separate mode...")
             for analyzer_name, analyzer_instance in self.analyzers.items():
-                print(f"[LLMcoder] Running {analyzer_name}...")
+                if self.verbose:
+                    print(f"[LLMcoder] Running {analyzer_name}...")
                 analyzer_results[analyzer_name] = analyzer_instance.analyze(code, completion)
 
         # In coworker mode, the analyzers are run in parallel and share a context
         elif self.feedback_variant == "coworker":
-            print("[LLMcoder] Analyzing code in coworker mode...")
+            if self.verbose:
+                print("[LLMcoder] Analyzing code in coworker mode...")
             for analyzer_name, analyzer_instance in self.analyzers.items():
-                print(f"[LLMcoder] Running {analyzer_name}...")
+                if self.verbose:
+                    print(f"[LLMcoder] Running {analyzer_name}...")
                 analyzer_results[analyzer_name] = analyzer_instance.analyze(code, completion, context=analyzer_results)
 
         # Return the collected analyzer results

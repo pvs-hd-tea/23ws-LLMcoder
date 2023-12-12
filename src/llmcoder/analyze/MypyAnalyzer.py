@@ -10,7 +10,24 @@ class MypyAnalyzer(Analyzer):
     """
     Analyzer that runs mypy on the code with the completion and returns the result.
     """
-    def analyze(self, input: str, completion: str, install_stubs: bool = True, mypy_args: list[str] | None = None, context: dict[str, dict[str, float | int | str]] | None = None) -> dict:
+
+    def __init__(self, verbose: bool = False):
+        """
+        Initializes the analyzer.
+
+        Parameters
+        ----------
+        verbose : bool, optional
+            Whether to print verbose output, by default False.
+        """
+        super().__init__(verbose=verbose)
+
+    def analyze(self,
+                input: str,
+                completion: str,
+                install_stubs: bool = True,
+                mypy_args: list[str] | None = None,
+                context: dict[str, dict[str, float | int | str]] | None = None) -> dict:
         """
         Analyzes the completion using mypy.
 
@@ -22,6 +39,10 @@ class MypyAnalyzer(Analyzer):
             The completion to analyze.
         install_stubs : bool, optional
             Whether to install missing stubs, by default True.
+        mypy_args : list[str], optional
+            Additional arguments to pass to mypy, by default None.
+        context : dict[str, dict[str, float | int | str]], optional
+            The context of the completion, by default None.
 
         Returns
         -------
@@ -48,7 +69,8 @@ class MypyAnalyzer(Analyzer):
 
         # Install stubs if missing
         if install_stubs and missing_stubs:
-            print("[Mypy] Installing missing stubs...")
+            if self.verbose:
+                print("[Mypy] Installing missing stubs...")
 
             # Install missing stubs
             subprocess.run(["mypy", "--install-types", "--non-interactive", *mypy_args], capture_output=True, text=True)
@@ -56,7 +78,8 @@ class MypyAnalyzer(Analyzer):
             # Re-run mypy after installing stubs
             mypy_run = subprocess.run(["mypy", temp_file_name, *mypy_args], capture_output=True, text=True)
         else:
-            print("[Mypy] No missing stubs found.")
+            if self.verbose:
+                print("[Mypy] No missing stubs found.")
 
         result = mypy_run.stdout if mypy_run.stdout else mypy_run.stderr
 
@@ -65,7 +88,8 @@ class MypyAnalyzer(Analyzer):
 
         for line in result.split("\n"):
             if line.strip() != "":
-                print(f"[Mypy] {line}")
+                if self.verbose:
+                    print(f"[Mypy] {line}")
 
         # Get the number of lines of the input code
         n_input_lines = len(input.split("\n")) - 1

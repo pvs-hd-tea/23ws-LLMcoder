@@ -4,7 +4,8 @@ from abc import ABC, abstractmethod
 class Analyzer(ABC):
     # Required method for the analyzer to be implemented in concrete component
 
-    def __init__(self) -> None:
+    def __init__(self, verbose: bool = False) -> None:
+        self.verbose = verbose
         self.input = ""
         self.completion = ""
 

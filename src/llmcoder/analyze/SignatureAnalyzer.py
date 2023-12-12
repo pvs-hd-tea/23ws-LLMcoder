@@ -15,6 +15,18 @@ class SignatureAnalyzer(Analyzer):
     """
     Analyzer that fetches the signatures and documentations of functions and classes in the code.
     """
+
+    def __init__(self, verbose: bool = False) -> None:
+        """
+        Initialize the SignatureAnalyzer.
+
+        Parameters
+        ----------
+        verbose : bool
+            Whether to print debug messages.
+        """
+        super().__init__(verbose)
+
     def get_imports(self, path: str, query: str | list[str] | None = None) -> Generator:
         """
         Find and yield all imports in the code.
@@ -37,7 +49,8 @@ class SignatureAnalyzer(Analyzer):
 
         # If the query is an empty list, return
         elif isinstance(query, list) and not query:
-            print("[Signatures] Empty query specified.")
+            if self.verbose:
+                print("[Signatures] Empty query specified.")
             return
 
         # Parse the code with the ast module
@@ -191,10 +204,12 @@ class SignatureAnalyzer(Analyzer):
             elif func_name in direct_imports:
                 matched_function_calls.append((direct_imports[func_name], func_name))
             else:
-                print(f"[Signatures] No import found for {func_name}")
+                if self.verbose:
+                    print(f"[Signatures] No import found for {func_name}")
 
         for module_alias, func_name in matched_function_calls:
-            print(f"[Signatures] {module_alias=} {func_name=}")
+            if self.verbose:
+                print(f"[Signatures] {module_alias=} {func_name=}")
             try:
                 if module_alias and module_alias in import_aliases:
                     module_path = import_aliases[module_alias]
@@ -226,10 +241,12 @@ class SignatureAnalyzer(Analyzer):
                             "doc": inspect.getdoc(attr)
                         })
                 else:
-                    print(f"[Signatures] No callable attribute {func_name} found")
+                    if self.verbose:
+                        print(f"[Signatures] No callable attribute {func_name} found")
 
             except (ImportError, AttributeError) as e:
-                print(f"[Signatures] Error importing {func_name}: {e}")
+                if self.verbose:
+                    print(f"[Signatures] Error importing {func_name}: {e}")
 
         return signature_and_doc
 
@@ -262,7 +279,8 @@ class SignatureAnalyzer(Analyzer):
         # and use them as the query for the get_signature_and_doc function.
         query = []
         if context:
-            print(f"[Signatures] Using context from previous analyzers: {list(context.keys())}")
+            if self.verbose:
+                print(f"[Signatures] Using context from previous analyzers: {list(context.keys())}")
             if 'mypy_analyzer_v1' in context and isinstance(context['mypy_analyzer_v1']['message'], str):
                 for line in context['mypy_analyzer_v1']['message'].split("\n"):
                     if line.startswith("your completion:"):
@@ -279,7 +297,8 @@ class SignatureAnalyzer(Analyzer):
                         matches = matches_has + matches_for + matches_gets
 
                         for match in matches:
-                            print(f"[Signatures] Found problematic function or class: {match}")
+                            if self.verbose:
+                                print(f"[Signatures] Found problematic function or class: {match}")
 
                             # Sometimes, the queries are "type[ElasticsearchStore]" instead of "ElasticsearchStore".
                             # Extract the class name from the query.
@@ -293,7 +312,8 @@ class SignatureAnalyzer(Analyzer):
 
         # If there is no query, there is nothing to do
         if len(query) == 0:
-            print("[Signatures] No problematic functions or classes found in the context.")
+            if self.verbose:
+                print("[Signatures] No problematic functions or classes found in the context.")
             os.remove(temp_file_name)
             return {
                 "pass": True,
@@ -312,9 +332,10 @@ class SignatureAnalyzer(Analyzer):
                 if r['doc']:
                     r['doc'] = r['doc'].split("\n")[0]
 
-            print("[Signatures] Got signatures and documentations:")
-            for r in result:
-                print(f"[Signatures] {r['name']}: {r['signature']}, {r['doc']}")
+            if self.verbose:
+                print("[Signatures] Got signatures and documentations:")
+                for r in result:
+                    print(f"[Signatures] {r['name']}: {r['signature']}, {r['doc']}")
 
             # If the analyzer could not find any signatures, return an error message
             if len(result) == 0:
