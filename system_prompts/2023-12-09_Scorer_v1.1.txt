@@ -12,7 +12,7 @@ Respond in the following pattern:
 ```
 Code Quality: <code quality score>
 Last Lines Plausibility: <plausibility score>
-Last Liens Consistency: <consistency score>
+Last Lines Consistency: <consistency score>
 Code Readability: <readability score>
 ```
 
@@ -22,13 +22,13 @@ If you are given multiple code snippets of the format, respond in the following 
 Code snippet 1:
 Code Quality: <code quality score>
 Last Lines Plausibility: <plausibility score>
-Last Liens Consistency: <consistency score>
+Last Lines Consistency: <consistency score>
 Code Readability: <readability score>
 
 Code snippet 2:
 Code Quality: <code quality score>
 Last Lines Plausibility: <plausibility score>
-Last Liens Consistency: <consistency score>
+Last Lines Consistency: <consistency score>
 Code Readability: <readability score>
 
 ...
