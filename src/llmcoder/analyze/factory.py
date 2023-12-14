@@ -28,6 +28,9 @@ class AnalyzerFactory:
             case "mypy_analyzer_v1":
                 from llmcoder.analyze.MypyAnalyzer import MypyAnalyzer
                 return MypyAnalyzer(*args, **kwargs)
+            # case "dmypy_analyzer_v1":
+            #     from llmcoder.analyze.MypyAnalyzer import DaemonMypyAnalyzer
+            #     return DaemonMypyAnalyzer(*args, **kwargs)
             case "signature_analyzer_v1":
                 from llmcoder.analyze.SignatureAnalyzer import SignatureAnalyzer
                 return SignatureAnalyzer(*args, **kwargs)
