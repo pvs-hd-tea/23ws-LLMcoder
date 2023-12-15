@@ -45,7 +45,7 @@ class TestLLMCoder(unittest.TestCase):
     def test_init_default_parameters(self, mock_openai: MagicMock, mock_system_prompt_dir: MagicMock, mock_system_prompt: MagicMock, mock_conversations_dir: MagicMock, mock_create_conversation_file: MagicMock) -> None:
 
         llmcoder = LLMCoder()
-        self.assertEqual(llmcoder.analyzers, [])
+        self.assertEqual(llmcoder.analyzers, {})
         self.assertEqual(llmcoder.model_first, "ft:gpt-3.5-turbo-1106:personal::8LCi9Q0d")
         self.assertEqual(llmcoder.model_feedback, "gpt-3.5-turbo")
         self.assertEqual(llmcoder.feedback_variant, "separate")
@@ -91,29 +91,9 @@ class TestLLMCoder(unittest.TestCase):
 
     @patch('json.dumps')
     @patch('builtins.open', new_callable=unittest.mock.mock_open, read_data="mock_data")
-    @patch('openai.OpenAI')
-    def test_complete_first(self, mock_openai: MagicMock, mock_open: MagicMock, mock_json_dumps: MagicMock) -> None:
-        llmcoder = LLMCoder(model_first="ft:gpt-3.5-turbo-1106:personal::8LCi9Q0d")
-
-        # Mock the OpenAI client response
-        mock_response = create_mock_openai_response("mock_completed_code")
-        mock_openai.return_value.chat.completions.create.return_value = mock_response
-
-        # Call complete_first
-        code = "print('Hello, World!')"
-        _ = llmcoder.complete_first(code)
-
-        # Check if iterations is set to 0
-        self.assertEqual(llmcoder.iterations, 0)
-
-        # Check if the completion is correct
-        self.assertTrue("content" in llmcoder.messages[-1])
-
-    @patch('json.dumps')
-    @patch('builtins.open', new_callable=unittest.mock.mock_open, read_data="mock_data")
     @patch('llmcoder.analyze.Analyzer')
     @patch('openai.OpenAI')
-    def test_feedback_step(self, mock_openai: MagicMock, mock_analyzer_class: MagicMock, mock_open: MagicMock, mock_json_dumps: MagicMock) -> None:
+    def test_step(self, mock_openai: MagicMock, mock_analyzer_class: MagicMock, mock_open: MagicMock, mock_json_dumps: MagicMock) -> None:
         llmcoder = LLMCoder()
 
         # Mock the OpenAI client response
@@ -127,22 +107,24 @@ class TestLLMCoder(unittest.TestCase):
         mock_analyzer2.analyze.return_value = {"pass": False, "message": "Error message"}
 
         # Set up the state of the LLMCoder object
-        llmcoder.messages = [{'content': 'print("Hello, World!")'}, {'content': 'print("Goodbye, World!")'}]
+        llmcoder.messages = [{
+            'role': 'system',
+            'content': 'test system prompt'
+        }]
         llmcoder.feedback_variant = 'separate'
-        llmcoder.analyzers = [mock_analyzer1, mock_analyzer2]
+        llmcoder.analyzers = {
+            'mock_analyzer1': mock_analyzer1,
+            'mock_analyzer2': mock_analyzer2
+        }
 
         # Call feedback_step
-        result = llmcoder.feedback_step()
+        result = llmcoder.step("some code")
 
         # Check if the result is correct
-        self.assertFalse(result)
+        self.assertEqual(result, "mock_completed_code")
 
         # Check if the state of the LLMCoder object is correct
         self.assertEqual(llmcoder.iterations, 1)
-
-        expected_error_prompt = '[INST]\nConsider the following in your next completion:\n[ANALYSIS]\n' + "" + "Error message" + '\n[/ANALYSIS]\nSeamlessly complete the following code:\n[/INST]\n' + 'print("Goodbye, World!")'
-
-        self.assertEqual(llmcoder.messages[-2]['content'], expected_error_prompt)
 
     @patch('json.dumps')
     @patch('builtins.open', new_callable=unittest.mock.mock_open, read_data="mock_data")
@@ -157,13 +139,16 @@ class TestLLMCoder(unittest.TestCase):
 
         # Create two mock analyzers
         mock_analyzer1 = MagicMock()
-        mock_analyzer1.analyze.return_value = {"pass": True, "message": ""}
+        mock_analyzer1.analyze.return_value = {"pass": True, "message": "", "type": "info"}
         mock_analyzer2 = MagicMock()
-        mock_analyzer2.analyze.return_value = {"pass": False, "message": "Error message"}
+        mock_analyzer2.analyze.return_value = {"pass": False, "message": "Error message", "type": "crititcal"}
 
         # Set up the state of the LLMCoder object
         llmcoder.feedback_variant = 'separate'
-        llmcoder.analyzers = [mock_analyzer1, mock_analyzer2]
+        llmcoder.analyzers = {
+            'mock_analyzer1': mock_analyzer1,
+            'mock_analyzer2': mock_analyzer2
+        }
 
         # Call complete
         _ = llmcoder.complete('print("Hello, World!")')
@@ -171,9 +156,37 @@ class TestLLMCoder(unittest.TestCase):
         print(llmcoder.messages)
 
         # Check if the state of the LLMCoder object is correct
-        self.assertEqual(llmcoder.iterations, 2)
+        self.assertEqual(llmcoder.iterations, 1)
         self.assertEqual(llmcoder.messages[0]['role'], 'system')
         self.assertEqual(llmcoder.messages[1]['role'], 'user')
         self.assertEqual(llmcoder.messages[2]['role'], 'assistant')
-        self.assertEqual(llmcoder.messages[3]['role'], 'user')
-        self.assertEqual(llmcoder.messages[4]['role'], 'assistant')
+
+    def test_check_passing_no_iteration(self) -> None:
+        coder = LLMCoder()
+        self.assertTrue(coder._check_passing())
+
+    def test_check_passing_all_passed(self) -> None:
+        coder = LLMCoder()
+        coder.analyzer_results_history.append({
+            'analyzer1': {'type': 'critical', 'pass': True},
+            'analyzer2': {'type': 'critical', 'pass': True}
+        })
+        self.assertTrue(coder._check_passing())
+
+    def test_check_passing_not_all_passed(self) -> None:
+        coder = LLMCoder()
+        coder.analyzer_results_history.append({
+            'analyzer1': {'type': 'critical', 'pass': True},
+            'analyzer2': {'type': 'critical', 'pass': False}
+        })
+        self.assertFalse(coder._check_passing())
+
+    def test_is_bad_completion(self) -> None:
+        coder = LLMCoder()
+
+        # Create a message history
+        coder._add_message("user", message="test_user")
+        coder._add_message("assistant", message="test_assistant")
+
+        # Now, check if "test_assistant" would be a bad completion (it is)
+        self.assertTrue(coder._is_bad_completion("test_assistant"))

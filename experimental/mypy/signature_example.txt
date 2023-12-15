@@ -1,0 +1,479 @@
+SYSTEM
+You are AutocompleteGPT, a useful AI autocomplete tool that provides code completions based on the user's code.
+You are a precision-focused tool for code autocompletion, adept in languages like Python, JavaScript, C++, and SQL.
+Precisely continue the code from the point of interruption and do not repeat or modify the original code, even if it is incorrect or the code interrupts in the middle of a line.
+Your code is well documented with comments and annotations, and you should provide a clear explanation of the code's purpose in your code completion.
+Your unique capability is to provide completions without altering, repeating, or commenting on the original code.
+You offer only the necessary code to complete the snippet, ensuring the response is exclusively code, with no additional comments, explanations, or annotations.
+This approach makes you an ideal assistant for users seeking straightforward and efficient code extensions, enhancing their work with accurate, logic-driven completions while maintaining the integrity and simplicity of the original input.
+Your response begins with the next characters of the line if the last line of the user'S code is incomplete, or the next line if the last line of the user's code is complete.
+Your application is a VSCode extension like GitHub Copilot, which provides seamless code completions based on the user's code at the point of interruption.
+--------------------------------------------------------------------------------
+USER
+from langchain.document_loaders import DirectoryLoader, JSONLoader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+
+# Embed and store
+from langchain.vectorstores.elasticsearch import ElasticsearchStore
+from langchain.embeddings import GPT4AllEmbeddings
+from langchain.embeddings import OllamaEmbeddings # We can also try Ollama embeddings
+
+from langchain.llms import Ollama
+from langchain.callbacks.manager import CallbackManager
+from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
+
+import os
+import json
+from tqdm import tqdm
+from bs4 import BeautifulSoup
+import time
+
+import torch
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+# pip install jq
+schema = {
+    'jq_schema': '.text'
+}
+
+es = get_es_connection()
+
+REINDEX = False
+
+# pip install gpt4all
+# Needs Ubuntu > 22.04 because of glibc
+
+if REINDEX:
+    # Clear the index
+    es.indices.delete(index="eurlex-langchain", ignore=[400, 404])
+
+    start_time = time.time()
+    vectorstore =
+--------------------------------------------------------------------------------
+ASSISTANT
+ElasticsearchStore("eurlex-langchain", es, schema)
+    #embedder = GPT4AllEmbeddings()
+--------------------------------------------------------------------------------
+USER
+[INST]
+your completion:39: error: Too many positional arguments for "ElasticsearchStore"  [misc]
+Found 2 errors in 1 file (checked 1 source file)
+
+Below are the correct signatures of the functions and classes in your completion. Use them to fix your completion.
+ElasticsearchStore: (index_name: str, *, embedding: Optional[langchain_core.embeddings.Embeddings] = None, es_connection: Optional[ForwardRef('Elasticsearch')] = None, es_url: Optional[str] = None, es_cloud_id: Optional[str] = None, es_user: Optional[str] = None, es_api_key: Optional[str] = None, es_password: Optional[str] = None, vector_query_field: str = 'vector', query_field: str = 'text', distance_strategy: Optional[Literal[<DistanceStrategy.COSINE: 'COSINE'>, <DistanceStrategy.DOT_PRODUCT: 'DOT_PRODUCT'>, <DistanceStrategy.EUCLIDEAN_DISTANCE: 'EUCLIDEAN_DISTANCE'>]] = None, strategy: langchain.vectorstores.elasticsearch.BaseRetrievalStrategy = <langchain.vectorstores.elasticsearch.ApproxRetrievalStrategy object at 0x7fc3fabb40d0>)
+
+Fix, improve and rewrite your completion for the following code:
+[/INST]
+from langchain.document_loaders import DirectoryLoader, JSONLoader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+
+# Embed and store
+from langchain.vectorstores.elasticsearch import ElasticsearchStore
+from langchain.embeddings import GPT4AllEmbeddings
+from langchain.embeddings import OllamaEmbeddings # We can also try Ollama embeddings
+
+from langchain.llms import Ollama
+from langchain.callbacks.manager import CallbackManager
+from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
+
+import os
+import json
+from tqdm import tqdm
+from bs4 import BeautifulSoup
+import time
+
+import torch
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+# pip install jq
+schema = {
+    'jq_schema': '.text'
+}
+
+es = get_es_connection()
+
+REINDEX = False
+
+# pip install gpt4all
+# Needs Ubuntu > 22.04 because of glibc
+
+if REINDEX:
+    # Clear the index
+    es.indices.delete(index="eurlex-langchain", ignore=[400, 404])
+
+    start_time = time.time()
+    vectorstore =
+--------------------------------------------------------------------------------
+ASSISTANT
+ElasticsearchStore("eurlex-langchain", es_connection=es, es_url=None, es_cloud_id=None, es_user=None, es_api_key=None, es_password=None, schema=schema)
+embedder = GPT4AllEmbeddings()
+--------------------------------------------------------------------------------
+USER
+[INST]
+your completion:39: error: Unexpected keyword argument "schema" for "ElasticsearchStore"  [call-arg]
+your completion:40: error: Missing named argument "client" for "GPT4AllEmbeddings"  [call-arg]
+Found 3 errors in 1 file (checked 1 source file)
+
+Below are the correct signatures of the functions and classes in your completion. Use them to fix your completion.
+
+
+Fix, improve and rewrite your completion for the following code:
+[/INST]
+from langchain.document_loaders import DirectoryLoader, JSONLoader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+
+# Embed and store
+from langchain.vectorstores.elasticsearch import ElasticsearchStore
+from langchain.embeddings import GPT4AllEmbeddings
+from langchain.embeddings import OllamaEmbeddings # We can also try Ollama embeddings
+
+from langchain.llms import Ollama
+from langchain.callbacks.manager import CallbackManager
+from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
+
+import os
+import json
+from tqdm import tqdm
+from bs4 import BeautifulSoup
+import time
+
+import torch
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+# pip install jq
+schema = {
+    'jq_schema': '.text'
+}
+
+es = get_es_connection()
+
+REINDEX = False
+
+# pip install gpt4all
+# Needs Ubuntu > 22.04 because of glibc
+
+if REINDEX:
+    # Clear the index
+    es.indices.delete(index="eurlex-langchain", ignore=[400, 404])
+
+    start_time = time.time()
+    vectorstore =
+--------------------------------------------------------------------------------
+ASSISTANT
+ElasticsearchStore("eurlex-langchain", es_connection=es)
+embedder = GPT4AllEmbeddings(client=None)
+--------------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SYSTEM
+You are AutocompleteGPT, a useful AI autocomplete tool that provides code completions based on the user's code.
+You are a precision-focused tool for code autocompletion, adept in languages like Python, JavaScript, C++, and SQL.
+Precisely continue the code from the point of interruption and do not repeat or modify the original code, even if it is incorrect or the code interrupts in the middle of a line.
+Your code is well documented with comments and annotations, and you should provide a clear explanation of the code's purpose in your code completion.
+Your unique capability is to provide completions without altering, repeating, or commenting on the original code.
+You offer only the necessary code to complete the snippet, ensuring the response is exclusively code, with no additional comments, explanations, or annotations.
+This approach makes you an ideal assistant for users seeking straightforward and efficient code extensions, enhancing their work with accurate, logic-driven completions while maintaining the integrity and simplicity of the original input.
+Your response begins with the next characters of the line if the last line of the user'S code is incomplete, or the next line if the last line of the user's code is complete.
+Your application is a VSCode extension like GitHub Copilot, which provides seamless code completions based on the user's code at the point of interruption.
+--------------------------------------------------------------------------------
+USER
+from langchain.document_loaders import DirectoryLoader, JSONLoader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+
+# Embed and store
+from langchain.vectorstores.elasticsearch import ElasticsearchStore
+from langchain.embeddings import GPT4AllEmbeddings
+from langchain.embeddings import OllamaEmbeddings # We can also try Ollama embeddings
+
+from langchain.llms import Ollama
+from langchain.callbacks.manager import CallbackManager
+from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
+
+import os
+import json
+from tqdm import tqdm
+from bs4 import BeautifulSoup
+import time
+
+import torch
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+# pip install jq
+schema = {
+    'jq_schema': '.text'
+}
+
+es = get_es_connection()
+
+REINDEX = False
+
+# pip install gpt4all
+# Needs Ubuntu > 22.04 because of glibc
+
+if REINDEX:
+    # Clear the index
+    es.indices.delete(index="eurlex-langchain", ignore=[400, 404])
+
+    start_time = time.time()
+    vectorstore =
+--------------------------------------------------------------------------------
+ASSISTANT
+ElasticsearchStore.create(index="eurlex-langchain", es=es)
+    print("--- %s seconds ---" % (time.time() - start_time))
+--------------------------------------------------------------------------------
+USER
+[INST]
+The completion you provided resulted in the following errors:
+your completion:39: error: "type[ElasticsearchStore]" has no attribute "create"  [attr-defined]
+Found 2 errors in 1 file (checked 1 source file)
+
+Cannot find the relevant signatures of type[ElasticsearchStore]
+
+Fix, improve and rewrite your completion for the following code:
+[/INST]
+from langchain.document_loaders import DirectoryLoader, JSONLoader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+
+# Embed and store
+from langchain.vectorstores.elasticsearch import ElasticsearchStore
+from langchain.embeddings import GPT4AllEmbeddings
+from langchain.embeddings import OllamaEmbeddings # We can also try Ollama embeddings
+
+from langchain.llms import Ollama
+from langchain.callbacks.manager import CallbackManager
+from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
+
+import os
+import json
+from tqdm import tqdm
+from bs4 import BeautifulSoup
+import time
+
+import torch
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+# pip install jq
+schema = {
+    'jq_schema': '.text'
+}
+
+es = get_es_connection()
+
+REINDEX = False
+
+# pip install gpt4all
+# Needs Ubuntu > 22.04 because of glibc
+
+if REINDEX:
+    # Clear the index
+    es.indices.delete(index="eurlex-langchain", ignore=[400, 404])
+
+    start_time = time.time()
+    vectorstore =
+--------------------------------------------------------------------------------
+ASSISTANT
+ElasticsearchStore(index="eurlex-langchain", es=es)
+print("--- %s seconds ---" % (time.time() - start_time))
+--------------------------------------------------------------------------------
+USER
+[INST]
+The completion you provided resulted in the following errors:
+your completion:39: error: Unexpected keyword argument "index" for "ElasticsearchStore"  [call-arg]
+your completion:39: error: Unexpected keyword argument "es" for "ElasticsearchStore"  [call-arg]
+Found 3 errors in 1 file (checked 1 source file)
+
+To fix these errors, use these ground truth signatures as a reference for your next completion:
+ElasticsearchStore: (index_name: str, *, embedding: Optional[langchain_core.embeddings.Embeddings] = None, es_connection: Optional[ForwardRef('Elasticsearch')] = None, es_url: Optional[str] = None, es_cloud_id: Optional[str] = None, es_user: Optional[str] = None, es_api_key: Optional[str] = None, es_password: Optional[str] = None, vector_query_field: str = 'vector', query_field: str = 'text', distance_strategy: Optional[Literal[<DistanceStrategy.COSINE: 'COSINE'>, <DistanceStrategy.DOT_PRODUCT: 'DOT_PRODUCT'>, <DistanceStrategy.EUCLIDEAN_DISTANCE: 'EUCLIDEAN_DISTANCE'>]] = None, strategy: langchain.vectorstores.elasticsearch.BaseRetrievalStrategy = <langchain.vectorstores.elasticsearch.ApproxRetrievalStrategy object at 0x7feacd9fe050>)
+
+Fix, improve and rewrite your completion for the following code:
+[/INST]
+from langchain.document_loaders import DirectoryLoader, JSONLoader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+
+# Embed and store
+from langchain.vectorstores.elasticsearch import ElasticsearchStore
+from langchain.embeddings import GPT4AllEmbeddings
+from langchain.embeddings import OllamaEmbeddings # We can also try Ollama embeddings
+
+from langchain.llms import Ollama
+from langchain.callbacks.manager import CallbackManager
+from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
+
+import os
+import json
+from tqdm import tqdm
+from bs4 import BeautifulSoup
+import time
+
+import torch
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+# pip install jq
+schema = {
+    'jq_schema': '.text'
+}
+
+es = get_es_connection()
+
+REINDEX = False
+
+# pip install gpt4all
+# Needs Ubuntu > 22.04 because of glibc
+
+if REINDEX:
+    # Clear the index
+    es.indices.delete(index="eurlex-langchain", ignore=[400, 404])
+
+    start_time = time.time()
+    vectorstore =
+--------------------------------------------------------------------------------
+ASSISTANT
+ElasticsearchStore("eurlex-langchain")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SYSTEM
+You are AutocompleteGPT, a useful AI autocomplete tool that provides code completions based on the user's code.
+You are a precision-focused tool for code autocompletion, adept in languages like Python, JavaScript, C++, and SQL.
+Precisely continue the code from the point of interruption and do not repeat or modify the original code, even if it is incorrect or the code interrupts in the middle of a line.
+Your code is well documented with comments and annotations, and you should provide a clear explanation of the code's purpose in your code completion.
+Your unique capability is to provide completions without altering, repeating, or commenting on the original code.
+You offer only the necessary code to complete the snippet, ensuring the response is exclusively code, with no additional comments, explanations, or annotations.
+This approach makes you an ideal assistant for users seeking straightforward and efficient code extensions, enhancing their work with accurate, logic-driven completions while maintaining the integrity and simplicity of the original input.
+Your response begins with the next characters of the line if the last line of the user'S code is incomplete, or the next line if the last line of the user's code is complete.
+Your application is a VSCode extension like GitHub Copilot, which provides seamless code completions based on the user's code at the point of interruption.
+--------------------------------------------------------------------------------
+USER
+from langchain.document_loaders import DirectoryLoader, JSONLoader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+
+# Embed and store
+from langchain.vectorstores.elasticsearch import ElasticsearchStore
+from langchain.embeddings import GPT4AllEmbeddings
+from langchain.embeddings import OllamaEmbeddings # We can also try Ollama embeddings
+
+from langchain.llms import Ollama
+from langchain.callbacks.manager import CallbackManager
+from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
+
+import os
+import json
+from tqdm import tqdm
+from bs4 import BeautifulSoup
+import time
+
+import torch
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+# pip install jq
+schema = {
+    'jq_schema': '.text'
+}
+
+es = get_es_connection()
+
+REINDEX = False
+
+# pip install gpt4all
+# Needs Ubuntu > 22.04 because of glibc
+
+if REINDEX:
+    # Clear the index
+    es.indices.delete(index="eurlex-langchain", ignore=[400, 404])
+
+    start_time = time.time()
+    vectorstore =
+--------------------------------------------------------------------------------
+ASSISTANT
+ElasticsearchStore(es, "eurlex-langchain")
+    llm = Ollama(OllamaEmbeddings(), vectorstore)
+    llm.load("eurlex-ollama.v1", "/mnt/data/eurlex-ollama.v1")
+    print("Time to load LLM:", time.time()-start_time)
+--------------------------------------------------------------------------------
+USER
+[INST]
+The completion you provided resulted in the following errors:
+your completion:39: error: Too many positional arguments for "ElasticsearchStore"  [misc]
+your completion:39: error: Argument 2 to "ElasticsearchStore" has incompatible type "str"; expected "Embeddings | None"  [arg-type]
+Found 3 errors in 1 file (checked 1 source file)
+
+To fix these errors, use these ground truth signatures as a reference for your next completion:
+ElasticsearchStore: (index_name: str, *, embedding: Optional[langchain_core.embeddings.Embeddings] = None, es_connection: Optional[ForwardRef('Elasticsearch')] = None, es_url: Optional[str] = None, es_cloud_id: Optional[str] = None, es_user: Optional[str] = None, es_api_key: Optional[str] = None, es_password: Optional[str] = None, vector_query_field: str = 'vector', query_field: str = 'text', distance_strategy: Optional[Literal[<DistanceStrategy.COSINE: 'COSINE'>, <DistanceStrategy.DOT_PRODUCT: 'DOT_PRODUCT'>, <DistanceStrategy.EUCLIDEAN_DISTANCE: 'EUCLIDEAN_DISTANCE'>]] = None, strategy: langchain.vectorstores.elasticsearch.BaseRetrievalStrategy = <langchain.vectorstores.elasticsearch.ApproxRetrievalStrategy object at 0x7f45c4e0c8d0>)
+
+Fix, improve and rewrite your completion for the following code:
+[/INST]
+from langchain.document_loaders import DirectoryLoader, JSONLoader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+
+# Embed and store
+from langchain.vectorstores.elasticsearch import ElasticsearchStore
+from langchain.embeddings import GPT4AllEmbeddings
+from langchain.embeddings import OllamaEmbeddings # We can also try Ollama embeddings
+
+from langchain.llms import Ollama
+from langchain.callbacks.manager import CallbackManager
+from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
+
+import os
+import json
+from tqdm import tqdm
+from bs4 import BeautifulSoup
+import time
+
+import torch
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+# pip install jq
+schema = {
+    'jq_schema': '.text'
+}
+
+es = get_es_connection()
+
+REINDEX = False
+
+# pip install gpt4all
+# Needs Ubuntu > 22.04 because of glibc
+
+if REINDEX:
+    # Clear the index
+    es.indices.delete(index="eurlex-langchain", ignore=[400, 404])
+
+    start_time = time.time()
+    vectorstore =
+--------------------------------------------------------------------------------
+ASSISTANT
+ElasticsearchStore("eurlex-langchain", embedding=OllamaEmbeddings(), es_connection=es)
+    llm = Ollama(OllamaEmbeddings(), vectorstore)
+    llm.load("eurlex-ollama.v1", "/mnt/data/eurlex-ollama.v1")
+    print("Time to load LLM:", time.time()-start_time)
+--------------------------------------------------------------------------------

@@ -4,7 +4,7 @@ from unittest.mock import Mock, mock_open, patch
 
 import pytest
 
-from llmcoder.utils import get_conversations_dir, get_data_dir, get_github_access_token, get_openai_key, get_system_prompt
+from llmcoder.utils import get_config_dir, get_conversations_dir, get_data_dir, get_github_access_token, get_openai_key, get_system_prompt, get_system_prompt_dir
 
 
 # Test get_data_dir function
@@ -23,6 +23,42 @@ def test_get_data_dir_argument() -> None:
 
     # Remove the pytest directory
     shutil.rmtree(data_dir)
+
+
+# Test get_config_dir function
+def test_get_config_dir() -> None:
+    config_dir = get_config_dir(create=True)
+
+    assert os.path.exists(config_dir)
+    assert os.path.abspath(config_dir) == os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'configs'))
+
+
+def test_get_config_dir_argument() -> None:
+    config_dir = get_config_dir("pytest", create=True)
+
+    assert os.path.exists(config_dir)
+    assert os.path.abspath(config_dir) == os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'configs', 'pytest'))
+
+    # Remove the pytest directory
+    shutil.rmtree(config_dir)
+
+
+# Test get_system_prompt_dir function
+def test_get_system_prompt_dir() -> None:
+    system_prompt_dir = get_system_prompt_dir(create=True)
+
+    assert os.path.exists(system_prompt_dir)
+    assert os.path.abspath(system_prompt_dir) == os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'system_prompts'))
+
+
+def test_get_system_prompt_dir_argument() -> None:
+    system_prompt_dir = get_system_prompt_dir("pytest", create=True)
+
+    assert os.path.exists(system_prompt_dir)
+    assert os.path.abspath(system_prompt_dir) == os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'system_prompts', 'pytest'))
+
+    # Remove the pytest directory
+    shutil.rmtree(system_prompt_dir)
 
 
 # Test get_openai_key function

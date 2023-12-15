@@ -51,7 +51,7 @@ class GPTReviewAnalyzer_v1(Analyzer):
 
         self.temperature = temperature
 
-    def analyze(self, input: str, completion: str) -> dict:
+    def analyze(self, input: str, completion: str, context: dict[str, dict[str, bool | str]] | None = None) -> dict:
         """
         Analyze the input and completion
 

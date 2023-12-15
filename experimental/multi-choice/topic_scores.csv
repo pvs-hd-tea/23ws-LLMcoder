@@ -1,0 +1,270 @@
+id,name,size,mean,std
+-1,"[('dataset management and column filtering in multiple dataframes', 1)]",1905,0.17902120720996006,0.01066291721308271
+0,"[('Extracting and Combining Script and Episode Information', 1)]",138,0.17994464761105136,0.004749992552705962
+1,"[('Display first few rows of characters dataframe', 1)]",136,0.1777593303910073,0.0012597497648266535
+2,"[('Data merging and joining with pandas', 1)]",117,0.16787087318734226,0.01472161511571794
+3,"[('Filtering spoken lines in a script', 1)]",112,0.17158763722649642,0.011862943175726415
+4,"[('Simpsons dataset analysis using pandas libraries', 1)]",96,0.18217617568249503,0.005735906539857939
+5,"[('Merging Character and Location Data in a Script', 1)]",90,0.1683547263344129,0.014109745117228708
+6,"[('Character Dataset Inspection', 1)]",81,0.17979601246339302,0.005539914177761038
+7,"[('Merging Scripts and Episodes DataFrames', 1)]",81,0.17304566815311526,0.008827643616063037
+8,"[('Reading CSV files into pandas DataFrames', 1)]",78,0.18420885350459662,0.008508512799781348
+9,"[('df_script head extract and analysis', 1)]",71,0.19998652057748445,0.009002242750350975
+10,"[('Understanding Dataframes with First Few Rows Displayed', 1)]",67,0.18760713801455142,0.0029717592045641955
+11,"[('Creating Directories', 1)]",66,0.17417356846007434,0.007622786011683801
+12,"[('Setting pandas display options for wide columns and long strings', 1)]",66,0.18207325718619607,0.0061252052757254025
+13,"[('Displaying Information about the Characters DataFrame', 1)]",65,0.17990838380960317,0.0046644825526801666
+14,"[('Data Cleaning and Removal of Missing Values in df_script DataFrame', 1)]",63,0.17434845155193693,0.006972098033668472
+15,"[('Previewing Episodes DataFrame', 1)]",62,0.18172147701824864,0.0055959507114720025
+16,"[('Checking the Sanity of Characters Dataset rows', 1)]",62,0.1801002071269097,0.00184192942240883
+17,"[('Document merging with script and character data', 1)]",58,0.16899791976501202,0.007265476651799392
+18,"[('Removing Unused Columns for Dataframes', 1)]",58,0.17037540956817823,0.012060770185273571
+19,"[('Count of Data Points and Components in Simpsons Dataset', 1)]",57,0.1768816220655776,0.008878749202873322
+20,"[('Viewing First Few Rows of a Script DataFrame', 1)]",57,0.17935583152269063,0.004699331382787709
+21,"[('Displaying and Accessing Rows in a Pandas DataFrame', 1)]",57,0.17845670669748073,0.0037261609666296076
+22,"[('Filtering and selecting data from a script dataframe and episodes dataframe', 1)]",56,0.174505531255688,0.008345718672270798
+23,"[('Quick look at characters data', 1)]",56,0.17985776465918338,0.004499279987050755
+24,"[('Checking if DataFrames are Loaded Correctly', 1)]",56,0.17949113063514233,0.005802456546600475
+25,"[('Imports and Customizations', 1)]",55,0.18243488723581489,0.008369326568071772
+26,"[('Data Cleaning', 1)]",55,0.18454594151540235,0.008903052669883645
+27,"[('Dataframe Index and Column Transformation', 1)]",55,0.17167229110544377,0.011383608253218262
+28,"[('Displaying Dataset Information', 1)]",54,0.181130421658357,0.010142241695771553
+29,"[('Check for Missing and Null Values in DataFrame', 1)]",53,0.18062498097149832,0.0067801626988980455
+30,"[('Display first 5 rows of characters dataframe', 1)]",53,0.1780982495478864,0.0013534393980220627
+31,"[('Setting display options for pandas dataframes in Jupyter notebooks', 1)]",52,0.18430426372931555,0.0063126468431228926
+32,"[('Understanding DataFrame Structure and Contents', 1)]",52,0.1900235520532498,0.004082137940491447
+33,"[('Reading and Loading Simpsons Data into Pandas DataFrames', 1)]",52,0.17476291266771463,0.012481213711593915
+34,"[('Checking Contents of DataFrame df_characters.head()', 1)]",50,0.17964346140623091,0.0033988160089461054
+35,"[('Understanding DataFrame Structure', 1)]",49,0.19038843105033953,0.0035750624928625823
+36,"[('Limiting script lines for faster execution and performance', 1)]",49,0.1827658962230293,0.004746711799428597
+37,"[('Inspecting the first few rows of the characters dataframe', 1)]",48,0.1790906541670362,0.0011476504149865435
+38,"[('Inspecting dataframes', 1)]",47,0.18097591748897066,0.0029635757241530305
+39,"[('Merging Datasets for Unified Relevant Information', 1)]",47,0.1897247164173329,0.003486592267447246
+40,"[('Displaying and Viewing Scripts DataFrame', 1)]",47,0.18039178404402226,0.006628651518253454
+41,"[('Creating word clouds to visualize the most common words in The Simpsons script lines', 1)]",46,0.17882349342107773,0.006246444781093436
+42,"[('DataFrame Shapes', 1)]",46,0.1762896377755248,0.010072267118341185
+43,"[('Column Width Settings in pandas', 1)]",46,0.1780411808387093,0.007834105998447747
+44,"[('Script Data Analysis', 1)]",45,0.18549510207441117,0.006432484156906257
+45,"[('Extracting Characters and Locations from a Script Dataframe', 1)]",45,0.18463429080115423,0.011006499648958874
+46,"[('spaCy model initialization and loading for natural language processing', 1)]",45,0.18191736572318606,0.00498054896692595
+47,"[('Quick look at the data', 1)]",45,0.17939118411805893,0.00834014855039716
+48,"[('Understanding Dataframe Structure', 1)]",45,0.1863096723953883,0.003033233829374238
+49,"[('Remove unnecessary columns from dataframes', 1)]",44,0.18248798461122948,0.003089788265187623
+50,"[('Viewing Dataframes', 1)]",44,0.17846201766620984,0.005490134847828019
+51,"[('Script line preprocessing and retrieval', 1)]",44,0.18229738589037547,0.00678022442118363
+52,"[('Understanding data structure through exploration', 1)]",43,0.18653046253115632,0.0039853372682887855
+53,"[(""Let's take a closer look at the data we have"", 1)]",43,0.18874762709750686,0.0036035155392351416
+54,"[('Printing DataFrame Shapes', 1)]",43,0.17857040638147398,0.01082267634322488
+55,"[('Helper functions, variables, and constants', 1)]",42,0.1832021985735212,0.009387027039951467
+56,"[('Using matplotlib inline in Jupyter notebooks', 1)]",41,0.18374247485544623,0.007727385904510708
+57,"[('exploring dataset content', 1)]",40,0.1860416192561388,0.0033579989337156105
+58,"[('Replace NaN values with empty strings', 1)]",39,0.1757019288264788,0.005649995616935759
+59,"[('Setting random seed for reproducibility', 1)]",39,0.176207395700308,0.000776018795564354
+60,"[('Checking Data Loading', 1)]",39,0.17441434890795976,0.00782772533627547
+61,"[('Text preprocessing and cleaning techniques using Python and pandas', 1)]",39,0.17291704966471746,0.010385610194588153
+62,"[('Checking the First Few Rows of Each DataFrame for Understanding and Verification', 1)]",39,0.18482940242840692,0.002540928004720759
+63,"[('SpaCy model installation and download using Python', 1)]",39,0.18140113468353564,0.0063529169780167935
+64,"[('Inspecting Characters Dataframe', 1)]",39,0.1847626872551747,0.004840062410974104
+65,"[('matplotlib figures and sizes', 1)]",38,0.17695222716582448,0.0071670754347671044
+66,"[('Setting the Path to Local Data in the Working Directory', 1)]",38,0.1814235707646922,0.00803238591672647
+67,"[('Displaying first 5 rows of each dataframe to understand their structure and initial data records', 1)]",38,0.17798611482507304,0.0017873440394791877
+68,"[('Displaying All Columns in DataFrames', 1)]",37,0.18370546158906575,0.00406104085898093
+69,"[('Inspecting First Few Rows of Characters Dataframe', 1)]",37,0.18191323248115746,0.0019058855483261277
+70,"[('Inspecting Characters DataFrame', 1)]",37,0.17943684917849465,0.0048243495996154705
+71,"[(""Loading Spacy's English language model"", 1)]",35,0.17677476193223682,0.003240990585844394
+72,"[('Incomplete code and missing references', 1)]",35,0.18742792095456803,0.010722245128606206
+73,"[('Dataset Inspection and Shape Checking', 1)]",35,0.18110621060643878,0.0035641924965150672
+74,"[('Data Analysis of Script Documents', 1)]",35,0.1858724751642772,0.005688272360339879
+75,"[('Data Inspection', 1)]",35,0.1838040943656649,0.006577492679205933
+76,"[('NLP Model Creation with spaCy', 1)]",34,0.17363342905745788,0.009380849315744304
+77,"[('Merging script lines with character and location information', 1)]",34,0.17961123278912375,0.003929177774074141
+78,"[('Set seed for reproducibility', 1)]",34,0.17805383003809871,0.00442982880020601
+79,"[('Merging character and location information into script dataframe', 1)]",33,0.18267994035374036,0.004595861859238236
+80,"[('Viewing DataFrame Information with df_script.info()', 1)]",33,0.18732238493182443,0.010493894345444088
+81,"[('Data Table Inspection and Structure Analysis', 1)]",33,0.1841368002421928,0.004152959934834568
+82,"[('Displaying first few rows of a dataframe for inspection', 1)]",33,0.1778391202290853,0.0015354086537319998
+83,"[('Displaying and Visualizing Data with df_characters.head()', 1)]",33,0.177989917271065,0.004706001997932871
+84,"[('Previewing characters dataframe', 1)]",32,0.17913911398500204,0.004291577816430329
+85,"[('Remove unnecessary columns from dataframes', 1)]",32,0.17389187077060342,0.008295005032298314
+86,"[('Data Preprocessing', 1)]",31,0.18737702696554123,0.01070328588900197
+87,"[('Displaying first rows of episodes dataframe', 1)]",31,0.1799000967894831,0.0030257635741562485
+88,"[('Text Preprocessing', 1)]",31,0.17457978932126875,0.012747439786823082
+89,"[('display options for columns in pandas dataframe', 1)]",31,0.18440130545246985,0.0024802811808016423
+90,"[('Viewing top rows of characters dataframe', 1)]",31,0.17945868738235965,0.0031845119644732505
+91,"[('Setting maximum number of rows and columns for displaying DataFrames in Pandas', 1)]",31,0.18226773027450807,0.01064638881358125
+92,"[('Displaying first few rows of related dataframes', 1)]",30,0.17881363928318023,0.0026191524463904372
+93,"[('spacy load pretrained NLP model', 1)]",30,0.17718813170989353,0.002397288007226668
+94,"[('Creating a Word Cloud', 1)]",30,0.17898587981859843,0.007551709493346031
+95,"[('Exploring Dataframes with First Few Rows', 1)]",30,0.1807458465298017,0.003640414553115315
+96,"[('Understanding the structure of the characters dataframe by displaying its first few rows', 1)]",30,0.17803340206543605,0.0020072762834286374
+97,"[('Merging Datasets', 1)]",29,0.18427178058130989,0.006554235926902887
+98,"[('Warning Management', 1)]",29,0.19253239600822844,0.012708158144434474
+99,"[('Exploring DataFrames and Familiarizing with First Few Rows', 1)]",29,0.1907860837106047,0.0033002451256788426
+100,"[('Word Cloud Visualization', 1)]",29,0.1634770631790161,0.0189524545189185
+101,"[('The Simpsons - Main Characters and Locations', 1)]",29,0.16466552070502577,0.013464665221048342
+102,"[('Displaying first rows of data frame', 1)]",29,0.177711155394028,0.0045252248998491175
+103,"[('Visualize Top 10 Most Frequent Characters and Locations', 1)]",29,0.16284940520237232,0.017884697374334
+104,"[('Exploring the Characters DataFrame', 1)]",28,0.18154372221657208,0.002182904886824984
+105,"[('Exploring and Inspecting the Data Structure and Overview', 1)]",28,0.18034334480762482,0.0026065504581449872
+106,"[('Displaying Available Columns in DataFrames', 1)]",27,0.18137555431436608,0.011440953979596026
+107,"[('Data visualization and analysis modules', 1)]",27,0.18541605991345864,0.009449375106759392
+108,"[('Previewing the Simpsons Characters dataset by checking the first 5 rows', 1)]",27,0.17838416386533668,0.0021932936089595623
+109,"[('Displaying Basic Information about DataFrames', 1)]",27,0.18554656373129952,0.009684809433663608
+110,"[('Data Loading Verification', 1)]",27,0.17642825345198312,0.004894804544491353
+111,"[('Spacy setup', 1)]",27,0.179043874696449,0.007747462626043465
+112,"[('Exploring Characters Dataset with df_characters.head()', 1)]",27,0.17796768524028636,0.0021031563841513797
+113,"[(""Character-Centric Analysis on Simpson's Main Characters"", 1)]",27,0.16483901330718287,0.012868019151640788
+114,"[('Spacy load encore web sm model', 1)]",27,0.1755023228901404,0.0014049173106944154
+115,"[('Character dataframe inspection', 1)]",27,0.17846227078526108,0.001496822905453523
+116,"[('Exploring Datasets', 1)]",27,0.180353452761968,0.002873509162414445
+117,"[('Converting dates to datetime in episodes data', 1)]",27,0.17636167561566388,0.00854639405232928
+118,"[('Previewing the first 5 rows of the characters dataframe', 1)]",26,0.17916007683827326,0.0017074928344502516
+119,"[('Exploring and Reviewing DataFrames in Python', 1)]",26,0.18145744158671454,0.0028333243747186024
+120,"[('Dataframe Checking and Deduplication', 1)]",26,0.18252449539991525,0.0026156627120804336
+121,"[('Determining Number of Unique Characters, Locations, and Episodes', 1)]",26,0.18255003427083677,0.005872617726791581
+122,"[('Checking successful import of datasets and dataframes', 1)]",26,0.17618311540438578,0.003268874542930183
+123,"[('Database Connection in SQL and SQLAlchemy', 1)]",26,0.18125017789693978,0.010045950773154852
+124,"[('Resetting Indexes and Loading CSV Files Using Pandas', 1)]",26,0.18333849540123573,0.004338494332551769
+125,"[('Dataframe script filtering and merging', 1)]",26,0.16471140086650848,0.014993378541663703
+126,"[('Displaying First Lines of Characters DataFrame', 1)]",25,0.17687033116817474,0.002889090934530579
+127,"[('Checking the content of dataframes and script lines', 1)]",25,0.18005397260189057,0.005127267964195217
+128,"[('Examining DataFrame Structures and Contents', 1)]",25,0.1805589598417282,0.003498435605126312
+129,"[('Merging episode and script data', 1)]",25,0.17594930946826934,0.00486368614420617
+130,"[('Checking data loading success', 1)]",25,0.18149644911289214,0.006570008174585715
+131,"[('Merge DataFrames', 1)]",25,0.18316024601459502,0.00638098752651597
+132,"[('Inspecting DataFrame Rows', 1)]",25,0.17989906311035156,0.0022450388510766076
+133,"[('DataFrame Loading and Caching', 1)]",24,0.17964250966906548,0.005558705531248915
+134,"[('Checking first five rows of characters DataFrame', 1)]",24,0.1807061961541573,0.0011928031992981059
+135,"[('Checking Loaded Dataframes and Contents', 1)]",24,0.18010835722088814,0.001948437114010063
+136,"[('Taking a Quick Look at Available Data', 1)]",24,0.1875065260877212,0.003069197960232254
+137,"[('CSV file inspection and loading', 1)]",24,0.18248120260735354,0.005038737641631342
+138,"[('Set seed for reproducibility', 1)]",24,0.17644598397115865,0.0006573576824446192
+139,"[('Data Exploration', 1)]",24,0.1848193102826675,0.009053805327150832
+140,"[('DataFrames - Quick preview of imported records', 1)]",23,0.19149994202282117,0.0022998362180502766
+141,"[('Checking for Missing and Null Values in Datasets', 1)]",23,0.17822162547837134,0.01196562163236533
+142,"[('Language Model Loading with Spacy', 1)]",23,0.17529640573522318,0.0029689497143236075
+143,"[('Displaying Simpsons Dataframes', 1)]",23,0.17900388655455216,0.009064699283999073
+144,"[('Removing Duplicate Rows and Values in Dataframes', 1)]",23,0.17200042501739835,0.008397527837626612
+145,"[('Setting random seed for reproducibility', 1)]",23,0.17659048153006512,0.00045786007969193316
+146,"[('Font size and style customization in matplotlib', 1)]",23,0.17555742095346036,0.008887218065193379
+147,"[('Inspecting and Understanding Dataframes', 1)]",22,0.18704124336892908,0.0031741739150130057
+148,"[('Displaying first 5 records of characters dataframe', 1)]",22,0.17922474850307812,0.0017144366595989691
+149,"[('White space cleaning and normalization of character and location names', 1)]",22,0.17275979844006625,0.009758454082490669
+150,"[('Mapping episode information to script data', 1)]",22,0.16326844319701195,0.015916577416016327
+151,"[('Displaying available columns in a dataframe', 1)]",22,0.18366785821589557,0.004835771812003211
+152,"[('Dimensions of Dataset Tables', 1)]",22,0.17600190504030747,0.010142221858492808
+153,"[('Seaborn Aesthetics and Plot Styles', 1)]",22,0.18364116007631476,0.010260751080598582
+154,"[('Checking the first few rows of each table', 1)]",22,0.18316871198740872,0.003588033173004972
+155,"[('Exploring and Visualizing Datasets related to Characters, Locations, Script, and Episodes', 1)]",22,0.17902594872496344,0.01164047912079297
+156,"[('View first few rows of characters dataframe', 1)]",21,0.1781366311368488,0.0011472343254612695
+157,"[('Displaying first few records of a dataset', 1)]",21,0.1766186214628674,0.001398721781406048
+158,"[('Checking for Missing Values in Data', 1)]",21,0.18028804801759266,0.006573118017143873
+159,"[('Quick overview of cleaned Kaggle data by Alexandru Papiu', 1)]",21,0.18706987230550676,0.006611853754004268
+160,"[('Set max display limits for rows and columns', 1)]",21,0.18174182233356295,0.0045215014740617385
+161,"[('Understanding DataFrame Structure and Contents', 1)]",21,0.18405471529279435,0.003177340230013277
+162,"[('Indexing and Resetting in DataFrame', 1)]",21,0.17481972631954013,0.004708993368388375
+163,"[('Script Filtering and Extraction', 1)]",21,0.17804484778926485,0.002996462180545248
+164,"[('Display options and extended information in pandas set_option() function', 1)]",21,0.2009049150205794,0.008658978966488734
+165,"[('Displaying dataframes', 1)]",21,0.1790230813480559,0.010483435194394859
+166,"[('stopwords and tokenization in nltk', 1)]",21,0.1774219735747292,0.011186933135998174
+167,"[('Sampling Techniques in Data Analysis', 1)]",20,0.18240220248699188,0.009549879493860694
+168,"[('Showing first 5 rows of df_characters dataframe', 1)]",20,0.17886321023106574,0.001401854869643625
+169,"[('Setting Index in DataFrames for Easier Access', 1)]",20,0.1824546381831169,0.0031793128562995657
+170,"[('Set random seed for reproducibility', 1)]",20,0.1754019431769848,0.002680774659428809
+171,"[('Dataframe Inspection - Characters', 1)]",20,0.1777961418032646,0.0013677750593250179
+172,"[('Displaying and Understanding the Structure of Script Data', 1)]",20,0.17826794758439063,0.0015708890019602924
+173,"[('Inspecting structures and formats of dataframes', 1)]",20,0.182706830650568,0.0019409219032422572
+174,"[('Inspecting dataframe headers', 1)]",20,0.18288132250308992,0.0039361923297164215
+175,"[('Structure of Datasets', 1)]",20,0.18872521743178367,0.001971647704518049
+176,"[('Extracting first few rows of the characters dataframe', 1)]",20,0.17880886495113374,0.0008587710654179179
+177,"[('Displaying the First Few Rows of a Pandas DataFrame containing Script Lines', 1)]",19,0.18237286962960897,0.002446527345741256
+178,"[('Checking if datasets have been loaded correctly', 1)]",19,0.18084470457152316,0.0037297477198297794
+179,"[('Text aggregation and grouping in episode scripts', 1)]",19,0.168464059108182,0.016065500422998112
+180,"[(""Previewing Characters' Data"", 1)]",19,0.17881617342170916,0.0018784595405950766
+181,"[('Matplotlib Style Use ggplot', 1)]",19,0.17998697412641426,0.0017823691037334604
+182,"[('Inspecting Simpsons Character DataFrame', 1)]",19,0.17799581587314606,0.002210309423658828
+183,"[('Filtering and cleaning data in df_script and df_characters', 1)]",19,0.17087796330451965,0.007657235338304352
+184,"[('Filtering and Analysis of Columns', 1)]",19,0.18607618620521144,0.00579488161390033
+185,"[('Understanding the structure of data frames by printing the first few rows', 1)]",19,0.18805041909217834,0.004063096578245892
+186,"[('Resetting index inplace and dropping old index column', 1)]",19,0.18242805725649783,0.0067421978652330815
+187,"[('Checking Dataframe Shapes', 1)]",18,0.18438700834910074,0.0025874236597756995
+188,"[('Displaying first five rows of characters DataFrame', 1)]",18,0.1772314210732778,0.0013302932525626008
+189,"[('displaying first few rows of characters dataframe', 1)]",18,0.17607304122712877,0.0017059303500071138
+190,"[('Checking Data Samples and Results in df_characters', 1)]",18,0.18044212129380968,0.002696619437299047
+191,"[('Data Cleaning and Column Filtering', 1)]",18,0.18037885427474976,0.006279295535032383
+192,"[('Checking first 5 rows of each dataframe and confirming data import', 1)]",18,0.18039287709527546,0.0016423286116659926
+193,"[('Dataframe Exploration', 1)]",18,0.18139744301637015,0.004808242935628631
+194,"[('Autoreload in Jupyter notebooks', 1)]",18,0.18487372166580623,0.0058639074220521795
+195,"[('Displaying head of characters DataFrame', 1)]",18,0.18101617693901062,0.007596837416265938
+196,"[('Setting display.max_columns option in pandas to show all columns in DataFrames', 1)]",17,0.18394474597538218,0.0022971271116808125
+197,"[('Understanding Datasets and Their Information', 1)]",17,0.19059153690057642,0.0031731671089904566
+198,"[('Printing the first 5 rows of a dataframe', 1)]",17,0.1777100168606814,0.0008422276989605788
+199,"[('Preprocessing script dataset to filter and clean dialogue lines', 1)]",17,0.18079259553376367,0.004723931981543047
+200,"[('Previewing and displaying data in a script dataframe', 1)]",17,0.18118829762234406,0.005547387520559462
+201,"[('Data Shapes and Sizes', 1)]",17,0.17751825557035558,0.011412048537385007
+202,"[('Displaying the first few lines of each dataframe to understand the data better', 1)]",16,0.18575186654925346,0.0030061064059690996
+203,"[('Script Word Count and Length Analysis', 1)]",16,0.1735954051837325,0.009209796995760472
+204,"[('Exploring Transcript Dataset and Structures - df_script.head() Examples, Length, and Quick Glance', 1)]",16,0.18198040407150984,0.005214926850051023
+205,"[('""Viewing First 10 Rows of Characters Dataframe""', 1)]",16,0.1760288430377841,0.0015360250111394185
+206,"[('Mapping character and location IDs to names', 1)]",16,0.17073254007846117,0.014129854940028946
+207,"[('table schema and structure of Simpsons dataset', 1)]",16,0.18093572463840246,0.010819991951037212
+208,"[('displaying first few rows of dataframe', 1)]",16,0.17630819790065289,0.001695240441234357
+209,"[('Joining DataFrames', 1)]",16,0.19113570638000965,0.008053508843142933
+210,"[('Exploring dataset structure and content', 1)]",16,0.18198125064373016,0.0023995752751237174
+211,"[('dataset with first few rows displayed using df_script.head(4)', 1)]",16,0.1770068984478712,0.0013907442576679087
+212,"[('Initial exploration of character dataframe', 1)]",15,0.17801968653996786,0.0013229304938508159
+213,"[('Text processing and filtering with spaCy', 1)]",15,0.16236438353856406,0.018153233078770807
+214,"[('Character line analysis', 1)]",15,0.18008876840273538,0.0025020282821557006
+215,"[('Creating Maps for Character and Location Names', 1)]",15,0.17348546286424002,0.005373911874987765
+216,"[('displaying the first few records of the characters dataframe', 1)]",15,0.17948506275812784,0.0021426718440600203
+217,"[('Display Configurations and Options', 1)]",15,0.17611056367556255,0.004584817953377702
+218,"[('Understanding the structure and contents of dataframes', 1)]",15,0.18347786068916322,0.002895788432685944
+219,"[('Tokenizing documents using Spacy', 1)]",15,0.18103668987751007,0.0062545943285150386
+220,"[('Season Filtering and Data Selection', 1)]",15,0.1827635794878006,0.005561191384031569
+221,"[('Dataframe analysis and cleanup', 1)]",15,0.1893926461537679,0.003049975928748585
+222,"[('Displaying Dataframe Shapes', 1)]",15,0.1809339255094528,0.009742018462710441
+223,"[('Displaying Dataframe Head', 1)]",15,0.18448561131954194,0.009482169455600025
+224,"[('Checking the top 5 rows of the characters dataframe', 1)]",15,0.18257120152314504,0.0021003049450231304
+225,"[('Choosing and Managing Data Types in Columns', 1)]",15,0.18222974638144177,0.002209389904883789
+226,"[('View first 5 rows of characters dataframe', 1)]",15,0.1773696134487788,0.001411964077448094
+227,"[('View first 5 rows of datasets', 1)]",14,0.17916147304432734,0.0007206465070109337
+228,"[('Loading spaCy model', 1)]",14,0.17544760767902648,0.0010274602875922436
+229,"[('display settings', 1)]",14,0.18448596128395625,0.005310890911465123
+230,"[('Displaying rows of a dataframe with characters', 1)]",14,0.1798385732940265,0.00460250643329296
+231,"[('Understanding the Structure of df_script DataFrame', 1)]",14,0.17959630489349365,0.0016746394798265079
+232,"[('Dataframe merging based on episode IDs', 1)]",14,0.18082846701145172,0.0034185886133857595
+233,"[('Analyzing the structure of a dataframe containing scripts', 1)]",14,0.17971839330026082,0.001961588924469542
+234,"[('Disabling SettingWithCopyWarning in Pandas', 1)]",14,0.18374338001012802,0.005122744328164005
+235,"[('Exploring Dataframes - Structure and Contents', 1)]",14,0.17859125350202834,0.003116992755772474
+236,"[('Checking dataframe structure and data for first five rows', 1)]",14,0.1859222405723163,0.00301118142768712
+237,"[('Dataframe Inspections', 1)]",13,0.18526373115869668,0.013472210560326233
+238,"[('df_characters.head(5)', 1)]",13,0.17693402560857627,0.0021236850306856287
+239,"[('Length and Track Dialogue', 1)]",13,0.1788803912126101,0.003919400136813926
+240,"[('Random Seed Reproducibility', 1)]",13,0.17792361516218919,0.0018891585980735832
+241,"[('Data merging and manipulation using foreign keys', 1)]",13,0.18309501042732826,0.00425049981085561
+242,"[('Exploratory Data Analysis (EDA)', 1)]",13,0.18615049123764038,0.008528429169852053
+243,"[('matplotlib style configuration', 1)]",13,0.18668242486623618,0.008147412456597156
+244,"[('Setting the index of a DataFrame and making it indexable by id and positional index', 1)]",13,0.1710381141075721,0.0042108584343304506
+245,"[('Setting default plot style in matplotlib', 1)]",13,0.18304457343541658,0.004516719389811889
+246,"[('View file content', 1)]",13,0.1833142076547329,0.008243125721539376
+247,"[('Inspecting first few rows of df_characters dataframe', 1)]",13,0.1792229012801097,0.002109822267517134
+248,"[('Dataframe Timestamp Manipulation', 1)]",13,0.17820200324058533,0.007600554254928674
+249,"[('df_characters.head()', 1)]",13,0.18663225036401015,0.01079940705759417
+250,"[('Loading Data into Pandas DataFrames', 1)]",13,0.182391779927107,0.0013228683506374531
+251,"[('Merging and Joining Datasets on Episode and Character IDs', 1)]",13,0.18024891500289625,0.0022970823386163934
+252,"[('Checking dataset sizes', 1)]",12,0.18117832764983177,0.009009404870940834
+253,"[('Data merging and renaming in Python', 1)]",12,0.16366389766335487,0.015018724830224822
+254,"[('Memory optimization and management', 1)]",12,0.18310238669315973,0.004056161076541525
+255,"[('Dataset Structure and Content Preview with df_characters.head()', 1)]",12,0.17725501830379167,0.0016974692688015208
+256,"[('Examining loaded dataframes', 1)]",12,0.17633829017480215,0.0015809157233432245
+257,"[('Display top 5 character lines in dataset', 1)]",12,0.17699249585469565,0.0015052660846228642
+258,"[('Checking if dataframes were imported correctly', 1)]",12,0.17660439386963844,0.002475513208036793
+259,"[('Previewing dataframes and tables in', 1)]",12,0.18139202892780304,0.0017562337378078377
+260,"[('Understanding the Structure and Contents of Dataframes', 1)]",12,0.18000472957889238,0.00422187368738318
+261,"[('Understanding the Structure of Datasets', 1)]",12,0.18775974959135056,0.0027604635867137842
+262,"[('Previewing dataframes', 1)]",12,0.18320955708622932,0.0015605599114929688
+263,"[('Gender analysis and data manipulation', 1)]",11,0.1736968687989495,0.00723766467918452
+264,"[('Character Lines', 1)]",11,0.1705513366244056,0.009420925767235794
+265,"[('NLP Tools with Spacy', 1)]",11,0.18409049781886014,0.006894403034952481
+266,"[('Visualizing the first few rows of the characters dataframe', 1)]",11,0.17557871748100629,0.0011263702839130383
+267,"[('Handling NaN Values in Dataframes', 1)]",10,0.1804059073328972,0.001996360724086713
