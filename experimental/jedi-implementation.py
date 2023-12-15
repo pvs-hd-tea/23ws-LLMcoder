@@ -63,6 +63,12 @@ source_lines: list[str] = source.splitlines()
 source_line: int = 82
 source_col: int = 42
 
+from pipreqs import pipreqs
+
+pipreqs.project_dir = project_dir
+import subprocess
+
+subprocess.run(["pipreqs", "--print", project_dir])
 jedi.preload_module(["os", "re", "openai", "llmcoder"])
 project = jedi.Project(path=project_dir, environment_path="/home/kushal/.config/python.env/llmcoder.env")
 script = jedi.Script(curr_source_code, path=file_path, project=project, environment=project.get_environment())
