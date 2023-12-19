@@ -169,7 +169,7 @@ class MypyAnalyzer(Analyzer):
         filtered_result = [line for line in filtered_result if not re.match(r"your completion:\d+: note: See https:", line)]
 
         # Remove empty lines
-        filtered_result = [line for line in filtered_result if line.strip() != ""]
+        filtered_result = [line for line in filtered_result if line.strip() != ""][:10]
 
         # Construct the feedback string from the filtered result
         if len(filtered_result) == 0:
