@@ -241,7 +241,7 @@ class LLMCoder:
                 print(f"[LLMcoder] All completions are repetitions of previous mistakes. Increasing temperature to {increased_temperature} and number of choices to {increased_n}... [repetition {repetition + 1}/{MAX_RETRIES}]")
             candidates = self.client.chat.completions.create(messages=self.messages, model=model, temperature=increased_temperature, n=increased_n)  # type: ignore
             valid_choices = [completion for completion in candidates.choices if not self._is_bad_completion(completion.message.content)]
-
+            
             increased_temperature = min(2, increased_temperature + 0.1)
             increased_n = min(32, increased_n * 2)
             repetition += 1
@@ -289,7 +289,7 @@ class LLMCoder:
                 print(f"[Scoring] Choosing message {best_completion_id} with score {candidate_scores[best_completion_id]}")
 
             # Select the best completion
-            message = valid_choices[best_completion_id].message.content
+            # message = valid_choices[best_completion_id].message.content
 
             # Update the analyzer results history with the results of the best completion
             self.analyzer_results_history.append(analysis_results_list[best_completion_id])
@@ -306,7 +306,7 @@ class LLMCoder:
             self.analyzer_results_history.append(analysis_results)
 
         # Return the best (or only) completion
-        return message
+        return valid_choices, analysis_results_list, candidate_scores
 
     def _add_message(self, role: str, message: str | None = None, model: str = 'gpt-3.5-turbo', temperature: float = 0.7, n: int = 1) -> bool:
         """

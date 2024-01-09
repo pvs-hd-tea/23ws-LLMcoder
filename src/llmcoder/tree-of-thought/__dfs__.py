@@ -1,14 +1,23 @@
 # AITools first approach for tree of thought
 class NodeCompletion:
     def __init__(self, state, score):
-        # Each node represets a stae
+        # Each node represets a state
         self.state = state
         self.children = []
-        # Number of times the node has been visited with MCTS (simulated)
-        self.visits = 0
         self.score = score
 
-def dfs_backtrack(node):
+def _generate_possible_completions(self, node.code):
+     # Generate a code completion suggestion based on the current state (node)
+    for child in node.childs:
+        simulated_code = self._generate_code_completion(node.code)
+        child.code = simulated_code
+
+def _generate_code_completion(self, node.code):
+
+# Depth-First algorithm + Backtrack -> Pruning
+    # -consider the possibility the childs make the score of the path worse, backtrack
+    # -new vesion: parent will be pruned from the tree
+def dfs(self, node):
     # Base case: if the node has no children, return its information
     if not node.children:
         return [(node.code, node.score)]
@@ -17,6 +26,7 @@ def dfs_backtrack(node):
     
     # Explore each child and backtrack
     for child in node.children:
+
         # Recursively backtrack on the child
         child_completions = dfs_backtrack(child)
 

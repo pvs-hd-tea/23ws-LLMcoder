@@ -8,7 +8,7 @@ from llmcoder.utils import get_config_dir
 # AITools' second approach for Tree of Thought
 """
 MCTS for MDP = (S=states, A=actions, P=transition probabilities, R=reward) in four steps: 
-    1. selection: traverse the tre.
+    1. selection: traverse the tree.
     2. expansion: if a node is not fully expanded, add actions and childs. Transition probabilities are not stored.
     3. simulation: generate + evaluate path. 
     4. backpropagation: update parent's scores.
@@ -22,7 +22,7 @@ MAX_ITER = 10
 DEG = 3
 class NodeCompletion:
     def __init__(self, state):
-        # Each node represets a stae
+        # Each node represets a state (completed)
         self.state = state
         self.children = []
         # Number of times the node has been visited with MCTS (simulated)
@@ -77,16 +77,13 @@ def _generate_possible_completions(self, node.code):
         child.code = simulated_code
 
 def _generate_code_completion(self, code):
-    return llmcoder.complete(code)
+    return llmcoder._get_completions(code,)
 
 
 def _simulate(self, node):
     simulation_result = 0
-    # Evaluate the quality of the simulated code
-    # config = Dynaconf(settings_files=[os.path.join(get_config_dir(), args.config)])
-    # eval = Evaluation(config)
+    # Extract the scores from the modified_get_completions function
 
-    # simulation_result = evaluate.evaluate_code(node.code)
 
     return simulation_result
 
@@ -95,7 +92,7 @@ def _backpropagate(self, node, result):
     # Update the node's visit count and value, then propagate the result back up to the root
     while node is not None:
         node.visits += 1
-        node.value += result
+        node.value = result
         node = node.parent
 
 def _best_child(self, node):
