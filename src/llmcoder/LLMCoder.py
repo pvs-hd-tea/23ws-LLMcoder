@@ -346,6 +346,9 @@ class LLMCoder:
             }
         )
 
+        if self.verbose:
+            print(f"[LLMcoder] {role.upper()}: {message}")
+
         # If the conversation should be logged, log it
         if self.conversation_file is not None:
             # If the conversation file already exists, only append the last message as a single line

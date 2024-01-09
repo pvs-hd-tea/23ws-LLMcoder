@@ -59,10 +59,10 @@ def agility_score(llmcoder_result: dict) -> float:
         The agility score of the llmcoder result.
     """
     # Read the analyzer pass history from the llmcoder result
-    analyzer_pass_history: list[list[dict[str, bool]]] = llmcoder_result['analyzer_results']
+    analyzer_results_history: list[dict[str, dict[str, bool]]] = llmcoder_result['analyzer_results']
 
     # For each loop, check how many analyzers passed
-    n_analyzers_failed_each_loop = [sum([not results['pass'] for results in loop]) for loop in analyzer_pass_history]
+    n_analyzers_failed_each_loop = [sum([not analyzer_results['pass'] for analyzer_name, analyzer_results in iteration_results.items() if analyzer_results['type'] == "critical"]) for iteration_results in analyzer_results_history]
 
     # The earlier all analyzers pass, the better
     # Compute a cumulative weighted sum of the number of analyzers passed each loop
