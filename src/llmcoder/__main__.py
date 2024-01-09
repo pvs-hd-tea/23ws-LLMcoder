@@ -14,12 +14,12 @@ def main() -> None:
 
     # Add specific arguments to the preprocess command
     preprocess_parser = subparsers.add_parser('preprocess')
-    preprocess_parser.add_argument('-n', '--name', type=str, help='Name of the dataset')
+    preprocess_parser.add_argument('-n', '--name', required=True, type=str, help='Name of the dataset')
     preprocess_parser.add_argument('-s', '--size', type=int, help='Number of samples to extract per repository')
 
     export_parser = subparsers.add_parser('export')
     # Add specific arguments to the export command
-    export_parser.add_argument('-n', '--name', type=str, help='Name of the dataset')
+    export_parser.add_argument('-n', '--name', required=True, type=str, help='Name of the dataset')
 
     # Add specific arguments to the complete command
     complete_parser = subparsers.add_parser('complete')
@@ -29,7 +29,7 @@ def main() -> None:
 
     # Add specific arguments to the evaluate command
     evaluate_parser = subparsers.add_parser('evaluate')
-    evaluate_parser.add_argument('-c', '--config', type=str, help='Configuration file in the configs folder for evaluation')
+    evaluate_parser.add_argument('-c', '--config', required=True, type=str, help='Configuration file in the configs folder for evaluation')
     # Add two more arguments to the evaluate command (--predict-only and --analysis-only, by default False)
     evaluate_parser.add_argument('-p', '--predict-only', action='store_true', help='Only run the prediction step')
     evaluate_parser.add_argument('-a', '--analysis-only', action='store_true', help='Only run the analysis step')
@@ -101,12 +101,12 @@ def main() -> None:
 
             if args.predict_only and not args.analysis_only:
                 print('Running prediction step')
-                eval.predict(verbose=True, store_predictions=args.store_predictions)
+                eval.predict(verbose=True, store=args.store_predictions)
             elif args.analysis_only and not args.predict_only:
                 print('Running analysis step for results file: ', args.results_file)
-                eval.analyze(args.results_file, verbose=True, store_analysis=args.store_analysis)
+                eval.analyze(args.results_file, verbose=True, store=args.store_analysis)
             else:
-                print('Running evaluation step (prediction and analysis))')
+                print('Running evaluation step (prediction and analysis)')
                 eval.run(verbose=True, store_analysis=args.store_analysis, store_predictions=args.store_predictions)
 
         case _:

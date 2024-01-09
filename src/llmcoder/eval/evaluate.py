@@ -1,12 +1,14 @@
 import importlib
+import io
 import os
+from contextlib import redirect_stdout
 from datetime import datetime
 
 import pandas as pd
 from dynaconf import Dynaconf
 from tqdm import tqdm
 
-from llmcoder.data.io import dump_results_to_json, read_data_from_conversations_file, read_results_from_json
+from llmcoder.data.io import dump_results_to_json, dump_results_to_readable, read_data_from_conversations_file, read_results_from_json
 from llmcoder.LLMCoder import LLMCoder  # Import your LLMCoder class
 from llmcoder.utils import get_data_dir
 
@@ -172,23 +174,27 @@ class Evaluation:
         # Run the LLMCoder on each input
         for input_id, input in tqdm(inputs.items(), desc='Evaluation', total=len(inputs), disable=not verbose):
             # Initialize the LLMCoder with the configuration
-            llmcoder = LLMCoder(
-                analyzers=self.config.get('analyzers'),
-                model_first=self.config.get('model_first'),
-                model_feedback=self.config.get('model_feedback'),
-                feedback_variant=self.config.get('feedback_variant'),
-                system_prompt=self.config.get('system_prompt'),
-                max_iter=self.config.get('max_iter'),
-                log_conversation=self.config.get('log_conversation')
-            )
+            # Get the completion and calture the output
+            f = io.StringIO()
+            with redirect_stdout(f):
+                llmcoder = LLMCoder(
+                    analyzers=self.config.get('analyzers'),
+                    model_first=self.config.get('model_first'),
+                    model_feedback=self.config.get('model_feedback'),
+                    feedback_variant=self.config.get('feedback_variant'),
+                    system_prompt=self.config.get('system_prompt'),
+                    max_iter=self.config.get('max_iter'),
+                    log_conversation=self.config.get('log_conversation'),
+                    verbose=True
+                )
 
-            # Get the completion
-            _ = llmcoder.complete(input)
+                _ = llmcoder.complete(input)
 
             # Add the results to the results list
             results[input_id] = {}
             results[input_id]['messages'] = llmcoder.messages
-            results[input_id]['analyzer_results'] = llmcoder.analyzer_pass_history
+            results[input_id]['analyzer_results'] = llmcoder.analyzer_results_history
+            results[input_id]['log'] = f.getvalue()
 
         return results
 
@@ -202,7 +208,12 @@ class Evaluation:
             The results to write back to the database.
         """
         config_name = os.path.split(self.config.settings_file_for_dynaconf[0])[-1].split('.')[0]
+
+        # Store the conversation in an easily parsable format
         dump_results_to_json(results, os.path.join(get_data_dir(self.config.get('dataset'), create=True), f'results_{config_name}_{self.time}.json'))
+
+        # Store the conversation in a human readable format
+        dump_results_to_readable(results, os.path.join(get_data_dir(self.config.get('dataset'), create=True), f'results_{config_name}_{self.time}'))
 
     def _read_results(self, results_file: str) -> dict:
         """

@@ -73,6 +73,24 @@ code = "print("
 result = llmcoder.complete(code, n=4)
 ```
 
+# Evaluation
+
+To compile a dataset from input-output-pairs, run
+
+```sh
+llmcoder export -n name/of/dataset
+```
+
+given that the dataset is located in `/data/name/of/dataset`.
+
+To evaluate the model on the dataset, run
+
+```sh
+llmcoder evaluate -c my_config.yaml
+```
+
+where `my_config.yaml` is a configuration file from `/configs`.
+
 # Development
 
 ## Setup

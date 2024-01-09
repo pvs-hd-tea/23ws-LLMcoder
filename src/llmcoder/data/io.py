@@ -136,13 +136,13 @@ def construct_eval_conversation(pairs: list[tuple[str, str]], system_prompt: str
     return conversation
 
 
-def dump_results_to_json(results: dict, output_file: str) -> None:
+def dump_results_to_json(results: dict[dict], output_file: str) -> None:
     """
     Dump the results to a JSON file
 
     Parameters
     ----------
-    results : dict
+    results : dict[dict]
         The results to dump
     output_file : str
         The path to the output file
@@ -150,6 +150,26 @@ def dump_results_to_json(results: dict, output_file: str) -> None:
 
     with open(output_file, 'w') as f:
         json.dump(results, f, indent=4, ensure_ascii=False)
+
+
+def dump_results_to_readable(results: dict[dict], output_dir: str) -> None:
+    """
+    Dump the results to a human readable format.
+    `results['log']` includes the captured verbose stdout from the LLMCoder run.
+    Each message is written to a separate file in the output_dir based on the key in the results dict.
+
+    Parameters
+    ----------
+    results : dict[dict]
+        The results to dump
+    output_dir : str
+        The path to the output directory
+    """
+
+    os.makedirs(output_dir, exist_ok=True)
+    for key, value in results.items():
+        with open(os.path.join(output_dir, f'{key}.txt'), 'w') as f:
+            f.write(value['log'])
 
 
 def read_results_from_json(input_file: str) -> dict:
