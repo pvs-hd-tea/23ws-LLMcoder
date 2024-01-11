@@ -1,6 +1,7 @@
 import importlib
 import io
 import os
+import time
 from contextlib import redirect_stdout
 from datetime import datetime
 
@@ -178,6 +179,8 @@ class Evaluation:
             # Get the completion and calture the output
             f = io.StringIO()
             with redirect_stdout(f):
+                time_start = time.time()
+
                 llmcoder = LLMCoder(
                     analyzers=self.config.get('analyzers'),
                     model_first=self.config.get('model_first'),
@@ -191,11 +194,14 @@ class Evaluation:
 
                 _ = llmcoder.complete(input)
 
+                time_end = time.time()
+
             # Add the results to the results list
             results[input_id] = {}
             results[input_id]['messages'] = llmcoder.messages
             results[input_id]['analyzer_results'] = llmcoder.analyzer_results_history
             results[input_id]['log'] = f.getvalue()
+            results[input_id]['time'] = time_end - time_start
 
         return results
 

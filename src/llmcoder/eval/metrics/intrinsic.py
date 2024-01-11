@@ -1,3 +1,4 @@
+import numpy as np
 import tiktoken
 
 
@@ -44,7 +45,7 @@ def tokens_used_score(llmcoder_result: dict, tokenizer_name: str = "p50k_base") 
     return n_tokens
 
 
-def agility_score(llmcoder_result: dict) -> float:
+def agility_score(llmcoder_result: dict, length_scale: float = 1) -> float:
     """
     Compute the agility score of the llmcoder result.
 
@@ -62,13 +63,25 @@ def agility_score(llmcoder_result: dict) -> float:
     analyzer_results_history: list[dict[str, dict[str, bool]]] = llmcoder_result['analyzer_results']
 
     # For each loop, check how many analyzers passed
-    n_analyzers_failed_each_loop = [sum([not analyzer_results['pass'] for analyzer_name, analyzer_results in iteration_results.items() if analyzer_results['type'] == "critical"]) for iteration_results in analyzer_results_history]
+    scores_each_loop = np.array([sum([analyzer_results['score'] for analyzer_name, analyzer_results in iteration_results.items()]) for iteration_results in analyzer_results_history])
 
-    # The earlier all analyzers pass, the better
-    # Compute a cumulative weighted sum of the number of analyzers passed each loop
-    # Penalize later failures more
-    agility_score = 0
-    for i, n_analyzers_failed in enumerate(n_analyzers_failed_each_loop):
-        agility_score += (i + 1) * n_analyzers_failed
+    # The earlier the scores improve, the better
+    weights = np.exp(- np.arange(len(scores_each_loop) - 1) * length_scale)
+    return np.sum(weights * np.sign(np.diff(scores_each_loop)) * np.diff(scores_each_loop)**2)
 
-    return agility_score
+
+def time_score(llmcoder_result: dict) -> float:
+    """
+    Return the time of the llmcoder result.
+
+    Parameters
+    ----------
+    llmcoder_result : dict
+        The llmcoder result containing the conversation (the last message is the completion).
+
+    Returns
+    -------
+    float
+        The time it took to generate the result.
+    """
+    return llmcoder_result['time']
