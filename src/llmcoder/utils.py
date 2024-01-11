@@ -120,20 +120,6 @@ def get_github_access_token(token: str = "") -> str:
 
 
 def get_system_prompt(name: str = "2023-11-15_GPT-Builder.txt") -> str:
-    """
-    Read the system prompt from a file.
-
-    Parameters
-    ----------
-    name : str
-        The name or path to the prompt file.
-
-    Returns
-    -------
-    str
-        The prompt.
-    """
-
     # Construct the path to the file
     path = os.path.join(os.path.dirname(__file__), '..', '..', 'system_prompts', name)
 
