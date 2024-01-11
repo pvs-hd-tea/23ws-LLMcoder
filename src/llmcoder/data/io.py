@@ -149,7 +149,7 @@ def dump_results_to_json(results: dict[str, dict], output_file: str) -> None:
     """
 
     # If the output directory does not exist, create it
-    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+    os.makedirs(os.path.dirname(os.path.abspath(output_file)), exist_ok=True)
 
     with open(output_file, 'w') as f:
         json.dump(results, f, indent=4, ensure_ascii=False)
