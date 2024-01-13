@@ -75,21 +75,62 @@ result = llmcoder.complete(code, n=4)
 
 # Evaluation
 
-To compile a dataset from input-output-pairs, run
+## 1. Compile the dataset
+
+To compile a dataset from input-output-pairs to a `conversations.jsonl` file, run
 
 ```sh
 llmcoder export -n name/of/dataset
 ```
 
-given that the dataset is located in `/data/name/of/dataset`.
+on a dataset stored in `/data/name/of/dataset`.
 
-To evaluate the model on the dataset, run
+## 2. Run the LLMcoder
+
+To evaluate LLMcoder on all configs in `/configs`, run
+
+```sh
+llmcoder evaluate
+```
+
+To evaluate LLMcoder on a specific config, run
 
 ```sh
 llmcoder evaluate -c my_config.yaml
 ```
 
 where `my_config.yaml` is a configuration file from `/configs`.
+
+The following files will be created for each config and run:
+
+- `/data/name/of/dataset/eval/<config_name>/<run_id>/results.json` with
+  - `messages`: the message history
+  - `analyzer_results`: analyzer results for each step
+  - `log`: a log of the run
+  - `time`: the time it took to complete the run
+- `/data/name/of/dataset/eval/<config_name>/<run_id>/readable_logs/<example_id>.txt` with
+  - a human-readable log of the run
+
+for each example in the dataset
+
+## 3. Compute metrics
+After running the evaluation, compute the metrics for all configs in `/configs` with
+
+```sh
+llmcoder metrics
+```
+
+To compute the metrics for a specific config, run
+
+```sh
+llmcoder metrics -c my_config.yaml
+```
+
+where `my_config.yaml` is a configuration file from `/configs`.#
+
+This will create the following files for each config and run:
+
+- `/data/name/of/dataset/eval/<config_name>/<run_id>/metrics.csv`
 
 # Development
 

@@ -11,188 +11,161 @@ from tqdm import tqdm
 
 from llmcoder.data.io import dump_results_to_json, dump_results_to_readable, read_data_from_conversations_file, read_results_from_json
 from llmcoder.LLMCoder import LLMCoder  # Import your LLMCoder class
-from llmcoder.utils import get_data_dir
+from llmcoder.utils import get_config_dir, get_data_dir
 
 
 class Evaluation:
-    def __init__(self, config: Dynaconf):
+    def __init__(self, configs: Dynaconf | list[Dynaconf] | None = None):
         """
         Initialize the Evaluation with a Dynaconf configuration.
 
         Parameters
         ----------
-        config : Dynaconf
+        configs : Dynaconf | list[Dynaconf], optional
             The configuration object from Dynaconf.
         """
-        self.config = config
-        self.data: list[tuple[str, str]] | None = None
-        self.results: dict | None = None
-        self.time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
-        print(f'Evaluation initialized with configuration: {self.config.settings_file_for_dynaconf[0]}')
-        dataset_path = os.path.abspath(os.path.join(get_data_dir(self.config.get("dataset")), 'conversations.jsonl'))
-        if not os.path.exists(dataset_path):
-            raise FileNotFoundError(f'Dataset not found at {dataset_path}')
+        if configs is None:
+            # Load all configurations from the config directory
+            self.configs = [
+                Dynaconf(settings_files=[os.path.join(get_config_dir(), config)])
+                for config in sorted(os.listdir(get_config_dir())) if config.endswith('.yaml')]
+        elif isinstance(configs, Dynaconf):
+            self.configs = [self.configs]
         else:
-            print(f'Found dataset: {self.config.get("dataset")} at {dataset_path}')
+            self.configs = configs
 
-    def predict(self, store: bool = False, verbose: bool = False) -> dict:
+        # Check if the datasets exists
+        for config in self.configs:
+            dataset_path = os.path.abspath(os.path.join(get_data_dir(config.get("dataset")), 'conversations.jsonl'))
+            if not os.path.exists(dataset_path):
+                raise FileNotFoundError(f'Dataset not found at {dataset_path}')
+
+        print('Set up evaluation with configurations:')
+        for config in self.configs:
+            print(f'\t- {config.settings_file_for_dynaconf[0]}')
+
+    def run(self, store: bool = True, n_repeat: int = 1, verbose: bool = False) -> dict[str, list]:
+        """
+        Run the evaluation end to end (reading inputs from the database and writing results back)
+
+        Parameters
+        ----------
+        store : bool, optional
+            Whether to store the results in the database, by default True
+        n_repeat : int, optional
+            The number of times to repeat the evaluation, by default 1
+        verbose : bool, optional
+            Whether to print the results to the console, by default False
+
+        Returns
+        -------
+        dict[str, list]
+            The results from the evaluation.
+        """
+        results: dict[str, list] = {}
+        # Run the evaluation n_repeat times
+        for i in range(n_repeat):
+            print(f'Running evaluation {i+1}/{n_repeat}')
+            for config in self.configs:
+                print(f'Running evaluation for configuration: {config.settings_file_for_dynaconf[0]}')
+                # Run the LLMCoder on the user inputs
+                result = self.predict(config=config, store=store, verbose=verbose)
+
+                time.sleep(2)
+
+                if config.settings_file_for_dynaconf[0] not in results:
+                    results[config.settings_file_for_dynaconf[0]] = []
+
+                results[config.settings_file_for_dynaconf[0]].append(result)
+
+        # Analyze the results
+        return results
+
+    def predict(self, config: Dynaconf, store: bool = False, verbose: bool = False) -> dict:
         """
         Run the LLMCoder on the provided files and write the results to the database.
+
+        Parameters
+        ----------
+        config : Dynaconf
+            The configuration object from Dynaconf.
+        store : bool, optional
+            Whether to store the results in the database, by default False
+        verbose : bool, optional
+            Whether to print the results to the console, by default False
 
         Returns
         -------
         dict
             The results from the evaluation.
         """
-        self.data = self._get_data()
-        self.inputs = {i: input for i, (input, _) in enumerate(self.data)}
-        self.targets = {i: target for i, (_, target) in enumerate(self.data)}
-        self.results = self._run(self.inputs, verbose=verbose)
+        # Get the data to run the LLMCoder on
+        data = read_data_from_conversations_file(os.path.join(
+            get_data_dir(config.get('dataset')),
+            'conversations.jsonl')
+        )
+        inputs = {i: input for i, (input, _) in enumerate(data)}
 
+        # Run the LLMCoder on the user inputs
+        results = self.run_llmcoder(config=config, inputs=inputs, verbose=verbose)
+
+        # Store the results in the database
         if store:
-            self._write_results(self.results)
+            self._write_results(config, results)
 
-        return self.results
+        # Return the results
+        return results
 
-    def run(self, store_predictions: bool = True, store_analysis: bool = True, verbose: bool = False) -> tuple[dict, dict]:
+    def run_llmcoder(self, config: Dynaconf, inputs: dict, verbose: bool = False) -> dict:
         """
-        Run the evaluation end to end (reading inputs from the database and writing results back)
+        Run the LLMCoder on the provided files and return the results.
 
         Parameters
         ----------
-        store_predictions : bool, optional
-            Whether to store the predictions in the database, by default True
-        store_analysis : bool, optional
-            Whether to store the analysis in the database, by default True
-        verbose : bool, optional
-            Whether to print the results to the console, by default False
-
-        Returns
-        -------
-        tuple[dict, dict]
-            The results from the evaluation and the analysis.
-        """
-        self.time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        results = self.predict(store=store_predictions, verbose=verbose)
-        self.analyze(results, store=store_analysis, verbose=verbose)
-
-        return results, self.analysis_results
-
-    def analyze(self, results: dict | str, store: bool = False, verbose: bool = False) -> dict:
-        """
-        Analyze the results from the database given the configuration and store it back in the database.
-
-        Parameters
-        ----------
-        results : dict | str
-            The results to analyze. Either a dictionary of results or the filename of a file containing the results.
-        store : bool, optional
-            Whether to store the analysis in the database, by default False
+        config : Dynaconf
+            The configuration object from Dynaconf.
+        inputs : List[str]
+            A list of inputs to complete with the LLMCoder.
         verbose : bool, optional
             Whether to print the results to the console, by default False
 
         Returns
         -------
         dict
-            The analysis results.
+            The results from the evaluation.
         """
-        if isinstance(results, str):
-            raise DeprecationWarning('Passing a filename to analyze is deprecated. Pass a dictionary of results instead.')
-            # Try to parse the filename of the results file to get the time
-            try:
-                time_str = '_'.join(results.split('_')[-2:])
-                time_str = time_str.split('.')[0]
-                print(f'Parsed time from {results}: {time_str}')
-                self.time = time_str
-            except Exception:
-                print(f'Could not parse time from {results}. Using default (current) time: {self.time}')
-
-            print(f'Reading results from {results}')
-            results = self._read_results(results)
-
-        if self.data is None:
-            self.data = self._get_data()
-            self.inputs = {i: input for i, (input, _) in enumerate(self.data)}
-            self.targets = {i: target for i, (_, target) in enumerate(self.data)}
-
-        intrinsic_score_functions = [getattr(importlib.import_module(f'llmcoder.eval.metrics.{score.split(".")[0]}'), score.split(".")[1]) for score in self.config.scores if score.split(".")[0] == 'intrinsic']
-        extrinsic_score_functions = [getattr(importlib.import_module(f'llmcoder.eval.metrics.{score.split(".")[0]}'), score.split(".")[1]) for score in self.config.scores if score.split(".")[0] == 'extrinsic']
-
-        self.analysis_results: dict[str, dict] = {}
-
-        pbar = tqdm(results.items(), desc='Analysis', total=len(results), disable=not verbose)
-
-        for results_id, result in pbar:
-            self.analysis_results[results_id] = {}
-            for f in extrinsic_score_functions:
-                pbar.set_description(f'Analysis: {f.__name__}')
-                self.analysis_results[results_id][f.__name__] = f(ground_truth=self.targets[int(results_id)], llmcoder_result=result)  # FIXME: Support arbitrary keys instead of only integers
-            for f in intrinsic_score_functions:
-                pbar.set_description(f'Analysis: {f.__name__}')
-                self.analysis_results[results_id][f.__name__] = f(llmcoder_result=result)
-
-        if store:
-            self._write_analysis_results(self.analysis_results)
-
-        return self.analysis_results
-
-    def _get_results(self) -> list[dict]:
-        """
-        Get the results from the database.
-
-        Returns
-        -------
-        List[dict]
-            A list of results from the database.
-        """
-        raise NotImplementedError
-
-    def _get_data(self) -> list[tuple[str, str]]:
-        """
-        Get the inputs to run the LLMCoder on.
-
-        Returns
-        -------
-        list[tuple[str, str]]
-            A list of inputs to run the LLMCoder on and outputs to compare the results to.
-        """
-        return read_data_from_conversations_file(os.path.join(get_data_dir(self.config.get('dataset')), 'conversations.jsonl'))
-
-    def _run(self, inputs: dict, verbose: bool = False) -> dict:
-        """
-        Run the LLMCoder on the provided files and return the results.
-
-        Parameters
-        ----------
-        inputs : List[str]
-            A list of inputs to complete with the LLMCoder.
-        verbose : bool, optional
-            Whether to print the results to the console, by default False
-        """
-
         results: dict[str, dict] = {}
 
         # Run the LLMCoder on each input
         for input_id, input in tqdm(inputs.items(), desc='Prediction', total=len(inputs), disable=not verbose):
-            # Initialize the LLMCoder with the configuration
-            # Get the completion and calture the output
+            # Get the completion and capture the output
             f = io.StringIO()
+
             with redirect_stdout(f):
                 time_start = time.time()
 
+                # Initialize the LLMCoder with the configuration
                 llmcoder = LLMCoder(
-                    analyzers=self.config.get('analyzers'),
-                    model_first=self.config.get('model_first'),
-                    model_feedback=self.config.get('model_feedback'),
-                    feedback_variant=self.config.get('feedback_variant'),
-                    system_prompt=self.config.get('system_prompt'),
-                    max_iter=self.config.get('max_iter'),
-                    log_conversation=self.config.get('log_conversation'),
+                    analyzers=config.get('analyzers'),
+                    model_first=config.get('model_first'),
+                    model_feedback=config.get('model_feedback'),
+                    feedback_variant=config.get('feedback_variant'),
+                    system_prompt=config.get('system_prompt'),
+                    max_iter=config.get('max_iter'),
+                    log_conversation=config.get('log_conversation'),
+                    n_procs=config.get('n_procs'),
                     verbose=True
                 )
 
-                _ = llmcoder.complete(input)
+                try:
+                    _ = llmcoder.complete(input, n=config.get('n_choices'))
+                except TypeError as e:
+                    with open(os.path.join(get_data_dir(config.get('dataset'), create=True), 'error.log'), 'a') as file:
+                        file.write(f'Error while running LLMCoder on input {input_id}:\n')
+                        file.write(f'{e}\n')
+                        file.write(f'{f.getvalue()}\n')
+                        file.write(f'{"-"*80}\n')
 
                 time_end = time.time()
 
@@ -205,7 +178,7 @@ class Evaluation:
 
         return results
 
-    def _write_results(self, results: dict) -> None:
+    def _write_results(self, config: Dynaconf, results: dict) -> None:
         """
         Write the results back to the database.
 
@@ -214,37 +187,193 @@ class Evaluation:
         results : dict
             The results to write back to the database.
         """
-        config_name = os.path.split(self.config.settings_file_for_dynaconf[0])[-1].split('.')[0]
+        # Get the current time
+        current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
+        config_name = os.path.splitext(os.path.split(config.settings_file_for_dynaconf[0])[-1])[0]
 
         # Store the conversation in an easily parsable format
-        dump_results_to_json(results, os.path.join(get_data_dir(self.config.get('dataset'), create=True), f'results_{config_name}_{self.time}', 'messages.json'))
+        dump_results_to_json(results, os.path.join(get_data_dir(config.get('dataset'), create=True), 'eval', f'{config_name}', f'{current_time}', 'results.json'))
 
         # Store the conversation in a human readable format
-        dump_results_to_readable(results, os.path.join(get_data_dir(self.config.get('dataset'), create=True), f'results_{config_name}_{self.time}', 'readable_logs'))
+        dump_results_to_readable(results, os.path.join(get_data_dir(config.get('dataset'), create=True), 'eval', f'{config_name}', f'{current_time}', 'readable_logs'))
 
-    def _read_results(self, results_file: str) -> dict:
+
+class Metrics:
+    def __init__(self, configs: Dynaconf | list[Dynaconf] | None = None):
         """
-        Read the results from the database.
+        Initialize the Metrics with a Dynaconf configuration.
 
         Parameters
         ----------
-        results : dict
-            The results to read from the database.
+        configs : Dynaconf | list[Dynaconf], optional
+            The configuration object from Dynaconf.
         """
-        return read_results_from_json(os.path.join(get_data_dir(self.config.get('dataset')), results_file))
 
-    def _write_analysis_results(self, analysis_results: dict) -> None:
+        if configs is None:
+            # Load all configurations from the config directory
+            self.configs = [
+                Dynaconf(settings_files=[os.path.join(get_config_dir(), config)])
+                for config in sorted(os.listdir(get_config_dir())) if config.endswith('.yaml')]
+        elif isinstance(configs, Dynaconf):
+            self.configs = [self.configs]
+        else:
+            self.configs = configs
+
+        # Check if the datasets exists
+        for config in self.configs:
+            dataset_path = os.path.abspath(os.path.join(get_data_dir(config.get("dataset")), 'conversations.jsonl'))
+            if not os.path.exists(dataset_path):
+                raise FileNotFoundError(f'Dataset not found at {dataset_path}')
+
+        print('Set up metrics with configurations:')
+        for config in self.configs:
+            print(f'\t- {config.settings_file_for_dynaconf[0]}')
+
+    def run(self, store: bool = False, index: int | None = None, verbose: bool = False) -> dict[str, dict[str, dict[str, dict]]]:
+        """
+        Analyze the results from the database given the configuration and store it back in the database.
+
+        Parameters
+        ----------
+        store : bool, optional
+            Whether to store the analysis in the database, by default False
+        index : int, optional
+            The index of the results to analyze, by default None (analyze all)
+        verbose : bool, optional
+            Whether to print the results to the console, by default False
+
+        Returns
+        -------
+        dict[str, dict[str, dict[str, dict]]]
+            The analysis results.
+        """
+
+        metrics = {}
+        # Run the evaluation n_repeat times for each configuration
+        for config in self.configs:
+            print(f'Analyzing results for configuration: {config.settings_file_for_dynaconf[0]}')
+
+            # The data only needs to be loaded once per configuration
+            data = read_data_from_conversations_file(os.path.join(
+                get_data_dir(config.get('dataset')),
+                'conversations.jsonl')
+            )
+            targets = {i: target for i, (_, target) in enumerate(data)}
+
+            # Load the results (including multiple repititions) from the database
+            results = self.load_results(config, index=index)
+
+            metric = self.compute_metrics(config, results, targets, store=store, verbose=verbose)
+            metrics[config.settings_file_for_dynaconf[0]] = metric
+
+        return metrics
+
+    def compute_metrics(self, config: Dynaconf, results_dict: dict[str, dict], targets: dict, store: bool = False, verbose: bool = False) -> dict[str, dict[str, dict]]:
+        """
+        Compute the metrics for the results.
+
+        Parameters
+        ----------
+        config : Dynaconf
+            The configuration object from Dynaconf.
+        results_dict : dict[str, dict]
+            The results to compute the metrics for.
+        targets : dict
+            The target completions to compute with the LLMCoder.
+        intrinsic_score_functions : list[callable]
+            The intrinsic score functions to use.
+        extrinsic_score_functions : list[callable]
+            The extrinsic score functions to use.
+        store : bool, optional
+            Whether to store the analysis in the database, by default False
+        verbose : bool, optional
+            Whether to print the results to the console, by default False
+
+        Returns
+        -------
+        dict[str, dict[str, dict]]
+            The metrics for each result.
+        """
+
+        metrics_dict = {}
+
+        for result_repitition_id, results in results_dict.items():
+
+            metrics: dict[str, dict] = {}
+
+            intrinsic_score_functions = [getattr(importlib.import_module(f'llmcoder.eval.metrics.{score.split(".")[0]}'), score.split(".")[1]) for score in config.scores if score.split(".")[0] == 'intrinsic']
+            extrinsic_score_functions = [getattr(importlib.import_module(f'llmcoder.eval.metrics.{score.split(".")[0]}'), score.split(".")[1]) for score in config.scores if score.split(".")[0] == 'extrinsic']
+
+            pbar = tqdm(results.items(), desc='Analysis', total=len(results), disable=not verbose)
+
+            for results_id, result in pbar:
+                metrics[results_id] = {}
+                for f in extrinsic_score_functions:
+                    pbar.set_description(f'Analysis: {f.__name__}')
+                    metrics[results_id][f.__name__] = f(ground_truth=targets[int(results_id)], llmcoder_result=result)  # FIXME: Support arbitrary keys instead of only integers
+                for f in intrinsic_score_functions:
+                    pbar.set_description(f'Analysis: {f.__name__}')
+                    metrics[results_id][f.__name__] = f(llmcoder_result=result)
+
+            if store:
+                self._write_metrics(config, result_repitition_id, metrics)
+
+            time.sleep(2)
+
+            metrics_dict[result_repitition_id] = metrics
+
+        return metrics_dict
+
+    def load_results(self, config: Dynaconf, index: int | list[int] | None = None) -> dict[str, dict]:
+        """
+        Read the results for a tuple from the database.
+
+        Parameters
+        ----------
+        config : Dynaconf
+            The configuration object from Dynaconf.
+        index : int | list[int], optional
+            The index of the results to read, by default None (read all)
+
+        Returns
+        -------
+        dict[str, dict]
+            The results from the database.
+        """
+        config_name = os.path.splitext(os.path.split(config.settings_file_for_dynaconf[0])[-1])[0]
+
+        # List the directories in the results_<dataset> folder
+        results_dirs = sorted(os.listdir(os.path.join(get_data_dir(config.get('dataset')), 'eval', config_name)))
+
+        if index is not None:
+            if isinstance(index, int):
+                results_dirs = [results_dirs[index]]
+            elif isinstance(index, list):
+                results_dirs = [results_dirs[i] for i in index]
+
+        results = {}
+        for results_dir in results_dirs:
+            results[results_dir] = read_results_from_json(os.path.join(get_data_dir(config.get('dataset')), 'eval', config_name, results_dir, 'results.json'))
+
+        return results
+
+    def _write_metrics(self, config: Dynaconf, result_repitition_id: str, metrics: dict) -> None:
         """
         Write the analysis results back to the database.
 
         Parameters
         ----------
-        analysis_results : dict
+        config : Dynaconf
+            The configuration object from Dynaconf.
+        result_repitition_id : str
+            The id of the result repitition.
+        metrics : dict
             The analysis results to write back to the database.
         """
         # Create a dataframe from the analysis results
-        df = pd.DataFrame.from_dict(analysis_results, orient='index')
+        df = pd.DataFrame.from_dict(metrics, orient='index')
 
         # Write the dataframe to the database
-        config_name = os.path.split(self.config.settings_file_for_dynaconf[0])[-1].split('.')[0]
-        df.to_csv(os.path.join(get_data_dir(self.config.get('dataset'), create=True), f'results_{config_name}_{self.time}', 'metrics.csv'))
+        config_name = os.path.split(config.settings_file_for_dynaconf[0])[-1].split('.')[0]
+        df.to_csv(os.path.join(get_data_dir(config.get('dataset'), create=True), 'eval', f'{config_name}', f'{result_repitition_id}', 'metrics.csv'))
