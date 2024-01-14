@@ -14,12 +14,12 @@ def main() -> None:
 
     # Add specific arguments to the preprocess command
     preprocess_parser = subparsers.add_parser('preprocess')
-    preprocess_parser.add_argument('-n', '--name', type=str, help='Name of the dataset')
+    preprocess_parser.add_argument('-n', '--name', required=True, type=str, help='Name of the dataset')
     preprocess_parser.add_argument('-s', '--size', type=int, help='Number of samples to extract per repository')
 
     export_parser = subparsers.add_parser('export')
     # Add specific arguments to the export command
-    export_parser.add_argument('-n', '--name', type=str, help='Name of the dataset')
+    export_parser.add_argument('-n', '--name', required=True, type=str, help='Name of the dataset')
 
     # Add specific arguments to the complete command
     complete_parser = subparsers.add_parser('complete')
@@ -29,15 +29,12 @@ def main() -> None:
 
     # Add specific arguments to the evaluate command
     evaluate_parser = subparsers.add_parser('evaluate')
-    evaluate_parser.add_argument('-c', '--config', type=str, help='Configuration file in the configs folder for evaluation')
-    # Add two more arguments to the evaluate command (--predict-only and --analysis-only, by default False)
-    evaluate_parser.add_argument('-p', '--predict-only', action='store_true', help='Only run the prediction step')
-    evaluate_parser.add_argument('-a', '--analysis-only', action='store_true', help='Only run the analysis step')
-    # Add an additional argument to the evaluate command (--store-predictions, and --store-analysis, by default True)
-    evaluate_parser.add_argument('--store-predictions', action='store_false', help='Store the predictions')
-    evaluate_parser.add_argument('--store-analysis', action='store_false', help='Store the analysis')
-    # Add an additional argument for the analysis step, given a stored results file
-    evaluate_parser.add_argument('-f', '--results-file', type=str, help='File with the results of the prediction step')
+    evaluate_parser.add_argument('-c', '--config', type=str, default=None, help='Configuration file in the configs folder for evaluation')
+    evaluate_parser.add_argument('-n', '--n_repeat', type=int, default=1, help='Number of times to repeat the evaluation')
+
+    metrics_parser = subparsers.add_parser('metrics')
+    metrics_parser.add_argument('-c', '--config', type=str, default=None, help='Configuration file in the configs folder for evaluation')
+    metrics_parser.add_argument('-i', '--index', type=int, default=None, help='Only compute metrics of the i-th repetition')
 
     # Parse the command line arguments
     args = parser.parse_args()
@@ -82,32 +79,12 @@ def main() -> None:
             else:
                 print(completion)
         case 'evaluate':
-            import os
-
-            from dynaconf import Dynaconf
-
             from llmcoder.eval.evaluate import Evaluation
-            from llmcoder.utils import get_config_dir
+            _ = Evaluation(args.config).run(store=True, n_repeat=args.n_repeat, verbose=True)
 
-            config = Dynaconf(settings_files=[os.path.join(get_config_dir(), args.config)])
-
-            eval = Evaluation(config)
-
-            print('Running evaluation with the following configuration:')
-            print(config)
-
-            print('Storing predictions: ', args.store_predictions)
-            print('Storing analysis: ', args.store_analysis)
-
-            if args.predict_only and not args.analysis_only:
-                print('Running prediction step')
-                eval.predict(verbose=True, store_predictions=args.store_predictions)
-            elif args.analysis_only and not args.predict_only:
-                print('Running analysis step for results file: ', args.results_file)
-                eval.analyze(args.results_file, verbose=True, store_analysis=args.store_analysis)
-            else:
-                print('Running evaluation step (prediction and analysis))')
-                eval.run(verbose=True, store_analysis=args.store_analysis, store_predictions=args.store_predictions)
+        case 'metrics':
+            from llmcoder.eval.evaluate import Metrics
+            _ = Metrics(args.config).run(store=True, index=args.index, verbose=True)
 
         case _:
             print('Unknown command: ', args.command)

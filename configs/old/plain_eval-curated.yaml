@@ -14,5 +14,6 @@ scores: [
   "extrinsic.gpt_reviewer_score",
   "intrinsic.loops_required_score",
   "intrinsic.tokens_used_score",
-  "intrinsic.agility_score"
+  "intrinsic.agility_score",
+  "intrinsic.time_score"
 ]

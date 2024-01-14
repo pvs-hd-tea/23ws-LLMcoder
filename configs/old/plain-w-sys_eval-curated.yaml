@@ -1,0 +1,19 @@
+analyzers: []
+model_first: "gpt-3.5-turbo"
+model_feedback: "gpt-3.5-turbo"
+feedback_variant: "separate"
+system_prompt: 2023-11-15_GPT-Builder.txt
+dataset: "LLMcoder-Eval/eval_curated"
+max_iter: 5
+log_conversation: true
+scores: [
+  "extrinsic.levenshtein_distance_score",
+  "extrinsic.bleu_score",
+  "extrinsic.trf_similarity_score",
+  "extrinsic.sequence_matcher_score",
+  "extrinsic.gpt_reviewer_score",
+  "intrinsic.loops_required_score",
+  "intrinsic.tokens_used_score",
+  "intrinsic.agility_score",
+  "intrinsic.time_score"
+]

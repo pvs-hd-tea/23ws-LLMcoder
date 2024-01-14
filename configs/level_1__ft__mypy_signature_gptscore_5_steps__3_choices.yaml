@@ -1,9 +1,9 @@
-analyzers: []
+analyzers: ["mypy_analyzer_v1", "signature_analyzer_v1", "gpt_score_analyzer_v1"]
 model_first: "ft:gpt-3.5-turbo-1106:personal::8LCi9Q0d"
 model_feedback: "gpt-3.5-turbo"
-feedback_variant: "separate"
+feedback_variant: "coworker"
 system_prompt: 2023-11-15_GPT-Builder.txt
-dataset: "LLMcoder-Eval/eval_curated"
+dataset: "LLMcoder-Eval/level_1"
 max_iter: 5
 log_conversation: true
 scores: [
@@ -14,5 +14,8 @@ scores: [
   "extrinsic.gpt_reviewer_score",
   "intrinsic.loops_required_score",
   "intrinsic.tokens_used_score",
-  "intrinsic.agility_score"
+  "intrinsic.agility_score",
+  "intrinsic.time_score"
 ]
+n_choices: 3
+n_procs: 3

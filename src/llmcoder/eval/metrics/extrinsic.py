@@ -1,15 +1,13 @@
-from difflib import SequenceMatcher  # , ndiff
+import warnings
+from difflib import SequenceMatcher
 
 import numpy as np
 from Levenshtein import distance
 from nltk.translate.bleu_score import sentence_bleu
 from openai import OpenAI
-# from pyastsim.pyastsim import get_normed_content, get_pair_stats
 from sentence_transformers import SentenceTransformer, util
 
 from llmcoder.utils import get_openai_key
-
-# from typing import Callable
 
 
 def levenshtein_distance_score(ground_truth: str, llmcoder_result: dict | str) -> int:
@@ -60,7 +58,9 @@ def bleu_score(ground_truth: str | list[str], llmcoder_result: dict | str) -> fl
     else:
         completion = llmcoder_result
 
-    return sentence_bleu(ground_truth, completion)
+    with warnings.catch_warnings():
+        warnings.filterwarnings('ignore', category=UserWarning)
+        return sentence_bleu(ground_truth, completion)
 
 
 def trf_similarity_score(ground_truth: str, llmcoder_result: dict | str, model: str = "sentence-transformers/all-roberta-large-v1") -> float:
