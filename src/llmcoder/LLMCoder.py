@@ -93,6 +93,18 @@ class LLMCoder:
 
         self._add_message("system", message=self.system_prompt)
 
+    def setup(self, code: str) -> None:
+        """
+        Run the setup for the analyzers
+
+        Parameters
+        ----------
+        code : str
+            The code to analyze
+        """
+        for analyzer in self.analyzers.values():
+            analyzer.setup(input=code)
+
     def _check_passing(self) -> bool:
         """
         Check if all the analyzers passed in the last iteration
