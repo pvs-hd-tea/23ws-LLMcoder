@@ -60,6 +60,11 @@ class Evaluation:
                 for config in sorted(os.listdir(get_config_dir())) if config.endswith('.yaml')]
         elif isinstance(configs, Dynaconf):
             self.configs = [configs]
+        elif isinstance(configs, str):
+            # Check if the config file exists
+            if not os.path.exists(os.path.join(get_config_dir(), configs)):
+                raise FileNotFoundError(f'Config file not found at {os.path.join(get_config_dir(), configs)}')
+            self.configs = [Dynaconf(settings_files=[os.path.join(get_config_dir(), configs)])]
         else:
             self.configs = configs
 
@@ -256,6 +261,11 @@ class Metrics:
                 for config in sorted(os.listdir(get_config_dir())) if config.endswith('.yaml')]
         elif isinstance(configs, Dynaconf):
             self.configs = [self.configs]
+        elif isinstance(configs, str):
+            # Check if the config file exists
+            if not os.path.exists(os.path.join(get_config_dir(), configs)):
+                raise FileNotFoundError(f'Config file not found at {os.path.join(get_config_dir(), configs)}')
+            self.configs = [Dynaconf(settings_files=[os.path.join(get_config_dir(), configs)])]
         else:
             self.configs = configs
 
