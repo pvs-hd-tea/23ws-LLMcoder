@@ -91,8 +91,6 @@ class LLMCoder:
 
         self.verbose = verbose
 
-        self._add_message("system", message=self.system_prompt)
-
     def _check_passing(self) -> bool:
         """
         Check if all the analyzers passed in the last iteration

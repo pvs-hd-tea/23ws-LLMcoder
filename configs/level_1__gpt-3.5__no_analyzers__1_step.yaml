@@ -1,4 +1,4 @@
-analyzers: []
+analyzers: ["mypy_analyzer_v1"]
 model_first: "gpt-3.5-turbo"
 model_feedback: "gpt-3.5-turbo"
 feedback_variant: "coworker"
