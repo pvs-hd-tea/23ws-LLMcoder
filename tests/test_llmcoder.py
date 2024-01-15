@@ -1,3 +1,5 @@
+# Generated with GPT-4 under supervision
+
 import os
 import unittest
 from unittest.mock import MagicMock, patch

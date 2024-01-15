@@ -18,7 +18,7 @@ def loops_required_score(llmcoder_result: dict) -> int:
     """
     # Subtract the system prompt, the first user message and the first completion
     # Then divide by two because each loop has two messages
-    return (len(llmcoder_result['messages']) - 3) // 2
+    return max(0, (len(llmcoder_result['messages']) - 3) // 2)
 
 
 def tokens_used_score(llmcoder_result: dict, tokenizer_name: str = "p50k_base") -> int:
@@ -85,3 +85,24 @@ def time_score(llmcoder_result: dict) -> float:
         The time it took to generate the result.
     """
     return llmcoder_result['time']
+
+
+def all_analyzers_passed_score(llmcoder_result: dict[str, list[dict[str, dict[str, object | str | bool | float | int]]]]) -> bool:
+    """
+    Return whether all analyzers passed.
+
+    Parameters
+    ----------
+    llmcoder_result : dict
+        The llmcoder result containing the conversation (the last message is the completion).
+
+    Returns
+    -------
+    bool
+        Whether all analyzers passed.
+    """
+    # Read the analyzer pass history from the llmcoder result
+    analyzer_results_history: list[dict[str, dict[str, object | str | bool | float | int]]] = llmcoder_result['analyzer_results']
+
+    # Check whether all analyzers passed in the last iteration
+    return all([analyzer_results['pass'] for analyzer_name, analyzer_results in analyzer_results_history[-1].items() if analyzer_results['type'] == 'critical'])

@@ -15,7 +15,8 @@ scores: [
   "intrinsic.loops_required_score",
   "intrinsic.tokens_used_score",
   "intrinsic.agility_score",
-  "intrinsic.time_score"
+  "intrinsic.time_score",
+  "intrinsic.all_analyzers_passed_score"
 ]
 n_choices: 3
 n_procs: 3

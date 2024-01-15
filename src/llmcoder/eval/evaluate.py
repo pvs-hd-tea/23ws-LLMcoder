@@ -14,6 +14,35 @@ from llmcoder.LLMCoder import LLMCoder  # Import your LLMCoder class
 from llmcoder.utils import get_config_dir, get_data_dir
 
 
+def check_config(config: Dynaconf) -> bool:
+
+    # Return if all the required keys are present and the types are correct
+    if not isinstance(config.get('analyzers'), list):
+        raise TypeError(f'Error when checking config: analyzers should be a list, but got {type(config.get("analyzers"))}')
+    if not isinstance(config.get('model_first'), str):
+        raise TypeError(f'Error when checking config: model_first should be a string, but got {type(config.get("model_first"))}')
+    if not isinstance(config.get('model_feedback'), str):
+        raise TypeError(f'Error when checking config: model_feedback should be a string, but got {type(config.get("model_feedback"))}')
+    if not isinstance(config.get('feedback_variant'), str):
+        raise TypeError(f'Error when checking config: feedback_variant should be a string, but got {type(config.get("feedback_variant"))}')
+    if not isinstance(config.get('system_prompt'), str):
+        raise TypeError(f'Error when checking config: system_prompt should be a string, but got {type(config.get("system_prompt"))}')
+    if not isinstance(config.get('dataset'), str):
+        raise TypeError(f'Error when checking config: dataset should be a string, but got {type(config.get("dataset"))}')
+    if not isinstance(config.get('max_iter'), int):
+        raise TypeError(f'Error when checking config: max_iter should be an int, but got {type(config.get("max_iter"))}')
+    if not isinstance(config.get('log_conversation'), bool):
+        raise TypeError(f'Error when checking config: log_conversation should be a bool, but got {type(config.get("log_conversation"))}')
+    if not isinstance(config.get('scores'), list):
+        raise TypeError(f'Error when checking config: scores should be a list, but got {type(config.get("scores"))}')
+    if not isinstance(config.get('n_choices'), int):
+        raise TypeError(f'Error when checking config: n_choices should be an int, but got {type(config.get("n_choices"))}')
+    if not isinstance(config.get('n_procs'), int):
+        raise TypeError(f'Error when checking config: n_procs should be an int, but got {type(config.get("n_procs"))}')
+
+    return True
+
+
 class Evaluation:
     def __init__(self, configs: Dynaconf | list[Dynaconf] | None = None):
         """
@@ -24,16 +53,19 @@ class Evaluation:
         configs : Dynaconf | list[Dynaconf], optional
             The configuration object from Dynaconf.
         """
-
         if configs is None:
             # Load all configurations from the config directory
             self.configs = [
                 Dynaconf(settings_files=[os.path.join(get_config_dir(), config)])
                 for config in sorted(os.listdir(get_config_dir())) if config.endswith('.yaml')]
         elif isinstance(configs, Dynaconf):
-            self.configs = [self.configs]
+            self.configs = [configs]
         else:
             self.configs = configs
+
+        # Check if the configuration is correct.
+        for config in self.configs:
+            check_config(config)
 
         # Check if the datasets exists
         for config in self.configs:
@@ -209,6 +241,13 @@ class Metrics:
         configs : Dynaconf | list[Dynaconf], optional
             The configuration object from Dynaconf.
         """
+        # Check if the configuration is correct.
+        if configs is not None:
+            if isinstance(configs, Dynaconf):
+                check_config(configs)
+            else:
+                for config in configs:
+                    check_config(config)
 
         if configs is None:
             # Load all configurations from the config directory
