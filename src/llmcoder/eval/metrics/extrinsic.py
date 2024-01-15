@@ -179,8 +179,8 @@ def sequence_matcher_score(ground_truth: str, llmcoder_result: dict | str) -> fl
     return SequenceMatcher(None, ground_truth, completion).ratio()
 
 
-def _user_prompt_templste(code_1: str, code_2: str, qualities_list: list[str]) -> str:
-    quality_list_string = '\n'.join([f'- {q}' for q in qualities_list])
+def _user_prompt_template(code_1: str, code_2: str, qualities_list: list[str] | None) -> str:
+    quality_list_string = '\n'.join([f'- {q}' for q in qualities_list]) if qualities_list is not None else ''
     return f"""Assess and compare these two code snippets and evaluate the completions. Do your own analysis and also prip the following criteria:
 {quality_list_string}
 
@@ -246,7 +246,7 @@ Therefore, make sure to keep your comparison (the text after COMPARISON:) concis
     else:
         completion = llmcoder_result
 
-    user_prompt = _user_prompt_templste(ground_truth, completion, qualities_list)
+    user_prompt = _user_prompt_template(ground_truth, completion, qualities_list)
 
     messages = [
         {

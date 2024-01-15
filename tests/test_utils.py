@@ -1,3 +1,5 @@
+# Generated with GPT-4 under supervision
+
 import os
 import shutil
 from unittest.mock import Mock, mock_open, patch

@@ -1,3 +1,5 @@
+# Generated with GPT-4 under supervision
+
 from unittest import TestCase
 from unittest.mock import MagicMock, Mock, call, mock_open, patch
 
