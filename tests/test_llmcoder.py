@@ -72,6 +72,8 @@ class TestLLMCoder(unittest.TestCase):
     def test_add_message(self, mock_openai: MagicMock, mock_path: MagicMock, mock_open: MagicMock, mock_os_makedirs: MagicMock, mock_json_dumps: MagicMock) -> None:
         llmcoder = LLMCoder(log_conversation=True)
 
+        llmcoder._reset_loop()
+
         # Check if the system prompt is added
         self.assertEqual(len(llmcoder.messages), 1)
         self.assertEqual(llmcoder.messages[0], {"role": "system", "content": "mock_data"})
