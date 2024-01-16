@@ -60,6 +60,11 @@ class Evaluation:
                 for config in sorted(os.listdir(get_config_dir())) if config.endswith('.yaml')]
         elif isinstance(configs, Dynaconf):
             self.configs = [configs]
+        elif isinstance(configs, str):
+            # Check if the config file exists
+            if not os.path.exists(os.path.join(get_config_dir(), configs)):
+                raise FileNotFoundError(f'Config file not found at {os.path.join(get_config_dir(), configs)}')
+            self.configs = [Dynaconf(settings_files=[os.path.join(get_config_dir(), configs)])]
         else:
             self.configs = configs
 
@@ -256,6 +261,11 @@ class Metrics:
                 for config in sorted(os.listdir(get_config_dir())) if config.endswith('.yaml')]
         elif isinstance(configs, Dynaconf):
             self.configs = [self.configs]
+        elif isinstance(configs, str):
+            # Check if the config file exists
+            if not os.path.exists(os.path.join(get_config_dir(), configs)):
+                raise FileNotFoundError(f'Config file not found at {os.path.join(get_config_dir(), configs)}')
+            self.configs = [Dynaconf(settings_files=[os.path.join(get_config_dir(), configs)])]
         else:
             self.configs = configs
 
@@ -414,5 +424,5 @@ class Metrics:
         df = pd.DataFrame.from_dict(metrics, orient='index')
 
         # Write the dataframe to the database
-        config_name = os.path.split(config.settings_file_for_dynaconf[0])[-1].split('.')[0]
+        config_name = os.path.splitext(os.path.split(config.settings_file_for_dynaconf[0])[-1])[0]
         df.to_csv(os.path.join(get_data_dir(config.get('dataset'), create=True), 'eval', f'{config_name}', f'{result_repitition_id}', 'metrics.csv'))

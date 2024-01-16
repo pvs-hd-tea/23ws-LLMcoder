@@ -85,7 +85,13 @@ llmcoder export -n name/of/dataset
 
 on a dataset stored in `/data/name/of/dataset`.
 
-## 2. Run the LLMcoder
+## 2. Install packages used in the evaluation
+
+```sh
+pip install -r data/name/of/dataset/requirements.txt
+```
+
+## 3. Run the LLMcoder Evaluation
 
 To evaluate LLMcoder on all configs in `/configs`, run
 
@@ -113,7 +119,7 @@ The following files will be created for each config and run:
 
 for each example in the dataset
 
-## 3. Compute metrics
+## 4. Compute metrics
 After running the evaluation, compute the metrics for all configs in `/configs` with
 
 ```sh
@@ -151,7 +157,7 @@ pre-commit install
     month = mar,
     year = 2024,
     publisher = {GitHub},
-    version = {0.3},
+    version = {0.3.1},
     url = {https://github.com/pvs-hd-tea/23ws-LLMcoder}
 }
 ```
