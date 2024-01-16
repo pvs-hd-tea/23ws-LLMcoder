@@ -1,6 +1,6 @@
 analyzers: ["mypy_analyzer_v1", "signature_analyzer_v1", "gpt_score_analyzer_v1"]
 model_first: "ft:gpt-3.5-turbo-1106:personal::8LCi9Q0d"
-model_feedback: "gpt-3.5-turbo"
+model_feedback: "ft:gpt-3.5-turbo-1106:personal::8LCi9Q0d"
 feedback_variant: "coworker"
 system_prompt: 2023-11-15_GPT-Builder.txt
 dataset: "LLMcoder-Eval/level_1"

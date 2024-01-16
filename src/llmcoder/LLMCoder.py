@@ -468,7 +468,7 @@ class LLMCoder:
         self._add_message("user", message=feedback_prompt + code)
 
         # Get a completion from the assistant
-        success = self._add_message("assistant", model=self.model_first, temperature=temperature, n=n)  # model_first works quite good here
+        success = self._add_message("assistant", model=self.model_feedback, temperature=temperature, n=n)
 
         self.iterations += 1
 
