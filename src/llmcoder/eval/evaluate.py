@@ -424,5 +424,5 @@ class Metrics:
         df = pd.DataFrame.from_dict(metrics, orient='index')
 
         # Write the dataframe to the database
-        config_name = os.path.split(config.settings_file_for_dynaconf[0])[-1].split('.')[0]
+        config_name = os.path.splitext(os.path.split(config.settings_file_for_dynaconf[0])[-1])[0]
         df.to_csv(os.path.join(get_data_dir(config.get('dataset'), create=True), 'eval', f'{config_name}', f'{result_repitition_id}', 'metrics.csv'))
