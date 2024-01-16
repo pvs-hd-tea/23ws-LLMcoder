@@ -4,6 +4,8 @@ import os
 import unittest
 from unittest.mock import MagicMock, patch
 
+import tiktoken
+
 from llmcoder.LLMCoder import LLMCoder
 from llmcoder.utils import get_conversations_dir
 
@@ -38,6 +40,8 @@ class TestLLMCoder(unittest.TestCase):
         if not os.path.isfile(self.key_file_path):
             with open(self.key_file_path, "w") as f:
                 f.write("sk-mock_key")
+
+        self.enc = tiktoken.get_encoding('p50k_base')
 
     @patch('llmcoder.LLMCoder.LLMCoder._create_conversation_file', return_value=None)
     @patch('llmcoder.utils.get_conversations_dir', return_value="/mock/conversations/dir")
