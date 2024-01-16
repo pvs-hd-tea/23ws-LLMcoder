@@ -5,6 +5,7 @@ from datetime import datetime
 
 import numpy as np
 import openai
+import tiktoken
 
 from llmcoder.analyze.factory import AnalyzerFactory
 from llmcoder.utils import get_conversations_dir, get_openai_key, get_system_prompt, get_system_prompt_dir
@@ -57,6 +58,8 @@ class LLMCoder:
 
         # Set the feedback loop variables
         self.iterations = 0
+        self.n_tokens_generated = 0
+        self.encoder = tiktoken.get_encoding("p50k_base")
         self.analyzer_results_history: list[dict[str, dict[str, float | int | str | bool]]] = []
         self.max_iter = max_iter
         self.messages: list = []
@@ -156,7 +159,8 @@ class LLMCoder:
         # Otherwise, start the feedback loop (but only if there are analyzers that can be used)
         if self.verbose:
             print("[LLMcoder] Starting feedback loop...")
-        if len(self.analyzers) > 0:
+
+        if len(self.analyzers) > 0 and self.max_iter > 0:
             # Run the feedback loop until the code is correct or the max_iter is reached
             for i in range(self.max_iter):
                 if self.verbose:
@@ -225,8 +229,11 @@ class LLMCoder:
         # Get the completions from OpenAI's API
         candidates = self.client.chat.completions.create(messages=self.messages, model=model, temperature=temperature, n=n)  # type: ignore
 
+        # Count the number of tokens generated
+        self.n_tokens_generated += sum([len(self.encoder.encode(message.message.content)) for message in candidates.choices])
+
         # Filter out completions that are repetitions of previous mistakes
-        valid_choices = [completion for completion in candidates.choices if not self._is_bad_completion(completion.message.content)]
+        valid_choices = [completion for completion in candidates.choices]
 
         # If all completions are repetitions of previous mistakes, increase the temperature and the number of choices until we get a valid completion
         increased_temperature = temperature
@@ -368,6 +375,7 @@ class LLMCoder:
         """
         # Reset the feedback loop variables
         self.iterations = 0
+        self.n_tokens_generated = 0
         self.analyzer_results_history = []
         self.messages = []
 

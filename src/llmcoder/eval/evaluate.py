@@ -212,6 +212,7 @@ class Evaluation:
             results[input_id]['analyzer_results'] = llmcoder.analyzer_results_history
             results[input_id]['log'] = f.getvalue()
             results[input_id]['time'] = time_end - time_start
+            results[input_id]['n_tokens_generated'] = llmcoder.n_tokens_generated
 
         return results
 
