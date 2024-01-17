@@ -1,0 +1,14 @@
+llmcoder.complete()
+	152-> step()
+
+
+check all 3 completions have feedback 
+
+
+
+todo: finish step + pop!!
+make sure every time i generate a new completion i popped the best one
+
+should i pass messages or messages.content to user?
+
+line 278
