@@ -1,5 +1,7 @@
 import re
 
+import jedi
+
 from llmcoder.analyze.Analyzer import Analyzer
 
 
@@ -37,18 +39,20 @@ class HallucinationAnalyzer(Analyzer):
         dict
             A dictionary containing the result of the analysis.
         """
+        code = input + completion
+        script = jedi.Script(code)
+
         # From the context (i.e. the results from the previous analyzers like the mypy_analyzer_v1), we can get hallucinated functions or classes.
-        hallucinated_names = []
+        hallucinations = []
+        n_total_suggestions = 0
         if context:
             if self.verbose:
                 print(f"[Hallucinations] Using context from previous analyzers: {list(context.keys())}")
             if 'mypy_analyzer_v1' in context and isinstance(context['mypy_analyzer_v1']['message'], str):
                 for line in context['mypy_analyzer_v1']['message'].split("\n"):
                     if line.startswith("your completion:"):
-                        # Extract the problematic function or class name from the mypy_analyzer_v1 result
-                        # Mypy will wrap the name in quotation marks like "foo" if it is a function, and in quotation marks and parentheses like "Foo" if it is a class.
-                        # Find the quotation marks and extract the name.
-                        # E.g. from `your completion:6: error: Module has no attribute "TikTok"  [attr-defined]
+                        error_line_number = int(line.split(":")[1])
+                        error_line = code.split("\n")[error_line_number - 1]
 
                         matches_no_attr = re.findall(r'has no attribute \"(.+?)\"', line)
                         # TODO: There may be more
@@ -63,13 +67,37 @@ class HallucinationAnalyzer(Analyzer):
                             if match.startswith("type["):
                                 match = match[5:-1]
 
-                            hallucinated_names.append(match)
+                            module_matches = re.findall(r'([a-zA-Z0-9_]*)\.([a-zA-Z0-9_]*)', error_line)
 
-        # Remove duplicates
-        hallucinated_names = list(set([name for name in hallucinated_names if name.strip() != ""]))
+                            if len(module_matches) > 0:
+                                module_of_hallucinated_attribute = '.'.join(module_matches[0][:-1])
+
+                                try:  # https://www.phind.com/search?cache=ey5i26k2mr5wuezcjx9tzkaf
+                                    suggested_attributes = script.complete_search(module_of_hallucinated_attribute + '.')
+                                    n_total_suggestions += len(suggested_attributes)
+                                except AttributeError:
+                                    continue
+                            else:
+                                module_of_hallucinated_attribute = None
+                                suggested_attributes = []
+
+                            hallucinations.append({
+                                'name': match,
+                                'module': module_of_hallucinated_attribute,
+                                'suggested_attributes': suggested_attributes
+                            })
+
+        # Remove duplicate hallucinations based on the `module.name` property
+        hallucinations_dedupe = []
+        hallucinations_full_names = []
+        for hallucination in hallucinations:
+            full_name = hallucination['module'] + '.' + hallucination['name']
+            if full_name not in hallucinations_full_names:
+                hallucinations_full_names.append(full_name)
+                hallucinations_dedupe.append(hallucination)
 
         # If there is no query, there is nothing to do
-        if len(hallucinated_names) == 0:
+        if len(hallucinations) == 0:
             if self.verbose:
                 print("[Hallucinations] No hallucinations found.")
             return {
@@ -81,17 +109,25 @@ class HallucinationAnalyzer(Analyzer):
 
         else:
             if self.verbose:
-                print(f"[Hallucinations] Found {len(hallucinated_names)} hallucinations: {hallucinated_names}")
+                print(f"[Hallucinations] Found {len(hallucinations)} hallucinations: {[hallucination['module'] + '.' + hallucination['name'] for hallucination in hallucinations]}")
 
-            results_str = "You used the following non-existent functions or classes:\n"
-            for name in hallucinated_names:
-                results_str += f"- {name}\n"
+            results_str = "The following attributes do not exist:\n"
+            for h in hallucinations_dedupe:
+                results_str += f"- '{h['name']}' of '{h['module']}'\n"
             results_str += "\n"
-            results_str += "In your next completion, do not use these functions or classes."
+            results_str += "Do not use these attributes."
+
+            if n_total_suggestions > 0:
+                results_str += "\n\n"
+                for h in hallucinations_dedupe:
+                    results_str += f"Instead of '{h['module']}.{h['name']}', use the most plausible of these attributes: {h['module']}.[" + ', '.join([s.name for s in h['suggested_attributes']]) + "]\n"
+
+            n_hallucinations_without_suggestions = len([h for h in hallucinations_dedupe if len(h['suggested_attributes']) == 0])
+            n_hallucinations_with_suggestions = len([h for h in hallucinations_dedupe if len(h['suggested_attributes']) > 0])
 
             return {
                 "pass": False,
                 "type": "info",
-                "score": - len(hallucinated_names),
+                "score": - n_hallucinations_without_suggestions + 0.5 * n_hallucinations_with_suggestions,
                 "message": results_str
             }
