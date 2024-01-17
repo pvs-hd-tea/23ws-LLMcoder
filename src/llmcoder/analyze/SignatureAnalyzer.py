@@ -319,7 +319,7 @@ class SignatureAnalyzer(Analyzer):
                 "pass": True,
                 "type": "info",
                 "score": 0,
-                "message": "All functions and classes in your completion are called correctly (their signatures match with the documentation)."
+                "message": ""  # No message
             }
 
         # If there is a query, get the signatures and documentations of the functions and classes that match the query
