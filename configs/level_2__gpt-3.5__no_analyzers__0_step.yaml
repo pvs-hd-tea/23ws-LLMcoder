@@ -16,7 +16,8 @@ scores: [
   "intrinsic.tokens_used_score",
   "intrinsic.agility_score",
   "intrinsic.time_score",
-  "intrinsic.all_analyzers_passed_score"
+  "intrinsic.all_analyzers_passed_score",
+  "intrinsic.total_tokens_generated_score"
 ]
 n_choices: 1
 n_procs: 1
