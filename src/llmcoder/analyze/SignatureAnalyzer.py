@@ -1,4 +1,5 @@
 import ast
+import importlib
 import inspect
 import os
 import re
@@ -256,55 +257,54 @@ class SignatureAnalyzer(Analyzer):
 
         # Match the function calls to the imports
         matched_function_calls = []
-        for module_alias, func_name in function_calls:
+        for module_alias, func_name, attr_name in function_calls:
             if module_alias and module_alias in import_aliases:
-                matched_function_calls.append((module_alias, func_name))
+                matched_function_calls.append((module_alias, func_name, attr_name))
             elif func_name in direct_imports:
-                matched_function_calls.append((direct_imports[func_name], func_name))
+                matched_function_calls.append((direct_imports[func_name], func_name, attr_name))
             else:
                 if self.verbose:
                     print(f"[Signatures] No import found for {func_name}")
 
-        for module_alias, func_name in matched_function_calls:
-            if self.verbose:
-                print(f"[Signatures] {module_alias=} {func_name=}")
-            try:
-                if module_alias and module_alias in import_aliases:
-                    module_path = import_aliases[module_alias]
-                    parts = func_name.split('.')
-                    module = __import__(module_path, fromlist=[parts[0]])
-                    attr = module
-                    for part in parts:
-                        attr = getattr(attr, part, None)  # type: ignore
-                elif func_name in direct_imports:  # Handle direct imports
-                    module_name = direct_imports[func_name]
-                    module = __import__(module_name, fromlist=[func_name])
-                    attr = getattr(module, func_name, None)  # type: ignore
-                else:
-                    attr = None
+        for entry in matched_function_calls:
+            # Parse the entry which could be a tuple of (module, class/function) or (module, class, attribute)
+            module_alias, class_or_func, attribute = None, None, None
+            if len(entry) == 2:
+                module_alias, class_or_func = entry
+            elif len(entry) == 3:
+                module_alias, class_or_func, attribute = entry
 
-                if attr and callable(attr):
+            try:
+                # Import the module
+                module = importlib.import_module(import_aliases.get(module_alias, module_alias))
+                # Resolve the class or function
+                cls_or_func = getattr(module, class_or_func, None)
+                if attribute:
+                    # Resolve the attribute (method) if present
+                    cls_or_func = getattr(cls_or_func, attribute, None)
+
+                if cls_or_func and callable(cls_or_func):
                     try:
-                        sig = inspect.signature(attr)
-                        doc = inspect.getdoc(attr)
+                        sig = inspect.signature(cls_or_func)
+                        doc = inspect.getdoc(cls_or_func)
                         signature_and_doc.append({
-                            "name": func_name,
+                            "name": f"{class_or_func}.{attribute}" if attribute else class_or_func,
                             "signature": str(sig),
                             "doc": doc
                         })
                     except ValueError:
                         signature_and_doc.append({
-                            "name": func_name,
+                            "name": f"{class_or_func}.{attribute}" if attribute else class_or_func,
                             "signature": None,
-                            "doc": inspect.getdoc(attr)
+                            "doc": inspect.getdoc(cls_or_func)
                         })
                 else:
                     if self.verbose:
-                        print(f"[Signatures] No callable attribute {func_name} found")
+                        print(f"[Signatures] No callable attribute {class_or_func}.{attribute} found")
 
             except (ImportError, AttributeError) as e:
                 if self.verbose:
-                    print(f"[Signatures] Error importing {func_name}: {e}")
+                    print(f"[Signatures] Error importing {class_or_func}.{attribute}: {e}")
 
         return signature_and_doc
 
