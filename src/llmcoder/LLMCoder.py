@@ -22,7 +22,7 @@ class LLMCoder:
     model_first : str, optional
         The model to use for the first completion, by default "ft:gpt-3.5-turbo-1106:personal::8LCi9Q0d"
     model_feedback : str, optional
-        The model to use for the feedback loop, by default "gpt-3.5-turbo"
+        The model to use for the feedback loop, by default "ft:gpt-3.5-turbo-1106:personal::8LCi9Q0d"
     feedback_variant : str, optional
         The feedback variant to use, by default "separate"
     system_prompt : str, optional
@@ -39,8 +39,8 @@ class LLMCoder:
     def __init__(self,
                  analyzers: list[str] = None,
                  model_first: str = "ft:gpt-3.5-turbo-1106:personal::8LCi9Q0d",
-                 model_feedback: str = "gpt-3.5-turbo",
-                 feedback_variant: str = "separate",
+                 model_feedback: str = "ft:gpt-3.5-turbo-1106:personal::8LCi9Q0d",
+                 feedback_variant: str = "coworker",
                  system_prompt: str | None = None,
                  max_iter: int = 10,
                  log_conversation: bool = True,

@@ -121,37 +121,93 @@ class SignatureAnalyzer(Analyzer):
         # Parse the code with the ast module
         root = ast.parse(code)
         function_calls: list[tuple[str | None, str]] = []
+        aliases = {}
 
         # Convert the query to a list if it is a string for convenience
         if isinstance(query, str):
             query = [query]
 
+        # Process import statements and assignments to track aliases
+        for node in ast.walk(root):
+            if isinstance(node, ast.Import):
+                for name in node.names:
+                    aliases[name.asname or name.name] = name.name
+            elif isinstance(node, ast.ImportFrom):
+                module = node.module or ''
+                for name in node.names:
+                    aliases[name.asname or name.name] = module + '.' + name.name
+            elif isinstance(node, ast.Assign):
+                for target in node.targets:
+                    if isinstance(target, ast.Name):
+                        aliases[target.id] = self._resolve_alias(node.value, aliases)
+            elif isinstance(node, ast.Assign):
+                for target in node.targets:
+                    if isinstance(target, ast.Name):
+                        # Store the variable and the right-hand side expression
+                        variable_name = target.id
+                        rhs_expression = self._resolve_alias(node.value, aliases)
+                        if rhs_expression:
+                            aliases[variable_name] = rhs_expression
+
         # Walk through the AST and find all function calls
         for node in ast.walk(root):
             if isinstance(node, ast.Call):
-                attribute_chain = []
-                if isinstance(node.func, ast.Attribute):
-                    # Handle nested attributes
-                    current = node.func
-                    while isinstance(current, ast.Attribute):
-                        attribute_chain.append(current.attr)
-                        current = current.value  # type: ignore
-                    if isinstance(current, ast.Name):
-                        attribute_chain.append(current.id)
-                    attribute_chain.reverse()
-                    module_alias = attribute_chain[0]
-                    func_name = '.'.join(attribute_chain[1:])
-                elif isinstance(node.func, ast.Name):
-                    # Direct function call
-                    module_alias = None
-                    func_name = node.func.id
-                else:
-                    continue
+                fully_qualified_func_name = self._resolve_function_call(node, aliases)
 
-                if not query or func_name in query or func_name.split(".")[-1] in query or '.'.join(attribute_chain) in query:
-                    function_calls.append((module_alias, func_name))
+                # Extract the relevant part from the fully qualified name
+                if fully_qualified_func_name:
+                    parts = fully_qualified_func_name.split('.')
+
+                    name_without_attribute = parts[-1]
+
+                    # Check if the relevant name matches the query
+                    if not query or name_without_attribute in query:
+                        module_alias = parts[0] if len(parts) > 2 else None
+                        function_calls.append((module_alias, name_without_attribute, None))
+
+                    if len(parts) > 1:
+                        name_with_attribute = '.'.join(parts[-2:])
+
+                        # Check if the relevant name matches the query
+                        if not query or name_with_attribute in query:
+                            module_alias = parts[0] if len(parts) > 2 else None
+                            function_calls.append((module_alias, parts[-2], parts[-1]))
 
         return function_calls
+
+    def _resolve_function_call(self, node, aliases):
+        if isinstance(node.func, ast.Attribute):
+            resolved_chain = self._resolve_attribute_chain(node.func, aliases)
+            if None in resolved_chain:
+                return None
+            return '.'.join(resolved_chain)
+        elif isinstance(node.func, ast.Name):
+            return aliases.get(node.func.id, node.func.id)
+        else:
+            return None
+
+    def _resolve_attribute_chain(self, node, aliases):
+        chain = []
+        while isinstance(node, ast.Attribute):
+            chain.append(node.attr)
+            node = node.value
+        if isinstance(node, ast.Name):
+            resolved_name = aliases.get(node.id, node.id)
+            if resolved_name is None:
+                return [None]
+            chain.append(resolved_name)
+        return list(reversed(chain))
+
+    def _resolve_alias(self, node, aliases):
+        if isinstance(node, ast.Name):
+            return aliases.get(node.id, node.id)
+        elif isinstance(node, ast.Attribute):
+            resolved_chain = self._resolve_attribute_chain(node, aliases)
+            return '.'.join(resolved_chain) if None not in resolved_chain else None
+        elif isinstance(node, ast.Call):
+            # Handle the case where the alias is a result of a function call
+            return self._resolve_function_call(node, aliases)
+        return None
 
     def get_signature_and_doc(self, path: str, query: str | list[str] | None) -> list[dict]:
         """
@@ -191,6 +247,8 @@ class SignatureAnalyzer(Analyzer):
 
         # Find all function calls that match the query
         function_calls = self.find_function_calls(code, query)
+
+        print(f"[Signatures] {function_calls=}")
 
         function_calls = list(set(function_calls))
 
@@ -289,14 +347,41 @@ class SignatureAnalyzer(Analyzer):
                         # Find the quotation marks and extract the name.
                         # E.g. from `your completion:6: error: Argument 1 to "Client" has incompatible type "str | None"; expected "str"  [arg-type] Found 1 error in 1 file (checked 1 source file)`extract the name "Client".
 
-                        matches_has = re.findall(r'\"(.+?)\" has', line)
-                        matches_for = re.findall(r'for \"(.+?)\"', line)
-                        matches_gets = re.findall(r'\"(.+?)\" gets', line)
-                        # TODO: There may be more
+                        # Define the patterns
+                        patterns = {
+                            "has": re.compile(r'\"(.+?)\" has'),
+                            "gets": re.compile(r'\"(.+?)\" gets'),
+                            "for": re.compile(r'for \"(.+?)\"')
+                        }
 
-                        matches = matches_has + matches_for + matches_gets
+                        patterns_attribute = {
+                            "has_attribute": re.compile(r'\"(.+?)\" of \"(.+?)\" has'),
+                            "gets_attribute": re.compile(r'\"(.+?)\" of \"(.+?)\" gets'),
+                            "for_attribute": re.compile(r'\"(.+?)\" of \"(.+?)\" for'),
+                            "missing_arg": re.compile(r'in call to \"(.+?)\" of \"(.+?)\"'),
+                            "too_many_args": re.compile(r'for \"(.+?)\" of \"(.+?)\"'),
+                            "signature_incompat": re.compile(r'Signature of \"(.+?)\" incompatible with supertype \"(.+?)\"')
+                        }
 
-                        for match in matches:
+                        # Find all matches for each pattern
+                        matches = {key: pattern.findall(line) for key, pattern in patterns.items()}
+                        matches = {k: v for k, v in matches.items()}
+                        matches_attribute = {key: pattern.findall(line) for key, pattern in patterns_attribute.items()}
+
+                        # Flatten the matches
+                        matches_list = [match for k, v in matches.items() for match in v if '" of "' not in match]
+                        matches_attribute_list = [f'{match[1]}.{match[0]}' for k, v in matches_attribute.items() for match in v]
+
+                        # Combine the matches
+                        all_matches = matches_list + matches_attribute_list
+
+                        # Remove duplicates
+                        all_matches = list(set(all_matches))
+
+                        print(f"[Signatures] {all_matches=}")
+
+                        # Add the matches to the query
+                        for match in all_matches:
                             if self.verbose:
                                 print(f"[Signatures] Found problematic function or class: {match}")
 
