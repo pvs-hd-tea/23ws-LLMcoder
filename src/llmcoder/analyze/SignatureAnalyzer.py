@@ -351,19 +351,17 @@ class SignatureAnalyzer(Analyzer):
                         }
 
                         patterns_attribute = {
-                            "has_attribute": re.compile(r'\"(.+?)\" of \"(.+?)\" has'),
+                            "has_attribute": re.compile(r'to \"(.+?)\" of \"(.+?)\" has'),
                             "gets_attribute": re.compile(r'\"(.+?)\" of \"(.+?)\" gets'),
                             "for_attribute": re.compile(r'\"(.+?)\" of \"(.+?)\" for'),
                             "missing_arg": re.compile(r'in call to \"(.+?)\" of \"(.+?)\"'),
                             "too_many_args": re.compile(r'for \"(.+?)\" of \"(.+?)\"'),
                             "signature_incompat": re.compile(r'Signature of \"(.+?)\" incompatible with supertype \"(.+?)\"')
                         }
-
                         # Find all matches for each pattern
                         matches = {key: pattern.findall(line) for key, pattern in patterns.items()}
                         matches = {k: v for k, v in matches.items()}
                         matches_attribute = {key: pattern.findall(line) for key, pattern in patterns_attribute.items()}
-
                         # Flatten the matches
                         matches_list = [match for k, v in matches.items() for match in v if '" of "' not in match]
                         matches_attribute_list = [f'{match[1]}.{match[0]}' for k, v in matches_attribute.items() for match in v]
@@ -406,6 +404,8 @@ class SignatureAnalyzer(Analyzer):
         # If there is a query, get the signatures and documentations of the functions and classes that match the query
         else:
             result = self.get_signature_and_doc(temp_file_name, list(set(query)))
+
+            print(f"[Signatures] {result=}")
 
             # Truncate the documentation to the first line (i.e. the signature)
             # Otherwise, the message will be too long
