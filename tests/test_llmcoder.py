@@ -53,8 +53,8 @@ class TestLLMCoder(unittest.TestCase):
         llmcoder = LLMCoder()
         self.assertEqual(llmcoder.analyzers, {})
         self.assertEqual(llmcoder.model_first, "ft:gpt-3.5-turbo-1106:personal::8LCi9Q0d")
-        self.assertEqual(llmcoder.model_feedback, "gpt-3.5-turbo")
-        self.assertEqual(llmcoder.feedback_variant, "separate")
+        self.assertEqual(llmcoder.model_feedback, "ft:gpt-3.5-turbo-1106:personal::8LCi9Q0d")
+        self.assertEqual(llmcoder.feedback_variant, "coworker")
         self.assertEqual(llmcoder.max_iter, 10)
 
         # Check that a conversation file is created

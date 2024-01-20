@@ -102,7 +102,7 @@ class SignatureAnalyzer(Analyzer):
 
         # TODO: Handle builtins
 
-    def find_function_calls(self, code: str, query: str | list[str] | None) -> list[tuple[str | None, str]]:
+    def find_function_calls(self, code: str, query: str | list[str] | None) -> list[tuple[str | None, str, str | None]]:
         """
         Find all function calls in the code that match the query.
 
@@ -121,8 +121,8 @@ class SignatureAnalyzer(Analyzer):
 
         # Parse the code with the ast module
         root = ast.parse(code)
-        function_calls: list[tuple[str | None, str]] = []
-        aliases = {}
+        function_calls: list[tuple[str | None, str, str | None]] = []
+        aliases: dict[str, str | None] = {}
 
         # Convert the query to a list if it is a string for convenience
         if isinstance(query, str):
@@ -176,22 +176,22 @@ class SignatureAnalyzer(Analyzer):
 
         return function_calls
 
-    def _resolve_function_call(self, node, aliases):
+    def _resolve_function_call(self, node: ast.Call, aliases: dict[str, str | None]) -> str | None:
         if isinstance(node.func, ast.Attribute):
             resolved_chain = self._resolve_attribute_chain(node.func, aliases)
             if None in resolved_chain:
                 return None
-            return '.'.join(resolved_chain)
+            return '.'.join(resolved_chain)  # type: ignore
         elif isinstance(node.func, ast.Name):
             return aliases.get(node.func.id, node.func.id)
         else:
             return None
 
-    def _resolve_attribute_chain(self, node, aliases):
+    def _resolve_attribute_chain(self, node: ast.Attribute, aliases: dict[str, str | None]) -> list[str | None]:
         chain = []
         while isinstance(node, ast.Attribute):
             chain.append(node.attr)
-            node = node.value
+            node = node.value  # type: ignore
         if isinstance(node, ast.Name):
             resolved_name = aliases.get(node.id, node.id)
             if resolved_name is None:
@@ -199,12 +199,12 @@ class SignatureAnalyzer(Analyzer):
             chain.append(resolved_name)
         return list(reversed(chain))
 
-    def _resolve_alias(self, node, aliases):
+    def _resolve_alias(self, node: ast.AST, aliases: dict[str, str | None]) -> str | None:
         if isinstance(node, ast.Name):
             return aliases.get(node.id, node.id)
         elif isinstance(node, ast.Attribute):
             resolved_chain = self._resolve_attribute_chain(node, aliases)
-            return '.'.join(resolved_chain) if None not in resolved_chain else None
+            return '.'.join(resolved_chain) if None not in resolved_chain else None  # type: ignore
         elif isinstance(node, ast.Call):
             # Handle the case where the alias is a result of a function call
             return self._resolve_function_call(node, aliases)
@@ -268,11 +268,7 @@ class SignatureAnalyzer(Analyzer):
 
         for entry in matched_function_calls:
             # Parse the entry which could be a tuple of (module, class/function) or (module, class, attribute)
-            module_alias, class_or_func, attribute = None, None, None
-            if len(entry) == 2:
-                module_alias, class_or_func = entry
-            elif len(entry) == 3:
-                module_alias, class_or_func, attribute = entry
+            module_alias, class_or_func, attribute = entry
 
             try:
                 # Import the module
