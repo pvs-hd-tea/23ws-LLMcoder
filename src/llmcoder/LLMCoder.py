@@ -5,7 +5,7 @@ import json
 import os
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from llmcoder.treeofcompletions import PriorityQueue, Conversation
+from llmcoder.treeofcompletions.PriorityQueue import PriorityQueue, Conversation
 
 import numpy as np
 import openai
@@ -63,7 +63,7 @@ class LLMCoder:
         self.iterations = 0
         self.analyzer_results_history: list[dict[str, dict[str, float | int | str | bool]]] = []
         self.max_iter = max_iter
-        self.messages: list = []
+        self.messages: list[dict[str, str]] = []
 
         # Set up the analyzers
         if analyzers is None:
@@ -100,7 +100,7 @@ class LLMCoder:
 
         # Conversations will be ranked accoring to score (=priority)
         first_score = 0
-        first_completion = ""
+        first_completion = []
         first_analyzer_results_history = ""
         conversation = Conversation(first_score, first_completion, first_analyzer_results_history)
         # Create the root of the heap (=priority queue)
@@ -228,7 +228,7 @@ class LLMCoder:
         """
         return completion in [message["content"] for message in self.messages if message["role"] == "assistant"]
 
-    def _get_completions_for(self, conversation, model: str = 'gpt-3.5-turbo', temperature: float = 0.7, n: int = 1) -> str | None:
+    def _get_completions_for(self, conversation: Conversation, model: str = 'gpt-3.5-turbo', temperature: float = 0.7, n: int = 1) -> str | None:
         """
         Use OpenAI's API to get completion(s) for the user's code
 
@@ -251,7 +251,7 @@ class LLMCoder:
         # Get the completions from OpenAI's API -> 3 completions stored in candidates.choices
         candidates = self.client.chat.completions.create(messages=conversation._get_messages(), model=model, temperature=temperature, n=n)  # type: ignore
 
-        
+        print("\n I calculated the candidates")
         # Filter out completions that are repetitions of previous mistakes
         valid_choices = [completion for completion in candidates.choices if not self._is_bad_completion(completion.message.content)]
 
@@ -356,7 +356,7 @@ class LLMCoder:
             # Return the best (or only) completion
             return self.conversations
 
-    def _add_message_to_conversation(self, conversation, role: str, message: str | None = None, model: str = 'gpt-3.5-turbo', temperature: float = 0.7, n: int = 1) -> bool:
+    def _add_message_to_conversation(self, role: str, conversation: Conversation,  message: str | None = None, model: str = 'gpt-3.5-turbo', temperature: float = 0.7, n: int = 1) -> bool:
         """
         Add a message to a scpecific conversation in PQ.
 
@@ -380,7 +380,7 @@ class LLMCoder:
         bool
             True if the message was added, False otherwise
         """
-        # If the user is the assistant, generate a response
+        # If the user is the assistant, generate a responseç
         if role == "assistant" and message is None:
             message = self._get_completions_for(conversation, model, temperature, n)
 
@@ -395,6 +395,7 @@ class LLMCoder:
                 "content": message,
             }
         )
+        print("I added a new message")
 
         # If the conversation should be logged, log it
         if self.conversation_file is not None:
@@ -418,10 +419,8 @@ class LLMCoder:
         # Reset the feedback loop variables
         self.conversations.empty_queue()
         self.iterations = 0
-        analyzer_results_history = []
-        messages = []
         score = 0
-        conversation = Conversation(score, messages, analyzer_results_history)
+        conversation = Conversation(score, messages = [], analyzer_results_history = [])
         self.conversations.push(conversation)
 
         # Add the system prompt to the messages

@@ -6,9 +6,9 @@ using a Priority Queue implemented with a Binary Heaps to reduce time-complexity
 import heapq
 
 class Conversation:
-    def __init__(self, score: int = 0, messages: list[str] = [], analyzer_results_history: list[dict[str, dict[str, float | int | str | bool]]] = []):
-        self.messages: list = messages, 
-        self.score = 0,
+    def __init__(self, score: int, messages: list[dict[str, str]], analyzer_results_history: list[dict[str, dict[str, float | int | str | bool]]] = []):
+        self.messages = messages
+        self.score = score
         self.analyzer_results_history = analyzer_results_history
     
     # Show the score of the completion in positive numbers
@@ -27,7 +27,7 @@ class Conversation:
         self.score = inverted_score
 
     # Help function for completion
-    def _add_message(self, message: str) -> bool:
+    def _add_message(self, message) -> bool:
         self.messages.append(message)
         return True
     
