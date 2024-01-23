@@ -1,3 +1,5 @@
+# Generated with GPT-4 under supervision
+
 import json
 import os
 import shutil
@@ -63,7 +65,7 @@ class TestConstructEvalConversation(unittest.TestCase):
 class TestJsonOperations(unittest.TestCase):
 
     def test_dump_results_to_json(self) -> None:
-        results = {"key": "value"}
+        results = {"key": {"key": "value"}}
         with patch("builtins.open", mock_open()) as mock_file:
             dump_results_to_json(results, "test_output.json")
             mock_file.assert_called_once_with("test_output.json", 'w')

@@ -5,6 +5,7 @@ from datetime import datetime
 
 import numpy as np
 import openai
+import tiktoken
 
 from llmcoder.analyze.factory import AnalyzerFactory
 from llmcoder.utils import get_conversations_dir, get_openai_key, get_system_prompt, get_system_prompt_dir
@@ -21,7 +22,7 @@ class LLMCoder:
     model_first : str, optional
         The model to use for the first completion, by default "ft:gpt-3.5-turbo-1106:personal::8LCi9Q0d"
     model_feedback : str, optional
-        The model to use for the feedback loop, by default "gpt-3.5-turbo"
+        The model to use for the feedback loop, by default "ft:gpt-3.5-turbo-1106:personal::8LCi9Q0d"
     feedback_variant : str, optional
         The feedback variant to use, by default "separate"
     system_prompt : str, optional
@@ -38,8 +39,8 @@ class LLMCoder:
     def __init__(self,
                  analyzers: list[str] = None,
                  model_first: str = "ft:gpt-3.5-turbo-1106:personal::8LCi9Q0d",
-                 model_feedback: str = "gpt-3.5-turbo",
-                 feedback_variant: str = "separate",
+                 model_feedback: str = "ft:gpt-3.5-turbo-1106:personal::8LCi9Q0d",
+                 feedback_variant: str = "coworker",
                  system_prompt: str | None = None,
                  max_iter: int = 10,
                  log_conversation: bool = True,
@@ -57,6 +58,8 @@ class LLMCoder:
 
         # Set the feedback loop variables
         self.iterations = 0
+        self.n_tokens_generated = 0
+        self.encoder = tiktoken.get_encoding("p50k_base")
         self.analyzer_results_history: list[dict[str, dict[str, float | int | str | bool]]] = []
         self.max_iter = max_iter
         self.messages: list = []
@@ -90,8 +93,6 @@ class LLMCoder:
             self.system_prompt = system_prompt
 
         self.verbose = verbose
-
-        self._add_message("system", message=self.system_prompt)
 
     def _check_passing(self) -> bool:
         """
@@ -158,7 +159,8 @@ class LLMCoder:
         # Otherwise, start the feedback loop (but only if there are analyzers that can be used)
         if self.verbose:
             print("[LLMcoder] Starting feedback loop...")
-        if len(self.analyzers) > 0:
+
+        if len(self.analyzers) > 0 and self.max_iter > 0:
             # Run the feedback loop until the code is correct or the max_iter is reached
             for i in range(self.max_iter):
                 if self.verbose:
@@ -227,8 +229,11 @@ class LLMCoder:
         # Get the completions from OpenAI's API
         candidates = self.client.chat.completions.create(messages=self.messages, model=model, temperature=temperature, n=n)  # type: ignore
 
+        # Count the number of tokens generated
+        self.n_tokens_generated += sum([len(self.encoder.encode(message.message.content)) for message in candidates.choices])
+
         # Filter out completions that are repetitions of previous mistakes
-        valid_choices = [completion for completion in candidates.choices if not self._is_bad_completion(completion.message.content)]
+        valid_choices = [completion for completion in candidates.choices]
 
         # If all completions are repetitions of previous mistakes, increase the temperature and the number of choices until we get a valid completion
         increased_temperature = temperature
@@ -346,6 +351,9 @@ class LLMCoder:
             }
         )
 
+        if self.verbose:
+            print(f"[LLMcoder] {role.upper()}: {message}")
+
         # If the conversation should be logged, log it
         if self.conversation_file is not None:
             # If the conversation file already exists, only append the last message as a single line
@@ -367,6 +375,7 @@ class LLMCoder:
         """
         # Reset the feedback loop variables
         self.iterations = 0
+        self.n_tokens_generated = 0
         self.analyzer_results_history = []
         self.messages = []
 
@@ -459,7 +468,7 @@ class LLMCoder:
         self._add_message("user", message=feedback_prompt + code)
 
         # Get a completion from the assistant
-        success = self._add_message("assistant", model=self.model_first, temperature=temperature, n=n)  # model_first works quite good here
+        success = self._add_message("assistant", model=self.model_feedback, temperature=temperature, n=n)
 
         self.iterations += 1
 

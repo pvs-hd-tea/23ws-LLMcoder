@@ -1,6 +1,10 @@
+# Generated with GPT-4 under supervision
+
 import os
 import unittest
 from unittest.mock import MagicMock, patch
+
+import tiktoken
 
 from llmcoder.LLMCoder import LLMCoder
 from llmcoder.utils import get_conversations_dir
@@ -37,6 +41,8 @@ class TestLLMCoder(unittest.TestCase):
             with open(self.key_file_path, "w") as f:
                 f.write("sk-mock_key")
 
+        self.enc = tiktoken.get_encoding('p50k_base')
+
     @patch('llmcoder.LLMCoder.LLMCoder._create_conversation_file', return_value=None)
     @patch('llmcoder.utils.get_conversations_dir', return_value="/mock/conversations/dir")
     @patch('llmcoder.utils.get_system_prompt', return_value="mock_system_prompt")
@@ -47,8 +53,8 @@ class TestLLMCoder(unittest.TestCase):
         llmcoder = LLMCoder()
         self.assertEqual(llmcoder.analyzers, {})
         self.assertEqual(llmcoder.model_first, "ft:gpt-3.5-turbo-1106:personal::8LCi9Q0d")
-        self.assertEqual(llmcoder.model_feedback, "gpt-3.5-turbo")
-        self.assertEqual(llmcoder.feedback_variant, "separate")
+        self.assertEqual(llmcoder.model_feedback, "ft:gpt-3.5-turbo-1106:personal::8LCi9Q0d")
+        self.assertEqual(llmcoder.feedback_variant, "coworker")
         self.assertEqual(llmcoder.max_iter, 10)
 
         # Check that a conversation file is created
@@ -69,6 +75,8 @@ class TestLLMCoder(unittest.TestCase):
     @patch('openai.OpenAI')
     def test_add_message(self, mock_openai: MagicMock, mock_path: MagicMock, mock_open: MagicMock, mock_os_makedirs: MagicMock, mock_json_dumps: MagicMock) -> None:
         llmcoder = LLMCoder(log_conversation=True)
+
+        llmcoder._reset_loop()
 
         # Check if the system prompt is added
         self.assertEqual(len(llmcoder.messages), 1)

@@ -17,6 +17,10 @@ def get_data_dir(*args: str, create: bool = False) -> str:
     str
         The path to the data directory.
     """
+    # Check that the args are a list of strings
+    if not all(isinstance(arg, str) for arg in args):
+        raise TypeError(f"Expected a list of strings, got {args}.")
+
     if create:
         os.makedirs(os.path.join(os.path.dirname(__file__), '..', '..', 'data', *args), exist_ok=True)
 
@@ -39,6 +43,10 @@ def get_config_dir(*args: str, create: bool = False) -> str:
     str
         The path to the configs directory.
     """
+    # Check that the args are a list of strings
+    if not all(isinstance(arg, str) for arg in args):
+        raise TypeError(f"Expected a list of strings, got {args}.")
+
     if create:
         os.makedirs(os.path.join(os.path.dirname(__file__), '..', '..', 'configs', *args), exist_ok=True)
 
@@ -120,6 +128,19 @@ def get_github_access_token(token: str = "") -> str:
 
 
 def get_system_prompt(name: str = "2023-11-15_GPT-Builder.txt") -> str:
+    """
+    Read the system prompt from a file.
+
+    Parameters
+    ----------
+    name : str
+        The name or path to the prompt file.
+
+    Returns
+    -------
+    str
+        The prompt.
+    """
     # Construct the path to the file
     path = os.path.join(os.path.dirname(__file__), '..', '..', 'system_prompts', name)
 
@@ -144,6 +165,10 @@ def get_system_prompt_dir(*args: str, create: bool = False) -> str:
     str
         The path to the system prompts directory.
     """
+    # Check that the args are a list of strings
+    if not all(isinstance(arg, str) for arg in args):
+        raise TypeError(f"Expected a list of strings, got {args}.")
+
     if create:
         os.makedirs(os.path.join(os.path.dirname(__file__), '..', '..', 'system_prompts', *args), exist_ok=True)
 
@@ -166,6 +191,10 @@ def get_conversations_dir(*args: str, create: bool = False) -> str:
     str
         The path to the log directory.
     """
+    # Check that the args are a list of strings
+    if not all(isinstance(arg, str) for arg in args):
+        raise TypeError(f"Expected a list of strings, got {args}.")
+
     if create:
         os.makedirs(os.path.join(os.path.dirname(__file__), '..', '..', 'conversations', *args), exist_ok=True)
 
