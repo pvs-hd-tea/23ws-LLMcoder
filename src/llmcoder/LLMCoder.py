@@ -6,7 +6,6 @@ import os
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
-import numpy as np
 import openai
 
 from llmcoder.analyze.factory import AnalyzerFactory
@@ -97,11 +96,13 @@ class LLMCoder:
 
         # Create a tree of completions: initialize values to default
         self.conversations = PriorityQueue()
+        # Create a temporary tree of conversations to keep track of temporary children
+        self.temporary_conversations = PriorityQueue()
 
         # Conversations will be ranked accoring to score (=priority)
         first_score = 0
         first_completion = []
-        first_analyzer_results_history = ""
+        first_analyzer_results_history = []
         conversation = Conversation(first_score, first_completion, first_analyzer_results_history)
         # Create the root of the heap (=priority queue)
         self.conversations.push(conversation)
@@ -169,7 +170,7 @@ class LLMCoder:
         conversation = self.step(code, temperature, n)
 
 
-        """
+        
         if conversation is None:
             raise RuntimeError("Completion generation failed")
 
@@ -196,7 +197,7 @@ class LLMCoder:
                 # If the code is correct, break the loop
                 if self._check_passing(conversation):
                     break
-        """
+        
         # Return the last message regardless of whether it is correct or not
         return conversation._get_last_message()
 
@@ -298,15 +299,18 @@ class LLMCoder:
                         # Creation of 3 children of the Heap/Tree of completions
                         analysis_results = future.result()
                         analysis_results_list.append(analysis_results)
-                         # Update the analyzer results history with the results of total completion
+                        # Update the analyzer results history with the results of total completion
                         analyzer_results_history = conversation._get_analyzer_results_history()
                         analyzer_results_history.append(analysis_results_list)
+                
                         copy_previous_messages = conversation._get_messages()
                         score_valid_choice = sum([results["score"] for results in analysis_results.values()])
 
                         child_conversation = Conversation(score_valid_choice, copy_previous_messages, analyzer_results_history)
-                        print("Generated completion {i} with score: {score_valid_choice}")
+                        print(f"Generated completion {i} with score: {score_valid_choice}")
                         self.conversations.push(child_conversation)
+                        # Create a temporary queue of conversations to check the children were created correctly
+                        self.temporary_conversations.push(child_conversation)
 
                     except Exception as exc:
                         if self.verbose:
@@ -323,13 +327,13 @@ class LLMCoder:
             # Select the best completion
             best_conversation = self.conversations.get_highest_scored_conversation()
             best_choice_score = best_conversation._get_score()
-            if (len(self.conversations)) == 3:
+            if (self.temporary_conversations.__len__()) == 3:
                 print("Successfully generated 3 completions. Best score: {best_choice_score}")
 
-            elif (len(self.conversations)) > 3:
+            elif (self.temporary_conversations.__len__()) > 3:
                 print("Error. A conversation was not popped")
 
-            if(len(self.conversations)) < 3:
+            if(self.temporary_conversations.__len__()) < 3:
                 print("Error. The heap was not successfully updated.")
 
 
@@ -395,7 +399,6 @@ class LLMCoder:
                 "content": message,
             }
         )
-        print("I added a new message")
 
         # If the conversation should be logged, log it
         if self.conversation_file is not None:

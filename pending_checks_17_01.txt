@@ -2,7 +2,7 @@ llmcoder.complete()
 	152-> step()
 
 
-check all 3 completions have feedback 
+check all 3 completions have feedback
 
 
 

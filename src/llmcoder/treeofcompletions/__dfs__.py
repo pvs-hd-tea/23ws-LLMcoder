@@ -21,9 +21,9 @@ def dfs(self, node):
     # Base case: if the node has no children, return its information
     if not node.children:
         return [(node.code, node.score)]
-    
+
     best_completions = []
-    
+
     # Explore each child and backtrack
     for child in node.children:
 
@@ -32,7 +32,7 @@ def dfs(self, node):
 
         # Use lambda python algorithm for max
         best_child_completion = max(child_completions, key=lambda x: x[1])
-        
+
         best_completions.append(best_child_completion)
-    
+
     return best_completions

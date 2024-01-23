@@ -1,16 +1,15 @@
-from llmcoder import LLMCoder
 from dynaconf import Dynaconf
 
+from llmcoder import LLMCoder
 from llmcoder.eval.evaluate import Evaluation
 from llmcoder.utils import get_config_dir
 
-
 # AITools' second approach for Tree of Thought
 """
-MCTS for MDP = (S=states, A=actions, P=transition probabilities, R=reward) in four steps: 
+MCTS for MDP = (S=states, A=actions, P=transition probabilities, R=reward) in four steps:
     1. selection: traverse the tree.
     2. expansion: if a node is not fully expanded, add actions and childs. Transition probabilities are not stored.
-    3. simulation: generate + evaluate path. 
+    3. simulation: generate + evaluate path.
     4. backpropagation: update parent's scores.
 
 """
@@ -58,7 +57,7 @@ def _select(self, node):
 
 def _expand(self, node):
     # Generate possible code completions based on the current state (node)
-    
+
     # Initialize child nodes
 
     # Create possible completions
