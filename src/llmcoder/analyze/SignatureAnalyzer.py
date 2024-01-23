@@ -1,4 +1,5 @@
 import ast
+import importlib
 import inspect
 import os
 import re
@@ -101,7 +102,7 @@ class SignatureAnalyzer(Analyzer):
 
         # TODO: Handle builtins
 
-    def find_function_calls(self, code: str, query: str | list[str] | None) -> list[tuple[str | None, str]]:
+    def find_function_calls(self, code: str, query: str | list[str] | None) -> list[tuple[str | None, str, str | None]]:
         """
         Find all function calls in the code that match the query.
 
@@ -120,38 +121,94 @@ class SignatureAnalyzer(Analyzer):
 
         # Parse the code with the ast module
         root = ast.parse(code)
-        function_calls: list[tuple[str | None, str]] = []
+        function_calls: list[tuple[str | None, str, str | None]] = []
+        aliases: dict[str, str | None] = {}
 
         # Convert the query to a list if it is a string for convenience
         if isinstance(query, str):
             query = [query]
 
+        # Process import statements and assignments to track aliases
+        for node in ast.walk(root):
+            if isinstance(node, ast.Import):
+                for name in node.names:
+                    aliases[name.asname or name.name] = name.name
+            elif isinstance(node, ast.ImportFrom):
+                module = node.module or ''
+                for name in node.names:
+                    aliases[name.asname or name.name] = module + '.' + name.name
+            elif isinstance(node, ast.Assign):
+                for target in node.targets:
+                    if isinstance(target, ast.Name):
+                        aliases[target.id] = self._resolve_alias(node.value, aliases)
+            elif isinstance(node, ast.Assign):
+                for target in node.targets:
+                    if isinstance(target, ast.Name):
+                        # Store the variable and the right-hand side expression
+                        variable_name = target.id
+                        rhs_expression = self._resolve_alias(node.value, aliases)
+                        if rhs_expression:
+                            aliases[variable_name] = rhs_expression
+
         # Walk through the AST and find all function calls
         for node in ast.walk(root):
             if isinstance(node, ast.Call):
-                attribute_chain = []
-                if isinstance(node.func, ast.Attribute):
-                    # Handle nested attributes
-                    current = node.func
-                    while isinstance(current, ast.Attribute):
-                        attribute_chain.append(current.attr)
-                        current = current.value  # type: ignore
-                    if isinstance(current, ast.Name):
-                        attribute_chain.append(current.id)
-                    attribute_chain.reverse()
-                    module_alias = attribute_chain[0]
-                    func_name = '.'.join(attribute_chain[1:])
-                elif isinstance(node.func, ast.Name):
-                    # Direct function call
-                    module_alias = None
-                    func_name = node.func.id
-                else:
-                    continue
+                fully_qualified_func_name = self._resolve_function_call(node, aliases)
 
-                if not query or func_name in query or func_name.split(".")[-1] in query or '.'.join(attribute_chain) in query:
-                    function_calls.append((module_alias, func_name))
+                # Extract the relevant part from the fully qualified name
+                if fully_qualified_func_name:
+                    parts = fully_qualified_func_name.split('.')
+
+                    name_without_attribute = parts[-1]
+
+                    # Check if the relevant name matches the query
+                    if not query or name_without_attribute in query:
+                        module_alias = parts[0] if len(parts) > 2 else None
+                        function_calls.append((module_alias, name_without_attribute, None))
+
+                    if len(parts) > 1:
+                        name_with_attribute = '.'.join(parts[-2:])
+
+                        # Check if the relevant name matches the query
+                        if not query or name_with_attribute in query:
+                            module_alias = parts[0] if len(parts) > 2 else None
+                            function_calls.append((module_alias, parts[-2], parts[-1]))
 
         return function_calls
+
+    def _resolve_function_call(self, node: ast.Call, aliases: dict[str, str | None]) -> str | None:
+        if isinstance(node.func, ast.Attribute):
+            resolved_chain = self._resolve_attribute_chain(node.func, aliases)
+            if None in resolved_chain:
+                return None
+            return '.'.join(resolved_chain)  # type: ignore
+        elif isinstance(node.func, ast.Name):
+            return aliases.get(node.func.id, node.func.id)
+        else:
+            return None
+
+    def _resolve_attribute_chain(self, node: ast.Attribute, aliases: dict[str, str | None]) -> list[str | None]:
+        chain = []
+        while isinstance(node, ast.Attribute):
+            chain.append(node.attr)
+            node = node.value  # type: ignore
+        if isinstance(node, ast.Name):
+            resolved_name = aliases.get(node.id, node.id)
+            if resolved_name is None:
+                return [None]
+            chain.append(resolved_name)
+        return list(reversed(chain))
+
+    def _resolve_alias(self, node: ast.AST, aliases: dict[str, str | None]) -> str | None:
+        if isinstance(node, ast.Name):
+            return aliases.get(node.id, node.id)
+        elif isinstance(node, ast.Attribute):
+            resolved_chain = self._resolve_attribute_chain(node, aliases)
+            return '.'.join(resolved_chain) if None not in resolved_chain else None  # type: ignore
+        elif isinstance(node, ast.Call):
+            # Handle the case where the alias is a result of a function call
+            return self._resolve_function_call(node, aliases)
+        return None
 
     def get_signature_and_doc(self, path: str, query: str | list[str] | None) -> list[dict]:
         """
@@ -192,61 +249,58 @@ class SignatureAnalyzer(Analyzer):
         # Find all function calls that match the query
         function_calls = self.find_function_calls(code, query)
 
+        print(f"[Signatures] {function_calls=}")
+
         function_calls = list(set(function_calls))
 
         # print(f"[Signatures] {function_calls=}")
 
         # Match the function calls to the imports
         matched_function_calls = []
-        for module_alias, func_name in function_calls:
+        for module_alias, func_name, attr_name in function_calls:
             if module_alias and module_alias in import_aliases:
-                matched_function_calls.append((module_alias, func_name))
+                matched_function_calls.append((module_alias, func_name, attr_name))
             elif func_name in direct_imports:
-                matched_function_calls.append((direct_imports[func_name], func_name))
+                matched_function_calls.append((direct_imports[func_name], func_name, attr_name))
             else:
                 if self.verbose:
                     print(f"[Signatures] No import found for {func_name}")
 
-        for module_alias, func_name in matched_function_calls:
-            if self.verbose:
-                print(f"[Signatures] {module_alias=} {func_name=}")
-            try:
-                if module_alias and module_alias in import_aliases:
-                    module_path = import_aliases[module_alias]
-                    parts = func_name.split('.')
-                    module = __import__(module_path, fromlist=[parts[0]])
-                    attr = module
-                    for part in parts:
-                        attr = getattr(attr, part, None)  # type: ignore
-                elif func_name in direct_imports:  # Handle direct imports
-                    module_name = direct_imports[func_name]
-                    module = __import__(module_name, fromlist=[func_name])
-                    attr = getattr(module, func_name, None)  # type: ignore
-                else:
-                    attr = None
+        for entry in matched_function_calls:
+            # Parse the entry which could be a tuple of (module, class/function) or (module, class, attribute)
+            module_alias, class_or_func, attribute = entry
 
-                if attr and callable(attr):
+            try:
+                # Import the module
+                module = importlib.import_module(import_aliases.get(module_alias, module_alias))
+                # Resolve the class or function
+                cls_or_func = getattr(module, class_or_func, None)
+                if attribute:
+                    # Resolve the attribute (method) if present
+                    cls_or_func = getattr(cls_or_func, attribute, None)
+
+                if cls_or_func and callable(cls_or_func):
                     try:
-                        sig = inspect.signature(attr)
-                        doc = inspect.getdoc(attr)
+                        sig = inspect.signature(cls_or_func)
+                        doc = inspect.getdoc(cls_or_func)
                         signature_and_doc.append({
-                            "name": func_name,
+                            "name": f"{class_or_func}.{attribute}" if attribute else class_or_func,
                             "signature": str(sig),
                             "doc": doc
                         })
                     except ValueError:
                         signature_and_doc.append({
-                            "name": func_name,
+                            "name": f"{class_or_func}.{attribute}" if attribute else class_or_func,
                             "signature": None,
-                            "doc": inspect.getdoc(attr)
+                            "doc": inspect.getdoc(cls_or_func)
                         })
                 else:
                     if self.verbose:
-                        print(f"[Signatures] No callable attribute {func_name} found")
+                        print(f"[Signatures] No callable attribute {class_or_func}.{attribute} found")
 
             except (ImportError, AttributeError) as e:
                 if self.verbose:
-                    print(f"[Signatures] Error importing {func_name}: {e}")
+                    print(f"[Signatures] Error importing {class_or_func}.{attribute}: {e}")
 
         return signature_and_doc
 
@@ -289,14 +343,39 @@ class SignatureAnalyzer(Analyzer):
                         # Find the quotation marks and extract the name.
                         # E.g. from `your completion:6: error: Argument 1 to "Client" has incompatible type "str | None"; expected "str"  [arg-type] Found 1 error in 1 file (checked 1 source file)`extract the name "Client".
 
-                        matches_has = re.findall(r'\"(.+?)\" has', line)
-                        matches_for = re.findall(r'for \"(.+?)\"', line)
-                        matches_gets = re.findall(r'\"(.+?)\" gets', line)
-                        # TODO: There may be more
+                        # Define the patterns
+                        patterns = {
+                            "has": re.compile(r'\"(.+?)\" has'),
+                            "gets": re.compile(r'\"(.+?)\" gets'),
+                            "for": re.compile(r'for \"(.+?)\"')
+                        }
 
-                        matches = matches_has + matches_for + matches_gets
+                        patterns_attribute = {
+                            "has_attribute": re.compile(r'to \"(.+?)\" of \"(.+?)\" has'),
+                            "gets_attribute": re.compile(r'\"(.+?)\" of \"(.+?)\" gets'),
+                            "for_attribute": re.compile(r'\"(.+?)\" of \"(.+?)\" for'),
+                            "missing_arg": re.compile(r'in call to \"(.+?)\" of \"(.+?)\"'),
+                            "too_many_args": re.compile(r'for \"(.+?)\" of \"(.+?)\"'),
+                            "signature_incompat": re.compile(r'Signature of \"(.+?)\" incompatible with supertype \"(.+?)\"')
+                        }
+                        # Find all matches for each pattern
+                        matches = {key: pattern.findall(line) for key, pattern in patterns.items()}
+                        matches = {k: v for k, v in matches.items()}
+                        matches_attribute = {key: pattern.findall(line) for key, pattern in patterns_attribute.items()}
+                        # Flatten the matches
+                        matches_list = [match for k, v in matches.items() for match in v if '" of "' not in match]
+                        matches_attribute_list = [f'{match[1]}.{match[0]}' for k, v in matches_attribute.items() for match in v]
 
-                        for match in matches:
+                        # Combine the matches
+                        all_matches = matches_list + matches_attribute_list
+
+                        # Remove duplicates
+                        all_matches = list(set(all_matches))
+
+                        print(f"[Signatures] {all_matches=}")
+
+                        # Add the matches to the query
+                        for match in all_matches:
                             if self.verbose:
                                 print(f"[Signatures] Found problematic function or class: {match}")
 
@@ -319,12 +398,14 @@ class SignatureAnalyzer(Analyzer):
                 "pass": True,
                 "type": "info",
                 "score": 0,
-                "message": "All functions and classes in your completion are called correctly (their signatures match with the documentation)."
+                "message": ""  # No message
             }
 
         # If there is a query, get the signatures and documentations of the functions and classes that match the query
         else:
             result = self.get_signature_and_doc(temp_file_name, list(set(query)))
+
+            print(f"[Signatures] {result=}")
 
             # Truncate the documentation to the first line (i.e. the signature)
             # Otherwise, the message will be too long
