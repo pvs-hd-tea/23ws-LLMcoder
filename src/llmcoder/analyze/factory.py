@@ -37,5 +37,8 @@ class AnalyzerFactory:
             case "gpt_score_analyzer_v1":
                 from llmcoder.analyze.GPTScoreAnalyzer import GPTScoreAnalyzer
                 return GPTScoreAnalyzer(*args, **kwargs)
+            case "jedi_analyzer_v1":
+                from llmcoder.analyze.JediAnalyzer import JediAnalyzer
+                return JediAnalyzer(*args, **kwargs)
             case _:
                 raise ValueError(f"Invalid analyzer name: {analyzer}")
