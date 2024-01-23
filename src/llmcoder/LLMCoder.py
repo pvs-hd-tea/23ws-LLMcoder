@@ -5,12 +5,12 @@ import json
 import os
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from llmcoder.treeofthought import PriorityQueue, Conversation
 
 import numpy as np
 import openai
 
 from llmcoder.analyze.factory import AnalyzerFactory
+from llmcoder.treeofcompletions.PriorityQueue import Conversation, PriorityQueue
 from llmcoder.utils import get_conversations_dir, get_openai_key, get_system_prompt, get_system_prompt_dir
 
 
@@ -63,7 +63,7 @@ class LLMCoder:
         self.iterations = 0
         self.analyzer_results_history: list[dict[str, dict[str, float | int | str | bool]]] = []
         self.max_iter = max_iter
-        self.messages: list = []
+        self.messages: list[dict[str, str]] = []
 
         # Set up the analyzers
         if analyzers is None:
@@ -100,7 +100,7 @@ class LLMCoder:
 
         # Conversations will be ranked accoring to score (=priority)
         first_score = 0
-        first_completion = ""
+        first_completion = []
         first_analyzer_results_history = ""
         conversation = Conversation(first_score, first_completion, first_analyzer_results_history)
         # Create the root of the heap (=priority queue)
@@ -228,7 +228,7 @@ class LLMCoder:
         """
         return completion in [message["content"] for message in self.messages if message["role"] == "assistant"]
 
-    def _get_completions_for(self, conversation, model: str = 'gpt-3.5-turbo', temperature: float = 0.7, n: int = 1) -> str | None:
+    def _get_completions_for(self, conversation: Conversation, model: str = 'gpt-3.5-turbo', temperature: float = 0.7, n: int = 1) -> str | None:
         """
         Use OpenAI's API to get completion(s) for the user's code
 
@@ -251,11 +251,11 @@ class LLMCoder:
         # Get the completions from OpenAI's API -> 3 completions stored in candidates.choices
         candidates = self.client.chat.completions.create(messages=conversation._get_messages(), model=model, temperature=temperature, n=n)  # type: ignore
 
-        
+        print("\n I calculated the candidates")
         # Filter out completions that are repetitions of previous mistakes
         valid_choices = [completion for completion in candidates.choices if not self._is_bad_completion(completion.message.content)]
 
-        
+
         # If all completions are repetitions of previous mistakes, increase the temperature and the number of choices until we get a valid completion
         increased_temperature = temperature
         increased_n = n
@@ -267,7 +267,7 @@ class LLMCoder:
                 print(f"[LLMcoder] All completions are repetitions of previous mistakes. Increasing temperature to {increased_temperature} and number of choices to {increased_n}... [repetition {repetition + 1}/{MAX_RETRIES}]")
             candidates = self.client.chat.completions.create(messages=conversation._get_messages(), model=model, temperature=increased_temperature, n=increased_n)  # type: ignore
             valid_choices = [completion for completion in candidates.choices if not self._is_bad_completion(completion.message.content)]
-            
+
             increased_temperature = min(2, increased_temperature + 0.1)
             increased_n = min(32, increased_n * 2)
             repetition += 1
@@ -303,7 +303,7 @@ class LLMCoder:
                         analyzer_results_history.append(analysis_results_list)
                         copy_previous_messages = conversation._get_messages()
                         score_valid_choice = sum([results["score"] for results in analysis_results.values()])
-                        
+
                         child_conversation = Conversation(score_valid_choice, copy_previous_messages, analyzer_results_history)
                         print("Generated completion {i} with score: {score_valid_choice}")
                         self.conversations.push(child_conversation)
@@ -325,17 +325,17 @@ class LLMCoder:
             best_choice_score = best_conversation._get_score()
             if (len(self.conversations)) == 3:
                 print("Successfully generated 3 completions. Best score: {best_choice_score}")
-            
+
             elif (len(self.conversations)) > 3:
                 print("Error. A conversation was not popped")
 
             if(len(self.conversations)) < 3:
                 print("Error. The heap was not successfully updated.")
 
-           
+
             # Return the list of tuples of completions
             return self.conversations
-        
+
         else:
             # If we only have one completion, still run the analyzers on it
             if self.verbose:
@@ -356,7 +356,7 @@ class LLMCoder:
             # Return the best (or only) completion
             return self.conversations
 
-    def _add_message_to_conversation(self, conversation, role: str, message: str | None = None, model: str = 'gpt-3.5-turbo', temperature: float = 0.7, n: int = 1) -> bool:
+    def _add_message_to_conversation(self, role: str, conversation: Conversation,  message: str | None = None, model: str = 'gpt-3.5-turbo', temperature: float = 0.7, n: int = 1) -> bool:
         """
         Add a message to a scpecific conversation in PQ.
 
@@ -380,7 +380,7 @@ class LLMCoder:
         bool
             True if the message was added, False otherwise
         """
-        # If the user is the assistant, generate a response
+        # If the user is the assistant, generate a responseç
         if role == "assistant" and message is None:
             message = self._get_completions_for(conversation, model, temperature, n)
 
@@ -395,6 +395,7 @@ class LLMCoder:
                 "content": message,
             }
         )
+        print("I added a new message")
 
         # If the conversation should be logged, log it
         if self.conversation_file is not None:
@@ -418,10 +419,8 @@ class LLMCoder:
         # Reset the feedback loop variables
         self.conversations.empty_queue()
         self.iterations = 0
-        analyzer_results_history = []
-        messages = []
         score = 0
-        conversation = Conversation(score, messages, analyzer_results_history)
+        conversation = Conversation(score, messages = [], analyzer_results_history = [])
         self.conversations.push(conversation)
 
         # Add the system prompt to the messages
@@ -511,7 +510,7 @@ class LLMCoder:
             feedback_prompt = ""
 
         # Choose highest-scored conversation from the priority queue
-        conversation = self.conversations.get_highest_scored_conversation() 
+        conversation = self.conversations.get_highest_scored_conversation()
         self.conversations.pop()
 
         # Add the prompt to the messages
@@ -523,7 +522,7 @@ class LLMCoder:
 
         self.iterations += 1
 
-        # Check if the 
+        # Check if the
 
         # If the completion generation failed, abort
         if not success:
