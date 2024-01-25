@@ -308,6 +308,7 @@ class LLMCoder:
 
                         child_conversation = Conversation(score_valid_choice, copy_previous_messages, analyzer_results_history)
                         print(f"Generated completion {i} with score: {score_valid_choice}")
+                        print(f"El mensaje es: {child_conversation._get_last_message()}")
                         self.conversations.push(child_conversation)
                         # Create a temporary queue of conversations to check the children were created correctly
                         self.temporary_conversations.push(child_conversation)
@@ -328,7 +329,7 @@ class LLMCoder:
             best_conversation = self.conversations.get_highest_scored_conversation()
             best_choice_score = best_conversation._get_score()
             if (self.temporary_conversations.__len__()) == 3:
-                print("Successfully generated 3 completions. Best score: {best_choice_score}")
+                print(f"Successfully generated 3 completions. Best score: {best_choice_score}")
 
             elif (self.temporary_conversations.__len__()) > 3:
                 print("Error. A conversation was not popped")
