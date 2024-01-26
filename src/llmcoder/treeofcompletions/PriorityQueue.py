@@ -44,22 +44,20 @@ class Conversation:
 
     def _get_last_message(self) -> str:
         return self.messages[-1]["content"]
-    
+
     # Enabling comparison for conversations
-    def __gt__(self, conversation2):
+    def __gt__(self, conversation2) -> bool:
         return self.score > conversation2.score
-    
-    def __ge_(self, conversation2):
+
+    def __ge_(self, conversation2) -> bool:
         return self.score >= conversation2.score
-    
-    def __lt__(self, conversation2):
+
+    def __lt__(self, conversation2) -> bool:
         return self.score < conversation2.score
 
-    def __le__(self, conversation2):
+    def __le__(self, conversation2) -> bool:
         return self.score >= conversation2.score
-    
-    
-    
+
 
 class PriorityQueue:
     def __init__(self):
@@ -90,10 +88,7 @@ class PriorityQueue:
 
     def empty_queue(self):
         while self.queue:
-            conversation = self.pop(self.queue)
-            # print(f'Score: {conversation._get_score()}, Text: {conversation._get_messages()}')
+            self.pop()
 
     def __len__(self):
         return len(self.queue)
-
-
