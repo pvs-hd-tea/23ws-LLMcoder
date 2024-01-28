@@ -77,31 +77,24 @@ class JediAnalyzer(Analyzer):
             names = script.get_names()
 
             for name in names:
-                if self.verbose:
-                    print(f"[JediAnalyzer] Not filtered: {name}")
-
                 if name.full_name is None:
                     continue
 
                 if "def" not in name.description and "class" not in name.description:
                     continue
 
-                if self.verbose:
-                    print(f"[JediAnalyzer] any of all query: {any(name.full_name.split('.')[-1] == q for q in query)}")
-
                 if any(name.full_name.split(".")[-1] == q for q in query):
                     result = {
                         "name": name.full_name.split(".")[-1],
-                        "signature": name.get_type_hint(),
                         "doc": name._get_docstring_signature()
                     }
                     results.append(result)
 
                     if self.verbose:
-                        print(f"[JediAnalyzer] Filtered: name: {result['name']}, signature: {result['signature']}, doc: {result['doc']}")
+                        print(f"[JediAnalyzer] Filtered name: {result['name']}, doc: {result['doc']}")
 
             result_str = "To fix these errors, use these ground truth signatures as a reference for your next completions:\n"
-            result_str += "\n".join([f"{result['name']}: {result['signature'] if result['signature'] else result['doc']}" for result in results])
+            result_str += "\n".join([f"{result['name']}: {result['doc']}" for result in results])
 
         os.remove(temp_file_name)
 

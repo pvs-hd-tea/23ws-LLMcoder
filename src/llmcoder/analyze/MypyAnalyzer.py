@@ -105,7 +105,7 @@ class MypyAnalyzer(Analyzer):
                 filtered_result.append(line)
 
             if self.verbose:
-                print(f"[MyPyJediAnalyzer] Mypy Error: {line}")
+                print(f"[MypyAnalyzer] Mypy Error: {line}")
 
         # Replace the temp file name with "your completion". This helps the LLM understand that the error is caused by its completion.
         filtered_result = [line.replace(temp_file_name, "your completion") for line in filtered_result]
