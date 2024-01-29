@@ -29,7 +29,8 @@ class JediAnalyzer(Analyzer):
             if self.verbose:
                 print(f"[JediAnalyzer] Using context from previous analyzers: {list(context.keys())}")
             if 'mypy_analyzer_v1' in context and isinstance(context['mypy_analyzer_v1']['message'], str):
-                print(f"[JediAnalyzer] mypy_analyzer_v1.context: {context['mypy_analyzer_v1']['message']}")
+                if self.verbose:
+                    print(f"[JediAnalyzer] mypy_analyzer_v1.context: {context['mypy_analyzer_v1']['message']}")
                 for line in context['mypy_analyzer_v1']['message'].split("\n"):
                     if line.startswith("your completion:"):
                         # Extract the problematic function or class name from the mypy_analyzer_v1 result
@@ -67,7 +68,7 @@ class JediAnalyzer(Analyzer):
                 "pass": True,
                 "type": "info",
                 "score": 0,
-                "message": "All functions and classes in your completion are called correctly (their signatures match with the documentation)."
+                "message": ""  # No message
             }
 
         # If there is a query, get the signatures and documentations of the functions and classes that match the query
@@ -77,31 +78,24 @@ class JediAnalyzer(Analyzer):
             names = script.get_names()
 
             for name in names:
-                if self.verbose:
-                    print(f"[JediAnalyzer] Not filtered: {name}")
-
                 if name.full_name is None:
                     continue
 
                 if "def" not in name.description and "class" not in name.description:
                     continue
 
-                if self.verbose:
-                    print(f"[JediAnalyzer] any of all query: {any(name.full_name.split('.')[-1] == q for q in query)}")
-
                 if any(name.full_name.split(".")[-1] == q for q in query):
                     result = {
                         "name": name.full_name.split(".")[-1],
-                        "signature": name.get_type_hint(),
                         "doc": name._get_docstring_signature()
                     }
                     results.append(result)
 
                     if self.verbose:
-                        print(f"[JediAnalyzer] Filtered: name: {result['name']}, signature: {result['signature']}, doc: {result['doc']}")
+                        print(f"[JediAnalyzer] Filtered name: {result['name']}, doc: {result['doc']}")
 
             result_str = "To fix these errors, use these ground truth signatures as a reference for your next completions:\n"
-            result_str += "\n".join([f"{result['name']}: {result['signature'] if result['signature'] else result['doc']}" for result in results])
+            result_str += "\n".join([f"{result['name']}: {result['doc']}" for result in results])
 
         os.remove(temp_file_name)
 
