@@ -1,5 +1,6 @@
 # Generated with GPT-4 under supervision
 
+import os
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -7,6 +8,7 @@ import numpy as np
 from openai import OpenAI
 
 from llmcoder.analyze.GPTScoreAnalyzer import GPTScoreAnalyzer
+from llmcoder.utils import get_openai_key
 
 
 class TestGPTScoreAnalyzer(unittest.TestCase):
@@ -14,6 +16,12 @@ class TestGPTScoreAnalyzer(unittest.TestCase):
     def setUp(self) -> None:
         # Mock the OpenAI client
         self.mock_client = MagicMock(spec=OpenAI, chat=MagicMock(completions=MagicMock(create=MagicMock())))
+
+        # FIXME: Use a mock instead of a real file. This currently fails because the get_openai_key is not patched correctly.
+        self.key_file_path = os.path.join(os.path.dirname(__file__), '..', '..', 'key.txt')
+        if not os.path.isfile(self.key_file_path):
+            with open(self.key_file_path, "w") as f:
+                f.write("sk-mock_key")
 
         # Set up the nested attributes and methods
         # Assuming 'chat' has a 'completions' attribute which in turn has a 'create' method
@@ -25,7 +33,12 @@ class TestGPTScoreAnalyzer(unittest.TestCase):
         # Create an instance of GPTScoreAnalyzer
         self.analyzer = GPTScoreAnalyzer(client=self.mock_client)
 
+    def tearDown(self) -> None:
+        if os.path.isfile(self.key_file_path):
+            os.remove(self.key_file_path)
+
     def test_initialization(self) -> None:
+        print(get_openai_key())
         # Test default initialization
         default_analyzer = GPTScoreAnalyzer()
         self.assertIsNotNone(default_analyzer.client)
@@ -92,19 +105,17 @@ class TestGPTScoreAnalyzer(unittest.TestCase):
             analyzer.score_code("print('Hello, World!')")
 
     def test_analyze(self) -> None:
-        # Mock score_code to return a fixed value
-        self.analyzer.score_code = MagicMock(return_value=np.array([1.0]))
+        with patch.object(self.analyzer, 'score_code', return_value=np.array([1.0])) as _:
+            result = self.analyzer.analyze("input", "completion")
+            expected_result = {
+                "type": "score",
+                "score": 1.0,
+                "pass": True,
+                "message": ""
+            }
+            self.assertEqual(result, expected_result)
 
-        result = self.analyzer.analyze("input", "completion")
-        expected_result = {
-            "type": "score",
-            "score": 1.0,
-            "pass": True,
-            "message": ""
-        }
-        self.assertEqual(result, expected_result)
-
-        # Test with invalid reduction method
-        with self.assertRaises(ValueError):
-            self.analyzer.reduction = None
-            self.analyzer.analyze("input", "completion")
+            # Test with invalid reduction method
+            with self.assertRaises(ValueError):
+                self.analyzer.reduction = None
+                self.analyzer.analyze("input", "completion")

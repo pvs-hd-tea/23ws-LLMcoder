@@ -43,6 +43,10 @@ class TestLLMCoder(unittest.TestCase):
 
         self.enc = tiktoken.get_encoding('p50k_base')
 
+    def tearDown(self) -> None:
+        if os.path.isfile(self.key_file_path):
+            os.remove(self.key_file_path)
+
     @patch('llmcoder.LLMCoder.LLMCoder._create_conversation_file', return_value=None)
     @patch('llmcoder.utils.get_conversations_dir', return_value="/mock/conversations/dir")
     @patch('llmcoder.utils.get_system_prompt', return_value="mock_system_prompt")
