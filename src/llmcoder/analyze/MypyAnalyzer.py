@@ -28,6 +28,15 @@ class MypyAnalyzer(Analyzer):
                 install_stubs: bool = True,
                 mypy_args: list[str] | None = None,
                 context: dict[str, dict[str, float | int | str]] | None = None) -> dict:
+        # Open the file in 'write and read' mode
+        completion_file = open('completion_file.txt', 'w+')
+        result_file = open('result_file.txt', 'w+')
+
+        # Write a line of text to the file
+        completion_file.write(completion)
+
+        # Close the file
+        completion_file.close()
         """
         Analyzes the completion using mypy.
 
@@ -85,8 +94,11 @@ class MypyAnalyzer(Analyzer):
 
         # Remove all colors from the mypy output
         result = re.sub(r"\x1b\[[0-9;]*m", "", result)
+        result_file.write(result)
+
 
         for line in result.split("\n"):
+            print(f"Found line: {line}")
             if line.strip() != "":
                 if self.verbose:
                     print(f"[Mypy] {line}")

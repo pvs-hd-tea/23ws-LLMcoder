@@ -128,7 +128,11 @@ class LLMCoder:
         analyzer_results_history = conversation._get_analyzer_results_history()
         if len(conversation._get_analyzer_results_history()) == 0:
             return True
-
+        
+        analyzer_file = open('analyzer_results.txt', 'w+')
+        analyzer_file.write(conversation._get_analyzer_results_history())
+        analyzer_file.close()
+        print(f"Conversation's results history: {conversation._get_analyzer_results_history()}")
         # Print how many analyzers have passed
         n_passed = sum(results['pass'] for results in analyzer_results_history[-1].values()
                        if (results['type'] == "critical" and type(results['pass']) is bool))
@@ -296,12 +300,12 @@ class LLMCoder:
                     try:
                         # Update the analyzer results history with the results of total completion
                         analysis_results = future.result()
+                        print(f"The analysis results are: {analysis_results}")
                         analysis_results_list.append(analysis_results)
                         analyzer_results_history = conversation._get_analyzer_results_history()
                         candidate_scores = [sum([results["score"] for results in result.values()]) for result in analysis_results_list]
                         best_completion_id = np.argmax(candidate_scores)
                         analyzer_results_history.append(analysis_results_list[best_completion_id])
-                        # print(f"Analysis results for i = {i} are {analysis_results_list[-1].values()}")
                         # Creation of 3 children of the Heap/Tree of completions
                         copy_previous_messages = conversation._get_messages()
                         child_conversation = Conversation(best_completion_id, copy_previous_messages, analyzer_results_history)

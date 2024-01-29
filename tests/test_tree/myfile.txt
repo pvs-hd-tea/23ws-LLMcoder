@@ -1,0 +1,7 @@
+Certainly! Here's a simple Python code snippet that prints a cute message:
+
+```python
+print("You are cute!")
+```
+
+This code uses the `print()` function to display the message "You are cute!" on the console. Feel free to modify the message to make it even cuter!
