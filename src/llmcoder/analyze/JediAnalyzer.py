@@ -29,7 +29,8 @@ class JediAnalyzer(Analyzer):
             if self.verbose:
                 print(f"[JediAnalyzer] Using context from previous analyzers: {list(context.keys())}")
             if 'mypy_analyzer_v1' in context and isinstance(context['mypy_analyzer_v1']['message'], str):
-                print(f"[JediAnalyzer] mypy_analyzer_v1.context: {context['mypy_analyzer_v1']['message']}")
+                if self.verbose:
+                    print(f"[JediAnalyzer] mypy_analyzer_v1.context: {context['mypy_analyzer_v1']['message']}")
                 for line in context['mypy_analyzer_v1']['message'].split("\n"):
                     if line.startswith("your completion:"):
                         # Extract the problematic function or class name from the mypy_analyzer_v1 result
@@ -67,7 +68,7 @@ class JediAnalyzer(Analyzer):
                 "pass": True,
                 "type": "info",
                 "score": 0,
-                "message": "All functions and classes in your completion are called correctly (their signatures match with the documentation)."
+                "message": ""  # No message
             }
 
         # If there is a query, get the signatures and documentations of the functions and classes that match the query
