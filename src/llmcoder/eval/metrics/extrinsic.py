@@ -1,15 +1,13 @@
-from difflib import SequenceMatcher  # , ndiff
+import warnings
+from difflib import SequenceMatcher
 
 import numpy as np
 from Levenshtein import distance
 from nltk.translate.bleu_score import sentence_bleu
 from openai import OpenAI
-# from pyastsim.pyastsim import get_normed_content, get_pair_stats
 from sentence_transformers import SentenceTransformer, util
 
 from llmcoder.utils import get_openai_key
-
-# from typing import Callable
 
 
 def levenshtein_distance_score(ground_truth: str, llmcoder_result: dict | str) -> int:
@@ -60,7 +58,9 @@ def bleu_score(ground_truth: str | list[str], llmcoder_result: dict | str) -> fl
     else:
         completion = llmcoder_result
 
-    return sentence_bleu(ground_truth, completion)
+    with warnings.catch_warnings():
+        warnings.filterwarnings('ignore', category=UserWarning)
+        return sentence_bleu(ground_truth, completion)
 
 
 def trf_similarity_score(ground_truth: str, llmcoder_result: dict | str, model: str = "sentence-transformers/all-roberta-large-v1") -> float:
@@ -179,9 +179,9 @@ def sequence_matcher_score(ground_truth: str, llmcoder_result: dict | str) -> fl
     return SequenceMatcher(None, ground_truth, completion).ratio()
 
 
-def _user_prompt_templste(code_1: str, code_2: str, qualities_list: list[str]) -> str:
-    quality_list_string = '\n'.join([f'- {q}' for q in qualities_list])
-    return f"""Assess and compare these two code snippets and evaluate the completions. Do your own analysis and also prip the following criteria:
+def _user_prompt_template(code_1: str, code_2: str, qualities_list: list[str] | None) -> str:
+    quality_list_string = '\n'.join([f'- {q}' for q in qualities_list]) if qualities_list is not None else ''
+    return f"""Assess and compare these two code snippets and evaluate the completions. Do your own analysis and also consider the following criteria:
 {quality_list_string}
 
 CODE 1:
@@ -193,6 +193,43 @@ CODE 2:
 ```python
 {code_2}
 ```"""
+
+
+def _get_scores(ground_truth: str, completion: str, system_prompt_compare: str, qualities_list: list[str] | None = None, model: str = "gpt-3.5-turbo", max_iter: int = 5) -> float:
+    client = OpenAI(api_key=get_openai_key())
+
+    user_prompt = _user_prompt_template(ground_truth, completion, qualities_list)
+
+    messages = [
+        {
+            "role": "system",
+            "content": system_prompt_compare
+        },
+        {
+            "role": "user",
+            "content": user_prompt
+        }
+    ]
+
+    scores = []
+
+    for _ in range(max_iter):
+
+        chat_completion = client.chat.completions.create(messages=messages, model=model, temperature=0.2)  # type: ignore
+        message = chat_completion.choices[0].message.content
+
+        if message is None:
+            return np.nan
+
+        # Get the scores from the messag with regex (the numbers that follow "SCORE 1: " and "SCORE 2: ")
+        scores = [float(s.split(": ")[1]) for s in message.split("\n") if s.startswith("SCORE")]
+
+        # If both scores are recognized, break
+        if len(scores) == 2:
+            return scores[1] - scores[0]
+
+    print(f"WARN: Could not parse scores from message: {message}")
+    return np.nan
 
 
 def gpt_reviewer_score(ground_truth: str, llmcoder_result: dict | str, model: str = "gpt-3.5-turbo", qualities_list: list[str] | None = None, max_iter: int = 5) -> float:
@@ -211,7 +248,6 @@ def gpt_reviewer_score(ground_truth: str, llmcoder_result: dict | str, model: st
     float
         The similarity between the two strings. Positive if the completion is better than the ground truth, negative otherwise.
     """
-    client = OpenAI(api_key=get_openai_key())
 
     system_prompt_compare = """You are a data scientist tasked with comparing and evaluating code completions made by a language model.
 The user will submit two code snippets with the same beginning but different completions.
@@ -246,35 +282,10 @@ Therefore, make sure to keep your comparison (the text after COMPARISON:) concis
     else:
         completion = llmcoder_result
 
-    user_prompt = _user_prompt_templste(ground_truth, completion, qualities_list)
+    scores = _get_scores(ground_truth, completion, system_prompt_compare, qualities_list, model, max_iter)
+    scores_flipped = _get_scores(completion, ground_truth, system_prompt_compare, qualities_list, model, max_iter)
 
-    messages = [
-        {
-            "role": "system",
-            "content": system_prompt_compare
-        },
-        {
-            "role": "user",
-            "content": user_prompt
-        }
-    ]
+    if np.isnan(scores) or np.isnan(scores_flipped):
+        return np.nan
 
-    scores = []
-
-    for _ in range(max_iter):
-
-        chat_completion = client.chat.completions.create(messages=messages, model=model, temperature=0.2)  # type: ignore
-        message = chat_completion.choices[0].message.content
-
-        if message is None:
-            return np.nan
-
-        # Get the scores from the messag with regex (the numbers that follow "SCORE 1: " and "SCORE 2: ")
-        scores = [float(s.split(": ")[1]) for s in message.split("\n") if s.startswith("SCORE")]
-
-        # If both scores are recognized, break
-        if len(scores) == 2:
-            return scores[1] - scores[0]
-
-    print(f"WARN: Could not parse scores from message: {message}")
-    return np.nan
+    return (scores + scores_flipped) / 2

@@ -20,17 +20,24 @@ class Conversation:
         )
 
     # Help function for completion
-    def add_message(self, message: dict[str, str]) -> bool:
+    def add_message(self, message: dict[str, str]) -> "Conversation":
         self.messages.append(message)
-        return True
+        return self
 
     # Help function for _get_completion_for
-    def add_analysis(self, analysis_results: dict[str, dict[str, float | int | str | bool]]) -> bool:
+    def add_analysis(self, analysis_results: dict[str, dict[str, float | int | str | bool]]) -> "Conversation":
         self.analyses.append(analysis_results)
-        return True
+        return self
 
     def get_last_message(self) -> str:
         return self.messages[-1]["content"]
+
+    def copy(self) -> "Conversation":
+        return Conversation(
+            self.score,
+            self.messages.copy(),
+            self.analyses.copy()
+        )
 
     # Enabling comparison for conversations
     def __gt__(self, conversation2: "Conversation") -> bool:
@@ -91,8 +98,9 @@ class PriorityQueue:
         conversation = heapq.heappop(self.queue)
         return conversation
 
-    def clear(self) -> bool:
+    def clear(self) -> "PriorityQueue":
         self.queue = []
+        return self
 
     def __len__(self) -> int:
         return len(self.queue)

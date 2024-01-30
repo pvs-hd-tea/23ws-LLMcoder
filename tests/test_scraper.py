@@ -1,3 +1,5 @@
+# Generated with GPT-4 under supervision
+
 import os
 import unittest
 from unittest.mock import Mock, patch
@@ -6,7 +8,6 @@ from llmcoder.data import GitHubScraper
 from llmcoder.data.scraper import GITHUB_API
 
 
-# Generated with GPT-4 under supervision
 class TestGitHubScraper(unittest.TestCase):
     def test_init_default_params(self) -> None:
         """

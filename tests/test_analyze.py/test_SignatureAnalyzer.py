@@ -1,3 +1,5 @@
+# Generated with GPT-4 under supervision
+
 import os
 import sys
 import tempfile
@@ -22,7 +24,7 @@ class TestSignatureAnalyzer(unittest.TestCase):
         code = "print('Hello World')\nos.system('ls')\n"
         query = ['print', 'os.system']
         result = self.analyzer.find_function_calls(code, query)
-        expected_result = [(None, 'print'), ('os', 'system')]
+        expected_result = [(None, 'print', None), (None, 'os', 'system')]
         self.assertEqual(result, expected_result)
 
     @patch("builtins.open", new_callable=unittest.mock.mock_open, read_data="from os import path\nimport numpy as np\n")
@@ -36,7 +38,7 @@ class TestSignatureAnalyzer(unittest.TestCase):
         code = "np.array([1, 2, 3])\nclass MyClass:\n    def method(self):\n        pass\nobj = MyClass()\nobj.method()"
         query = ['np.array', 'method']
         result = self.analyzer.find_function_calls(code, query)
-        expected_result = [('np', 'array'), ('obj', 'method')]
+        expected_result = [(None, 'np', 'array'), (None, 'method', None)]
         self.assertEqual(result, expected_result)
 
     def test_dynamic_import_and_function_retrieval(self) -> None:
