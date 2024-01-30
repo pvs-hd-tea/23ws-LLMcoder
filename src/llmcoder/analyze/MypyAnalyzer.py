@@ -28,7 +28,7 @@ class MypyAnalyzer(Analyzer):
                 install_stubs: bool = True,
                 mypy_args: list[str] | None = None,
                 context: dict[str, dict[str, float | int | str]] | None = None) -> dict:
-        
+
         """
         Analyzes the completion using mypy.
 
@@ -54,7 +54,7 @@ class MypyAnalyzer(Analyzer):
         code = input + completion
         print(f"[MyPy] Received input: {input}")
         print(f"[MyPy] Received completion: {completion}")
-        
+
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=".py", mode="w") as temp_file:
             temp_file_name = temp_file.name

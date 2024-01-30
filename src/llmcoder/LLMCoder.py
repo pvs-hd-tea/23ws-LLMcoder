@@ -6,8 +6,9 @@ import os
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
-import openai
 import numpy as np
+import openai
+
 from llmcoder.analyze.factory import AnalyzerFactory
 from llmcoder.treeofcompletions.PriorityQueue import Conversation, PriorityQueue
 from llmcoder.utils import get_conversations_dir, get_openai_key, get_system_prompt, get_system_prompt_dir
@@ -98,12 +99,10 @@ class LLMCoder:
         self.conversations = PriorityQueue()
         # Create a temporary tree of conversations to keep track of temporary children
         self.temporary_conversations = PriorityQueue()
-
         # Conversations will be ranked accoring to score (=priority)
         first_score = 0
-        first_completion = []
-        first_analyzer_results_history = []
-
+        first_completion: list[dict[str, str]] = []
+        first_analyzer_results_history: list[dict[str, dict[str, float | int | str | bool]]] = []
         conversation = Conversation(first_score, first_completion, first_analyzer_results_history)
         # Create the root of the heap (=priority queue)
         self.conversations.push(conversation)
@@ -128,7 +127,7 @@ class LLMCoder:
         analyzer_results_history = conversation._get_analyzer_results_history()
         if len(conversation._get_analyzer_results_history()) == 0:
             return True
-        
+
         analyzer_file = open('analyzer_results.txt', 'w+')
         analyzer_file.write(conversation._get_analyzer_results_history())
         analyzer_file.close()
@@ -233,7 +232,7 @@ class LLMCoder:
         """
         return completion in [message["content"] for message in self.messages if message["role"] == "assistant"]
 
-    def _get_completions_for(self, conversation: Conversation, model: str = 'gpt-3.5-turbo', temperature: float = 0.7, n: int = 3) -> str | None:
+    def _get_completions_for(self, conversation: Conversation, model: str = 'gpt-3.5-turbo', temperature: float = 0.7, n: int = 3) -> list | None:
         """
         Use OpenAI's API to get completion(s) for the user's code
 
@@ -280,10 +279,10 @@ class LLMCoder:
             if self.verbose:
                 print("[LLMcoder] All completions are repetitions of previous mistakes. Aborting...")
             return None
-        
+
         print(f"We have created {n} completions and have {len(valid_choices)} valid choices")
         for i, choice in enumerate(valid_choices):
-            if i > 1:print(f"We will analyze the following completion: {choice.message.content}")
+            print(f"We will analyze the following completion: {choice.message.content}")
         print("Choices printed.")
         # Now that we have valid choices, run the analyzers on them in parallel and determine the best one
         if n > 1 and len(valid_choices) > 1:
@@ -488,7 +487,7 @@ class LLMCoder:
         """
         return '[INST]\n' + '\n'.join(result_messages) + '\n\nFix, improve and rewrite your completion for the following code:\n[/INST]\n'
 
-    def step(self, code: str, temperature: float = 0.7, n: int = 1) -> str | None:
+    def step(self, code: str, temperature: float = 0.7, n: int = 1) -> Conversation | None:
         """
         Complete the provided code with the OpenAI model and feedback, if available
         Make choice on highest scored snippet through PriorityQueue.pop().
@@ -535,7 +534,7 @@ class LLMCoder:
                 self._check_passing(child_conversation)
         else:
             print("[LLMcoder] Error: Check passing aborted. No results to analyze.")
-        
+
         # If the completion generation failed, abort
         if not success:
             return None

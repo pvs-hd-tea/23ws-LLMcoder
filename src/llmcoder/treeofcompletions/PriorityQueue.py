@@ -19,11 +19,11 @@ class Conversation:
     def _get_messages(self) -> list[dict[str, str]]:
         return self.messages
 
-    def _get_analyzer_results_history(self):
+    def _get_analyzer_results_history(self) -> list[dict[str, dict[str, float | int | str | bool]]]:
         return self.analyzer_results_history
 
     # Update the real score to store it as a "Min-heap"
-    def _invert_score(self):
+    def _invert_score(self) -> None:
         inverted_score = -self.score
         self.score = inverted_score
 
@@ -63,14 +63,14 @@ class PriorityQueue:
     def __init__(self):
         self.queue = []
 
-    def create_priority_queue(self, conversations: list[Conversation]):
+    def create_priority_queue(self, conversations: list[Conversation]) -> None:
         for conversation in conversations:
             # Multiply by -1 to trat as a "min-heap"
             conversation._invert_score()
             # We have to push the arguments separating them manually, since the score is needed for the priority
             self.push(conversation)
 
-    def push(self, conversation: Conversation):
+    def push(self, conversation: Conversation) -> None:
         heapq.heappush(self.queue, conversation)
 
     def pop(self) -> Conversation:
@@ -83,12 +83,10 @@ class PriorityQueue:
         conversation = self.queue[0]
         return conversation
 
-    def get_queue(self) -> heapq:
-        return self.queue
-
-    def empty_queue(self):
+    def empty_queue(self) -> bool:
         while self.queue:
             self.pop()
-
-    def __len__(self):
+        return True
+    
+    def __len__(self) -> int:
         return len(self.queue)

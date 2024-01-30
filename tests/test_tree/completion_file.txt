@@ -5,12 +5,12 @@ print("Hello, world!")
 ```
 
 If you have any specific requirements or need assistance with a particular task, please let me know!['Kitten', 'Puppy', 'Bunny', 'Panda', 'Duckling']
-    
+
     adjective = random.choice(adjectives)
     animal = random.choice(animals)
-    
+
     cute_animal_name = adjective + ' ' + animal
-    
+
     return cute_animal_name
 
 # Example usage
