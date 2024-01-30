@@ -233,7 +233,7 @@ class LLMCoder:
         """
         return completion in [message["content"] for message in self.messages if message["role"] == "assistant"]
 
-    def _get_completions_for(self, conversation: Conversation, model: str = 'gpt-3.5-turbo', temperature: float = 0.7, n: int = 1) -> str | None:
+    def _get_completions_for(self, conversation: Conversation, model: str = 'gpt-3.5-turbo', temperature: float = 0.7, n: int = 3) -> str | None:
         """
         Use OpenAI's API to get completion(s) for the user's code
 
@@ -280,7 +280,11 @@ class LLMCoder:
             if self.verbose:
                 print("[LLMcoder] All completions are repetitions of previous mistakes. Aborting...")
             return None
-
+        
+        print(f"We have created {n} completions and have {len(valid_choices)} valid choices")
+        for i, choice in enumerate(valid_choices):
+            if i > 1:print(f"We will analyze the following completion: {choice.message.content}")
+        print("Choices printed.")
         # Now that we have valid choices, run the analyzers on them in parallel and determine the best one
         if n > 1 and len(valid_choices) > 1:
             if self.verbose:
