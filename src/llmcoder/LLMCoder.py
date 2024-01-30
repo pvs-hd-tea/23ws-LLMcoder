@@ -42,7 +42,7 @@ class LLMCoder:
     def __init__(self,
                  analyzers: list[str] = None,
                  model_first: str = "ft:gpt-3.5-turbo-1106:personal::8LCi9Q0d",
-                 model_feedback: str = "gpt-3.5-turbo",
+                 model_feedback: str = "ft:gpt-3.5-turbo-1106:personal::8LCi9Q0d",
                  feedback_variant: str = "separate",
                  system_prompt: str | None = None,
                  max_iter: int = 10,
@@ -96,16 +96,12 @@ class LLMCoder:
         self.verbose = verbose
 
         # Create a tree of completions: initialize values to default
-        self.conversations = PriorityQueue()
-        # Create a temporary tree of conversations to keep track of temporary children
-        self.temporary_conversations = PriorityQueue()
-        # Conversations will be ranked accoring to score (=priority)
-        first_score = 0
-        first_completion: list[dict[str, str]] = []
-        first_analyzer_results_history: list[dict[str, dict[str, float | int | str | bool]]] = []
-        conversation = Conversation(first_score, first_completion, first_analyzer_results_history)
-        # Create the root of the heap (=priority queue)
-        self.conversations.push(conversation)
+        self.conversations = PriorityQueue(
+            Conversation(
+                score=0,  # Score does not matter here because we pop the conversation with the highest score anyway
+                messages=[],
+                analyses=[])
+        )
 
         self._add_message_to_conversation("system", conversation, message=self.system_prompt)
 
@@ -422,10 +418,10 @@ class LLMCoder:
         Reset the feedback loop and internal variables. Also re-add the system prompt as the first message
         """
         # Reset the feedback loop variables
-        self.conversations.empty_queue()
+        self.conversations.clear()
         self.iterations = 0
         score = 0
-        conversation = Conversation(score, messages=[], analyzer_results_history=[])
+        conversation = Conversation(score, messages=[], analyses=[])
 
         # Add the system prompt to the messages
         self._add_message_to_conversation("system", conversation, message=self.system_prompt)

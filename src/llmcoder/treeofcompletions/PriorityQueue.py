@@ -7,86 +7,92 @@ import heapq
 
 
 class Conversation:
-    def __init__(self, score: int, messages: list[dict[str, str]], analyzer_results_history: list[dict[str, dict[str, float | int | str | bool]]] = []):
+    def __init__(self, score: int, messages: list[dict[str, str]], analyses: list[dict[str, dict[str, float | int | str | bool]]] | None = None):
         self.messages = messages
         self.score = score
-        self.analyzer_results_history = analyzer_results_history
+        self.analyses = analyses or []
 
-    # Show the score of the completion in positive numbers
-    def _get_score(self) -> int:
-        return -self.score
-
-    def _get_messages(self) -> list[dict[str, str]]:
-        return self.messages
-
-    def _get_analyzer_results_history(self) -> list[dict[str, dict[str, float | int | str | bool]]]:
-        return self.analyzer_results_history
-
-    # Update the real score to store it as a "Min-heap"
-    def _invert_score(self) -> None:
-        inverted_score = -self.score
-        self.score = inverted_score
+    def invert(self) -> "Conversation":
+        return Conversation(
+            - self.score,
+            self.messages,
+            self.analyses
+        )
 
     # Help function for completion
-    def _add_message(self, message: dict[str, str]) -> bool:
+    def add_message(self, message: dict[str, str]) -> bool:
         self.messages.append(message)
         return True
 
     # Help function for _get_completion_for
-    def _add_analysis(self, analysis_results: dict[str, dict[str, float | int | str | bool]]) -> bool:
-        self.analyzer_results_history.append(analysis_results)
+    def add_analysis(self, analysis_results: dict[str, dict[str, float | int | str | bool]]) -> bool:
+        self.analyses.append(analysis_results)
         return True
 
-    # Help function for _get_completion_for
-    def _update_score(self, score: int) -> bool:
-        self.score = -score
-        return True
-
-    def _get_last_message(self) -> str:
+    def get_last_message(self) -> str:
         return self.messages[-1]["content"]
 
     # Enabling comparison for conversations
-    def __gt__(self, conversation2) -> bool:
+    def __gt__(self, conversation2: "Conversation") -> bool:
         return self.score > conversation2.score
 
-    def __ge_(self, conversation2) -> bool:
+    def __ge_(self, conversation2: "Conversation") -> bool:
         return self.score >= conversation2.score
 
-    def __lt__(self, conversation2) -> bool:
+    def __lt__(self, conversation2: "Conversation") -> bool:
         return self.score < conversation2.score
 
-    def __le__(self, conversation2) -> bool:
+    def __le__(self, conversation2: "Conversation") -> bool:
         return self.score >= conversation2.score
 
 
 class PriorityQueue:
-    def __init__(self):
-        self.queue = []
+    def __init__(self, conversations: Conversation | list[Conversation] | None = None):
+        self.queue: list[Conversation] = []
 
-    def create_priority_queue(self, conversations: list[Conversation]) -> None:
-        for conversation in conversations:
-            # Multiply by -1 to trat as a "min-heap"
-            conversation._invert_score()
-            # We have to push the arguments separating them manually, since the score is needed for the priority
-            self.push(conversation)
+        if conversations is not None:
+            if not isinstance(conversations, list):
+                conversations = [conversations]
+
+            for conversation in conversations:
+                # Invert the score of the conversation (subject to maximization) for the min-heap
+                self.push(conversation.invert())
 
     def push(self, conversation: Conversation) -> None:
-        heapq.heappush(self.queue, conversation)
+        """
+        Push a conversation to the priority queue
 
-    def pop(self) -> Conversation:
+        Parameters
+        ----------
+        conversation : Conversation
+            The conversation to be pushed to the priority queue
+        """
+        heapq.heappush(self.queue, conversation.invert())
+
+    def pop(self, keep: bool = False) -> Conversation:
+        """
+        Pop a conversation from the priority queue
+
+        Parameters
+        ----------
+        keep : bool
+            Whether to keep the conversation in the queue
+
+        Returns
+        -------
+        Conversation
+            The conversation with the highest score
+        """
+        if keep:
+            # Return the best conversation without removing it from the queue
+            return self.queue[0].invert()
+
         # Pop and return the conversation with the highest score
         conversation = heapq.heappop(self.queue)
         return conversation
 
-    def get_highest_scored_conversation(self) -> Conversation:
-        # Keep but return the conversation with the highest score
-        conversation = self.queue[0]
-        return conversation
+    def clear(self) -> bool:
+        self.queue = []
 
-    def empty_queue(self) -> bool:
-        while self.queue:
-            self.pop()
-        return True
-    
     def __len__(self) -> int:
         return len(self.queue)
