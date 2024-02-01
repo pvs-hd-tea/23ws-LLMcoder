@@ -150,7 +150,7 @@ import re
 import subprocess
 import tempfile
 
-from llmcoder.analyze.Analyzer import Analyzer
+from llmcoder.analyze.analyzer import Analyzer
 
 class MypyAnalyzer(Analyzer):
     def analyze("""
