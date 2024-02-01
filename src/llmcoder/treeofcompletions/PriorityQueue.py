@@ -1,56 +1,7 @@
-"""
-Implementation of Tree of Completions using Tree in Conversation,
-using a Priority Queue implemented with a Binary Heaps to reduce time-complexity.
-"""
-
 import heapq
+from typing import Iterator
 
-
-class Conversation:
-    def __init__(self, score: int, messages: list[dict[str, str]], analyses: list[dict[str, dict[str, float | int | str | bool]]] | None = None):
-        self.messages = messages
-        self.score = score
-        self.analyses = analyses or []
-
-    def invert(self) -> "Conversation":
-        return Conversation(
-            - self.score,
-            self.messages,
-            self.analyses
-        )
-
-    # Help function for completion
-    def add_message(self, message: dict[str, str]) -> "Conversation":
-        self.messages.append(message)
-        return self
-
-    # Help function for _get_completion_for
-    def add_analysis(self, analysis_results: dict[str, dict[str, float | int | str | bool]]) -> "Conversation":
-        self.analyses.append(analysis_results)
-        return self
-
-    def get_last_message(self) -> str:
-        return self.messages[-1]["content"]
-
-    def copy(self) -> "Conversation":
-        return Conversation(
-            self.score,
-            self.messages.copy(),
-            self.analyses.copy()
-        )
-
-    # Enabling comparison for conversations
-    def __gt__(self, conversation2: "Conversation") -> bool:
-        return self.score > conversation2.score
-
-    def __ge_(self, conversation2: "Conversation") -> bool:
-        return self.score >= conversation2.score
-
-    def __lt__(self, conversation2: "Conversation") -> bool:
-        return self.score < conversation2.score
-
-    def __le__(self, conversation2: "Conversation") -> bool:
-        return self.score >= conversation2.score
+from llmcoder.treeofcompletions.Conversation import Conversation
 
 
 class PriorityQueue:
@@ -63,7 +14,7 @@ class PriorityQueue:
 
             for conversation in conversations:
                 # Invert the score of the conversation (subject to maximization) for the min-heap
-                self.push(conversation.invert())
+                self.push(conversation)
 
     def push(self, conversation: Conversation) -> None:
         """
@@ -74,7 +25,7 @@ class PriorityQueue:
         conversation : Conversation
             The conversation to be pushed to the priority queue
         """
-        heapq.heappush(self.queue, conversation.invert())
+        heapq.heappush(self.queue, conversation.invert_score())
 
     def pop(self, keep: bool = False) -> Conversation:
         """
@@ -92,11 +43,11 @@ class PriorityQueue:
         """
         if keep:
             # Return the best conversation without removing it from the queue
-            return self.queue[0].invert()
+            return self.queue[0].invert_score()
 
         # Pop and return the conversation with the highest score
         conversation = heapq.heappop(self.queue)
-        return conversation
+        return conversation.invert_score()
 
     def clear(self) -> "PriorityQueue":
         self.queue = []
@@ -104,3 +55,6 @@ class PriorityQueue:
 
     def __len__(self) -> int:
         return len(self.queue)
+
+    def __iter__(self) -> Iterator[Conversation]:
+        return self.queue.__iter__()

@@ -1,7 +1,3 @@
-"""
-Version 1 of Tree of Completions: create_conversation_file only on best completion.
-"""
-import json
 import os
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
@@ -10,7 +6,8 @@ import openai
 import tiktoken
 
 from llmcoder.analyze.factory import AnalyzerFactory
-from llmcoder.treeofcompletions.PriorityQueue import Conversation, PriorityQueue
+from llmcoder.treeofcompletions.Conversation import Conversation
+from llmcoder.treeofcompletions.PriorityQueue import PriorityQueue
 from llmcoder.utils import get_conversations_dir, get_openai_key, get_system_prompt, get_system_prompt_dir
 
 
@@ -250,7 +247,7 @@ class LLMCoder:
         max_retries : int, optional
             The maximum number of retries to get a valid completion, by default 10
         """
-        # Get the completions from OpenAI's API -> 3 completions stored in candidates.choices
+        # Get the completions from OpenAI's API
         candidates = self.client.chat.completions.create(
             messages=conversation.messages,
             model=model,
@@ -309,11 +306,14 @@ class LLMCoder:
                     try:
                         # Update the analyzer results history with the results of total completion
                         analysis = future.result()
-                        analysis_score = [sum([results["score"] for results in analysis.values()])]
+                        analysis_score = sum([results["score"] for results in analysis.values()])
 
-                        if self.verbose:
-                            print(f"[LLMcoder] Added completion {i} with score: {analysis_score}")
-                        self.conversations.push(conversation.copy().add_analysis(analysis).add_message(valid_choices[i].message.content))
+                        self.conversations.push(conversation
+                                                .copy()
+                                                .set_score(analysis_score)
+                                                .add_analysis(analysis)
+                                                .add_message({'role': 'assistant', 'content': valid_choices[i].message.content})
+                                                .add_to_path(choice=i))
                     except Exception as e:
                         if self.verbose:
                             print(f"[LLMcoder] An exception occurred during analysis of choice: {e}")
@@ -324,59 +324,16 @@ class LLMCoder:
             if self.verbose:
                 print("[LLMcoder] Analyzing completion...")
             analysis = self.run_analyzers(conversation.messages[1]["content"], valid_choices[0].message.content)
+            analysis_score = sum([results["score"] for results in analysis.values()])
 
             # There is only one valid choice
             # Update the analyzer results history with the results of the completion
-            self.conversations.push(conversation.copy().add_analysis(analysis).add_message(valid_choices[0].message.content))
-
-    def _add_message_to_conversation(self, role: str, conversation: Conversation, message: str | None = None, model: str = 'gpt-3.5-turbo', temperature: float = 0.7, n: int = 1) -> bool:
-        """
-        Add a message to a scpecific conversation in PQ.
-
-        Parameters
-        ----------
-        conversation: Conversation
-            Tuple in the priority queue. A message will be added in continuity with the string completion.
-        role : str
-            The role of the message
-        message : str, optional
-            The message to add, by default None
-        model : str, optional
-            The model to use for the completion, by default 'gpt-3.5-turbo'
-        temperature : float, optional
-            The temperature to use for the assistant completion, by default 0.7
-        n : int, optional
-            The number of assistant choices to generate, by default 1
-
-        Returns
-        -------
-        bool
-            True if the message was added, False otherwise
-        """
-        # If the user is the assistant, generate a response
-        if role == "assistant" and message is None:
-            self._get_completions_for(conversation, model, temperature, n)
-        else:
-            # Add the message to the conversation
-            success = conversation.add_message({"role": role, "content": message})
-
-        if self.verbose:
-            print(f"[LLMcoder] --- {role.upper()} --- :\n{message} ----------------------")
-
-        # If the conversation should be logged, log it
-        if self.conversation_file is not None:
-            # If the conversation file already exists, only append the last message as a single line
-            if os.path.isfile(self.conversation_file):
-                with open(self.conversation_file, "a") as f:
-                    f.write(json.dumps(conversation.messages[1], ensure_ascii=False) + "\n")
-            # Otherwise, write the whole conversation
-            else:
-                with open(self.conversation_file, "w") as f:
-                    for message in conversation.messages:
-                        f.write(json.dumps(message, ensure_ascii=False) + "\n")
-
-        # The message was added successfully
-        return success
+            self.conversations.push(conversation
+                                    .copy()
+                                    .set_score(analysis_score)
+                                    .add_analysis(analysis)
+                                    .add_message({'role': 'assistant', 'content': valid_choices[0].message.content})
+                                    .add_to_path(choice=0))
 
     def _reset_loop(self) -> None:
         """
@@ -392,9 +349,7 @@ class LLMCoder:
                 score=0,  # Score does not matter here because we pop the conversation with the highest score anyway
                 messages=[{
                     "role": "system",
-                    "content": self.system_prompt}],
-                analyses=[])
-        )
+                    "content": self.system_prompt}]))
 
     def run_analyzers(self, code: str, completion: str) -> dict[str, dict]:
         """
@@ -431,7 +386,6 @@ class LLMCoder:
                 if self.verbose:
                     print(f"[LLMcoder] Running {analyzer_name}...")
                 analyzer_results[analyzer_name] = analyzer_instance.analyze(code, completion, context=analyzer_results)
-                print(f"After analyzing, the results were {analyzer_results[analyzer_name].values()}")
 
         # Return the collected analyzer results
         return analyzer_results
@@ -469,6 +423,9 @@ class LLMCoder:
         # Choose highest-scored conversation from the priority queue
         most_promising_conversation = self.conversations.pop()
 
+        if self.verbose:
+            print(f'[LLMcoder] Choosing conversation {"-".join(str(node) for node in most_promising_conversation.path)} with score {round(most_promising_conversation.score, 2)}')
+
         # If there is feedback available from previous analyses, add it to the prompt
         if len(most_promising_conversation.analyses) > 0:
             feedback_prompt = self._feedback_prompt_template(
@@ -477,20 +434,17 @@ class LLMCoder:
 
         # If there is not feedback available, the prompt will just be the user's code
         else:
-            print("[LLMcoder] There are no analyzer results")
+            if self.verbose:
+                print("[LLMcoder] There are no analyzer results")
             feedback_prompt = ""
 
         # Add the prompt to the messages
-        self._add_message_to_conversation("user", most_promising_conversation, message=feedback_prompt + code)
+        most_promising_conversation.add_message({'role': 'user', 'content': feedback_prompt + code})
 
-        # Get n completions from the assistant
-        # Clone the parent conversation n times and append the completions
-        # Then, return whether the completion generation was successful
-        self._add_message_to_conversation(
-            "assistant",
-            most_promising_conversation,
-            model=self.model_feedback,
-            temperature=temperature,
-            n=n)
+        # Get new completions and add them to the priority queue
+        self._get_completions_for(most_promising_conversation, self.model_feedback, temperature, n)
+
+        if self.verbose:
+            print(f'[LLMcoder] Have {len(self.conversations)} conversations with scores {", ".join([str(- conversation.score) for conversation in self.conversations])}')
 
         self.iterations += 1

@@ -52,8 +52,6 @@ class MypyAnalyzer(Analyzer):
         """
         # Combine the input code and the completion
         code = input + completion
-        print(f"[MyPy] Received input: {input}")
-        print(f"[MyPy] Received completion: {completion}")
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=".py", mode="w") as temp_file:
             temp_file_name = temp_file.name
@@ -90,7 +88,6 @@ class MypyAnalyzer(Analyzer):
         result = re.sub(r"\x1b\[[0-9;]*m", "", result)
 
         for line in result.split("\n"):
-            print(f"Found line: {line}")
             if line.strip() != "":
                 if self.verbose:
                     print(f"[Mypy] {line}")
@@ -107,9 +104,6 @@ class MypyAnalyzer(Analyzer):
                     filtered_result.append(line)
             else:
                 filtered_result.append(line)
-
-            if self.verbose:
-                print(f"[MyPyJediAnalyzer] Mypy Error: {line}")
 
         # Replace the temp file name with "your completion". This helps the LLM understand that the error is caused by its completion.
         filtered_result = [line.replace(temp_file_name, "your completion") for line in filtered_result]

@@ -243,17 +243,12 @@ class SignatureAnalyzer(Analyzer):
                 alias = imp.alias if imp.alias else imp.name[-1] if imp.name else full_module
                 import_aliases[alias] = full_module
 
-        # print(f"[Signatures] {import_aliases=}")
-        # print(f"[Signatures] {direct_imports=}")
-
         # Find all function calls that match the query
         function_calls = self.find_function_calls(code, query)
 
         print(f"[Signatures] {function_calls=}")
 
         function_calls = list(set(function_calls))
-
-        # print(f"[Signatures] {function_calls=}")
 
         # Match the function calls to the imports
         matched_function_calls = []
@@ -372,8 +367,6 @@ class SignatureAnalyzer(Analyzer):
                         # Remove duplicates
                         all_matches = list(set(all_matches))
 
-                        print(f"[Signatures] {all_matches=}")
-
                         # Add the matches to the query
                         for match in all_matches:
                             if self.verbose:
@@ -404,8 +397,6 @@ class SignatureAnalyzer(Analyzer):
         # If there is a query, get the signatures and documentations of the functions and classes that match the query
         else:
             result = self.get_signature_and_doc(temp_file_name, list(set(query)))
-
-            print(f"[Signatures] {result=}")
 
             # Truncate the documentation to the first line (i.e. the signature)
             # Otherwise, the message will be too long
