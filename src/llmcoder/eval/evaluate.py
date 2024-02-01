@@ -10,7 +10,7 @@ from dynaconf import Dynaconf
 from tqdm import tqdm
 
 from llmcoder.data.io import dump_results_to_json, dump_results_to_readable, read_data_from_conversations_file, read_results_from_json
-from llmcoder.LLMCoder import LLMCoder  # Import your LLMCoder class
+from llmcoder.llmcoder import LLMCoder  # Import your LLMCoder class
 from llmcoder.utils import get_config_dir, get_data_dir
 
 

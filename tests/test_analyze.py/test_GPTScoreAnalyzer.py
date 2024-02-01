@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 from openai import OpenAI
 
-from llmcoder.analyze.GPTScoreAnalyzer import GPTScoreAnalyzer
+from llmcoder.analyze.gpt_score_analyzer import GPTScoreAnalyzer
 
 
 class TestGPTScoreAnalyzer(unittest.TestCase):

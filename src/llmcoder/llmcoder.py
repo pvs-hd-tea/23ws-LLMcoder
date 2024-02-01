@@ -6,8 +6,8 @@ import openai
 import tiktoken
 
 from llmcoder.analyze.factory import AnalyzerFactory
-from llmcoder.treeofcompletions.Conversation import Conversation
-from llmcoder.treeofcompletions.PriorityQueue import PriorityQueue
+from llmcoder.conversation.conversation import Conversation
+from llmcoder.conversation.priority_queue import PriorityQueue
 from llmcoder.utils import get_conversations_dir, get_openai_key, get_system_prompt, get_system_prompt_dir
 
 

@@ -1,7 +1,7 @@
 import unittest
 
-from llmcoder.analyze.MypyAnalyzer import MypyAnalyzer
-from llmcoder.analyze.SignatureAnalyzer import SignatureAnalyzer
+from llmcoder.analyze.mypy_analyzer import MypyAnalyzer
+from llmcoder.analyze.signature_analyzer import SignatureAnalyzer
 
 
 class TestSignatureAnalyzerContext(unittest.TestCase):

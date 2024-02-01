@@ -7,7 +7,7 @@ import tempfile
 from collections import namedtuple
 from typing import Generator
 
-from llmcoder.analyze.Analyzer import Analyzer
+from llmcoder.analyze.analyzer import Analyzer
 
 Import = namedtuple("Import", ["module", "name", "alias"])
 

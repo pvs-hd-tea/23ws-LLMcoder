@@ -1,7 +1,7 @@
 import heapq
 from typing import Iterator
 
-from llmcoder.treeofcompletions.Conversation import Conversation
+from llmcoder.conversation import Conversation
 
 
 class PriorityQueue:

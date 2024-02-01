@@ -3,9 +3,9 @@
 import unittest
 
 from llmcoder.analyze.factory import AnalyzerFactory
-from llmcoder.analyze.GPTScoreAnalyzer import GPTScoreAnalyzer
-from llmcoder.analyze.MypyAnalyzer import MypyAnalyzer
-from llmcoder.analyze.SignatureAnalyzer import SignatureAnalyzer
+from llmcoder.analyze.gpt_score_analyzer import GPTScoreAnalyzer
+from llmcoder.analyze.mypy_analyzer import MypyAnalyzer
+from llmcoder.analyze.signature_analyzer import SignatureAnalyzer
 
 
 class TestAnalyzerFactory(unittest.TestCase):

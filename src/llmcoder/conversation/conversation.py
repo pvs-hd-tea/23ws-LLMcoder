@@ -44,14 +44,14 @@ class Conversation:
         )
 
     # Enabling comparison for conversations
-    def __gt__(self, conversation2: "Conversation") -> bool:
-        return self.score > conversation2.score
+    def __gt__(self, rhs_conversation: "Conversation") -> bool:
+        return self.score > rhs_conversation.score
 
-    def __ge_(self, conversation2: "Conversation") -> bool:
-        return self.score >= conversation2.score
+    def __ge_(self, rhs_conversation: "Conversation") -> bool:
+        return self.score >= rhs_conversation.score
 
-    def __lt__(self, conversation2: "Conversation") -> bool:
-        return self.score < conversation2.score
+    def __lt__(self, rhs_conversation: "Conversation") -> bool:
+        return self.score < rhs_conversation.score
 
-    def __le__(self, conversation2: "Conversation") -> bool:
-        return self.score >= conversation2.score
+    def __le__(self, rhs_conversation: "Conversation") -> bool:
+        return self.score <= rhs_conversation.score
