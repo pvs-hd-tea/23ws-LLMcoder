@@ -95,37 +95,6 @@ class LLMCoder:
 
         self._reset_loop()
 
-    def _check_passing(self, conversation: Conversation) -> bool:
-        """
-        Check if all the analyzers passed in the last iteration of the conversation
-
-        Parameters
-        -------
-        conversation: Conversation
-            The conversation on which to be checked
-        Returns
-        -------
-        bool
-            True if all the analyzers passed, False otherwise
-        """
-        # If there was no iteration yet, return True
-        if len(conversation.analyses) == 0:
-            return True
-
-        # Print how many critical analyzers have passed
-        n_passed = sum(results['pass'] for results in conversation.analyses[-1].values() if (results['type'] == "critical" and type(results['pass']) is bool))
-        n_total = len([results for results in conversation.analyses[-1].values() if results['type'] == "critical"])
-
-        if self.verbose:
-            print(f"[LLMcoder] {n_passed} / {n_total} analyzers passed")
-
-        # If all the analyzers passed, return True
-        if n_passed == n_total:
-            return True
-
-        # Otherwise, return False
-        return False
-
     def _get_passing_conversations(self) -> list[Conversation]:
         """
         Get the conversations that passed all the analyzers
@@ -135,10 +104,23 @@ class LLMCoder:
         list[Conversation]
             The conversations that passed all the analyzers
         """
-        return [conversation for conversation in self.conversations if self._check_passing(conversation)]
+        return [c for c in self.conversations if c.passing]
 
-    def get_best_completion(self, conversations: list[Conversation]) -> str:
-        return sorted(conversations, key=lambda conversation: conversation.score, reverse=True)[0].get_last_message()
+    def _get_best_completion(self, conversations: list[Conversation]) -> str:
+        """
+        Get the best completion from the provided conversations
+
+        Parameters
+        ----------
+        conversations : list[Conversation]
+            The conversations to get the best completion from
+
+        Returns
+        -------
+        str
+            The best completion
+        """
+        return sorted(conversations, key=lambda c: c.score, reverse=True)[0].get_last_message()
 
     def complete(self, code: str, temperature: float = 0.7, n: int = 1) -> str:
         """
@@ -165,14 +147,14 @@ class LLMCoder:
         # Get the first completion with
         if self.verbose:
             print("[LLMcoder] Creating first completions...")
-        self.step(code, temperature, n)
+        self._step(code, temperature, n)
 
         # If the first completion is already correct, return it
         passing_conversations = self._get_passing_conversations()
         if len(passing_conversations) > 0:
             if self.verbose:
                 print("[LLMcoder] First completion is correct. Stopping early...")
-            return self.get_best_completion(passing_conversations)
+            return self._get_best_completion(passing_conversations)
 
         # Otherwise, start the feedback loop (but only if there are analyzers that can be used)
         if self.verbose:
@@ -184,17 +166,17 @@ class LLMCoder:
                 if self.verbose:
                     print(f"[LLMcoder] Starting feedback iteration {i + 1}...")
 
-                self.step(code, temperature, n)
+                self._step(code, temperature, n)
 
                 # If the code is correct, stop the feedback loop
                 passing_conversations = self._get_passing_conversations()
                 if len(passing_conversations) > 0:
                     if self.verbose:
                         print("[LLMcoder] Code is correct. Stopping early...")
-                    return self.get_best_completion(passing_conversations)
+                    return self._get_best_completion(passing_conversations)
 
         # No conversation passes, so just return the best completion
-        return self.get_best_completion(self.conversations)
+        return self._get_best_completion(self.conversations)
 
     @classmethod
     def _create_conversation_file(cls) -> str:
@@ -292,12 +274,12 @@ class LLMCoder:
         # Now that we have valid choices, run the analyzers on them in parallel and determine the best one
         if n > 1 and len(valid_choices) > 1:
             if self.verbose:
-                print(f"[LLMcoder] Analyzing {len(candidates.choices)} completions...")
+                print(f"[LLMcoder] Analyzing {len(valid_choices)} completions...")
 
             with ThreadPoolExecutor(max_workers=self.n_procs) as executor:
                 # Create a mapping of future to completion choice
                 choice_to_future = {
-                    i: executor.submit(self.run_analyzers, conversation.messages[1]["content"], choice.message.content)
+                    i: executor.submit(self._run_analyzers, conversation.messages[1]["content"], choice.message.content)
                     for i, choice in enumerate(valid_choices)}
 
                 # Retrieve results in the order of valid_choices
@@ -313,17 +295,18 @@ class LLMCoder:
                                                 .set_score(analysis_score)
                                                 .add_analysis(analysis)
                                                 .add_message({'role': 'assistant', 'content': valid_choices[i].message.content})
+                                                .update_passing()
                                                 .add_to_path(choice=i))
                     except Exception as e:
                         if self.verbose:
                             print(f"[LLMcoder] An exception occurred during analysis of choice: {e}")
                         raise e
 
+        # If we only have one completion, still run the analyzers on it
         else:
-            # If we only have one completion, still run the analyzers on it
             if self.verbose:
                 print("[LLMcoder] Analyzing completion...")
-            analysis = self.run_analyzers(conversation.messages[1]["content"], valid_choices[0].message.content)
+            analysis = self._run_analyzers(conversation.messages[1]["content"], valid_choices[0].message.content)
             analysis_score = sum([results["score"] for results in analysis.values()])
 
             # There is only one valid choice
@@ -333,6 +316,7 @@ class LLMCoder:
                                     .set_score(analysis_score)
                                     .add_analysis(analysis)
                                     .add_message({'role': 'assistant', 'content': valid_choices[0].message.content})
+                                    .update_passing()
                                     .add_to_path(choice=0))
 
     def _reset_loop(self) -> None:
@@ -351,7 +335,7 @@ class LLMCoder:
                     "role": "system",
                     "content": self.system_prompt}]))
 
-    def run_analyzers(self, code: str, completion: str) -> dict[str, dict]:
+    def _run_analyzers(self, code: str, completion: str) -> dict[str, dict]:
         """
         Run the analyzers on the code and completion
 
@@ -406,7 +390,7 @@ class LLMCoder:
         """
         return '[INST]\n' + '\n'.join(result_messages) + '\n\nFix, improve and rewrite your completion for the following code:\n[/INST]\n'
 
-    def step(self, code: str, temperature: float = 0.7, n: int = 1) -> None:
+    def _step(self, code: str, temperature: float = 0.7, n: int = 1) -> None:
         """
         Complete the provided code with the OpenAI model and feedback, if available
         Make choice on highest scored snippet through PriorityQueue.pop().
@@ -434,8 +418,6 @@ class LLMCoder:
 
         # If there is not feedback available, the prompt will just be the user's code
         else:
-            if self.verbose:
-                print("[LLMcoder] There are no analyzer results")
             feedback_prompt = ""
 
         # Add the prompt to the messages
@@ -445,6 +427,8 @@ class LLMCoder:
         self._get_completions_for(most_promising_conversation, self.model_feedback, temperature, n)
 
         if self.verbose:
-            print(f'[LLMcoder] Have {len(self.conversations)} conversations with scores {", ".join([str(- conversation.score) for conversation in self.conversations])}')
+            print(f'[LLMcoder] Have {len(self.conversations)} conversations:')
+            for c in self.conversations.queue:
+                print(f'[LLMcoder] {str(c.passing):<6}{-round(c.score, 2):<7}{c.path}')
 
         self.iterations += 1

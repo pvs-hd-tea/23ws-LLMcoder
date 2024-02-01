@@ -26,6 +26,7 @@ class PriorityQueue:
             The conversation to be pushed to the priority queue
         """
         heapq.heappush(self.queue, conversation.invert_score())
+        self.queue.sort()  # HACK: Reduntant but nice to have in the logs and not too slow for the number of conversations we consider
 
     def pop(self, keep: bool = False) -> Conversation:
         """

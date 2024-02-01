@@ -212,7 +212,7 @@ class TestLLMCoder(unittest.TestCase):
             ]),
         ]
 
-        best_completion = coder.get_best_completion(conversations)
+        best_completion = coder._get_best_completion(conversations)
 
         self.assertEqual(best_completion, 'Better Test message')
 
