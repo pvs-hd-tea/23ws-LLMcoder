@@ -1,7 +1,8 @@
 from typing import Iterator
 
-from llmcoder.conversation import Conversation
 import numpy as np
+
+from llmcoder.conversation import Conversation
 
 
 class PriorityQueue:
@@ -28,7 +29,7 @@ class PriorityQueue:
         # Sort the queue after each insertion
         self.queue.sort(reverse=True)
 
-    def pop(self, temperature: float = 0, keep: bool = False) -> Conversation:
+    def pop(self, temperature: float = 0.0, keep: bool = False) -> Conversation:
         """
         Pop a conversation from the priority queue
 
@@ -61,7 +62,24 @@ class PriorityQueue:
         # Otherwise, return the conversation and remove it from the queue
         return self.queue.pop(index)
 
-    def sample(self, temperature: float = 1.0) -> int:
+    def get_probabilities(self, temperature: float = 0.0) -> np.ndarray:
+        """
+        Get the probabilities of the conversations in the priority queue using softmax
+
+        Parameters
+        ----------
+        temperature : float
+            Temperature parameter for softmax, default is 1.0
+
+        Returns
+        -------
+        numpy.ndarray
+            The probabilities of the conversations in the queue
+        """
+        scores = [c.score for c in self.queue]
+        return softmax(scores, temperature)
+
+    def sample(self, temperature: float = 0.0) -> int:
         """
         Sample a conversation from the priority queue using softmax
 
@@ -75,12 +93,8 @@ class PriorityQueue:
         int
             The index of the sampled conversation
         """
-        # Collect all scores and compute the softmax probabilities
-        scores = [c.score for c in self.queue]
-        probs = softmax(scores, temperature)
-
         # Sample from the queue using the computed probabilities
-        return np.random.choice(len(self.queue), p=probs)
+        return np.random.choice(len(self.queue), p=self.get_probabilities(temperature))
 
     def clear(self) -> "PriorityQueue":
         self.queue = []
@@ -109,6 +123,14 @@ def softmax(x: list | np.ndarray, temperature: float = 1.0) -> np.ndarray:
     numpy.ndarray
         Softmax output array
     """
+    if temperature == 0:
+        probs = np.zeros(len(x))
+        probs[np.argmax(x)] = 1
+        return probs
+
+    # Convert the input array to a numpy array
+    x = np.array(x)
+
     # Normalize the input array using the temperature parameter and the maximum value
     e_x = np.exp(x / temperature - np.max(x / temperature))
     return e_x / np.sum(e_x)

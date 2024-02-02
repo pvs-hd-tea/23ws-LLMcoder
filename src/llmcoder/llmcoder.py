@@ -122,7 +122,7 @@ class LLMCoder:
         """
         return sorted(conversations, key=lambda c: c.score, reverse=True)[0].get_last_message()
 
-    def complete(self, code: str, temperature: float = 0.7, n: int = 1) -> str:
+    def complete(self, code: str, temperature: float = 0.7, meta_temperature: float = 0.0, n: int = 1) -> str:
         """
         Main entry point for LLMCoder.
         Complete the provided code with the LLMCoder feedback loop
@@ -133,6 +133,8 @@ class LLMCoder:
             The code to complete
         temperature : float, optional
             The temperature to use for the completion, by default 0.7
+        meta_temperature : float, optional
+            The temperature to use for choosing the most promising conversation, by default 0.1
         n : int, optional
             The number of choices to generate, by default 1
 
@@ -147,7 +149,7 @@ class LLMCoder:
         # Get the first completion with
         if self.verbose:
             print("[LLMcoder] Creating first completions...")
-        self._step(code, temperature, n)
+        self._step(code=code, temperature=temperature, meta_temperature=meta_temperature, n=n)
 
         # If the first completion is already correct, return it
         passing_conversations = self._get_passing_conversations()
@@ -166,7 +168,7 @@ class LLMCoder:
                 if self.verbose:
                     print(f"[LLMcoder] Starting feedback iteration {i + 1}...")
 
-                self._step(code, temperature, n)
+                self._step(code=code, temperature=temperature, meta_temperature=meta_temperature, n=n)
 
                 # If the code is correct, stop the feedback loop
                 passing_conversations = self._get_passing_conversations()
@@ -390,7 +392,7 @@ class LLMCoder:
         """
         return '[INST]\n' + '\n'.join(result_messages) + '\n\nFix, improve and rewrite your completion for the following code:\n[/INST]\n'
 
-    def _step(self, code: str, temperature: float = 0.7, n: int = 1) -> None:
+    def _step(self, code: str, temperature: float = 0.7, meta_temperature: float = 0.0, n: int = 1) -> None:
         """
         Complete the provided code with the OpenAI model and feedback, if available
         Make choice on highest scored snippet through PriorityQueue.pop().
@@ -401,11 +403,13 @@ class LLMCoder:
             The code to complete
         temperature : float, optional
             The temperature to use for the completion, by default 0.7
+        meta_temperature : float, optional
+            The temperature to use for choosing the most promising conversation, by default 0.1
         n : int, optional
             The number of choices to generate, by default 1
         """
         # Choose highest-scored conversation from the priority queue
-        most_promising_conversation = self.conversations.pop()
+        most_promising_conversation = self.conversations.pop(temperature=meta_temperature)
 
         if self.verbose:
             print(f'[LLMcoder] Choosing conversation {"-".join(str(node) for node in most_promising_conversation.path)} with score {round(most_promising_conversation.score, 2)}')
@@ -427,8 +431,10 @@ class LLMCoder:
         self._get_completions_for(most_promising_conversation, self.model_feedback, temperature, n)
 
         if self.verbose:
+            probabilities = self.conversations.get_probabilities(temperature=meta_temperature)
             print(f'[LLMcoder] Have {len(self.conversations)} conversations:')
-            for c in self.conversations.queue:
-                print(f'[LLMcoder] {str(c.passing):<6}{-round(c.score, 2):<7}{c.path}')
+            print(f'[LLMcoder] {"Passing":<10}{"Score":<10}{"Prob":<10}Path')
+            for c, prob in zip(self.conversations.queue, probabilities):
+                print(f'[LLMcoder] {str(c.passing):<10}{round(c.score, 2):<10}{round(prob, 4):<10}{c.path}')
 
         self.iterations += 1
