@@ -5,12 +5,14 @@ class Conversation:
     def __init__(
             self,
             score: int,
+            p: float,
             messages: list[dict[str, str]],
             analyses: list[dict[str, dict[str, float | int | str | bool]]] | None = None,
             path: list[Any] | None = None,
             passing: bool = False):
         self.messages = messages
         self.score = score
+        self.p = p
         self.passing = passing
         self.analyses = analyses or []
         self.path = path or ['R']
@@ -18,15 +20,7 @@ class Conversation:
     def copy(self) -> "Conversation":
         return Conversation(
             self.score,
-            self.messages.copy(),
-            self.analyses.copy(),
-            self.path.copy(),
-            self.passing
-        )
-
-    def invert_score(self) -> "Conversation":
-        return Conversation(
-            - self.score,
+            self.p,
             self.messages.copy(),
             self.analyses.copy(),
             self.path.copy(),
