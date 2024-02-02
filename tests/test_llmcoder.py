@@ -1,6 +1,8 @@
 # Generated with GPT-4 under supervision
 
 import os
+import random
+import string
 import unittest
 from datetime import datetime
 from unittest.mock import MagicMock, patch
@@ -78,60 +80,26 @@ class TestLLMCoder(unittest.TestCase):
         self.assertEqual(coder.n_tokens_generated, 0)
         self.assertEqual(coder.conversations.pop(keep=True).get_last_message(), 'System prompt for testing')
 
-    def test_no_analyses(self) -> None:
-        """Test with no analyses in the conversation."""
-        coder = LLMCoder()
-        conversation = Conversation(0, [], [])
-        self.assertTrue(coder._check_passing(conversation))
-
-    def test_all_critical_passed(self) -> None:
-        """Test when all critical analyzers have passed."""
-        coder = LLMCoder(log_conversation=False)
-        conversation = Conversation(0, [], [
-            {},  # First iteration
-            {  # Last iteration
-                "analyzer1": {"type": "critical", "pass": True},
-                "analyzer2": {"type": "critical", "pass": True},
-            }
-        ])
-        self.assertTrue(coder._check_passing(conversation))
-
-    def test_not_all_critical_passed(self) -> None:
-        """Test when not all critical analyzers have passed."""
-        coder = LLMCoder(log_conversation=False)
-        conversation = Conversation(0, [], [
-            {},
-            {
-                "analyzer1": {"type": "critical", "pass": False},
-                "analyzer2": {"type": "critical", "pass": True},
-            }
-        ])
-        self.assertFalse(coder._check_passing(conversation))
-
-    def test_no_critical_analyzers(self) -> None:
-        """Test when there are no critical analyzers in the last iteration."""
-        coder = LLMCoder(log_conversation=False)
-        conversation = Conversation(0, [], [
-            {},
-            {
-                "analyzer1": {"type": "info", "pass": True},
-                "analyzer2": {"type": "info", "pass": False},
-            }
-        ])
-        self.assertTrue(coder._check_passing(conversation))
-
     def test_all_conversations_passing(self) -> None:
         """Test scenario where all conversations pass the analyzers."""
         coder = LLMCoder(log_conversation=False)
+        coder.conversations.pop()
+
         coder.conversations = PriorityQueue([
-            Conversation(2, [], [
+            Conversation(2, [
+                {'role': 'pytest', 'content': 'Test system message'},
+                {'role': 'pytest', 'content': 'Test user message'}
+            ], [
                 {},
                 {
                     "analyzer1": {"type": "critical", "pass": True},
                     "analyzer2": {"type": "critical", "pass": True},
                 }
             ]),
-            Conversation(1, [], [
+            Conversation(1, [
+                {'role': 'pytest', 'content': 'Test system message'},
+                {'role': 'pytest', 'content': 'Test user message'}
+            ], [
                 {},
                 {
                     "analyzer1": {"type": "critical", "pass": True},
@@ -140,23 +108,34 @@ class TestLLMCoder(unittest.TestCase):
             ]),
         ])
 
+        for conversation in coder.conversations:
+            conversation.update_passing()
+
         passing_conversations = coder._get_passing_conversations()
         self.assertEqual(len(passing_conversations), 2)
-        self.assertEqual(passing_conversations[0].score, -2)  # The scores are inverted by the PriorityQueue
-        self.assertEqual(passing_conversations[1].score, -1)
+        self.assertEqual(passing_conversations[0].score, 2)  # The scores are inverted by the PriorityQueue
+        self.assertEqual(passing_conversations[1].score, 1)
 
     def test_some_conversations_passing(self,) -> None:
         """Test scenario where some conversations pass the analyzers."""
         coder = LLMCoder(log_conversation=False)
+        coder.conversations.pop()
+
         coder.conversations = PriorityQueue([
-            Conversation(1, [], [
+            Conversation(1, [
+                {'role': 'pytest', 'content': 'Test system message'},
+                {'role': 'pytest', 'content': 'Test user message'}
+            ], [
                 {},
                 {
                     "analyzer1": {"type": "critical", "pass": True},
                     "analyzer2": {"type": "critical", "pass": True},
                 }
             ]),
-            Conversation(0, [], [
+            Conversation(0, [
+                {'role': 'pytest', 'content': 'Test system message'},
+                {'role': 'pytest', 'content': 'Test user message'}
+            ], [
                 {},
                 {
                     "analyzer1": {"type": "critical", "pass": False},
@@ -165,22 +144,33 @@ class TestLLMCoder(unittest.TestCase):
             ]),
         ])
 
+        for conversation in coder.conversations:
+            conversation.update_passing()
+
         passing_conversations = coder._get_passing_conversations()
         self.assertEqual(len(passing_conversations), 1)
-        self.assertEqual(passing_conversations[0].score, -1)
+        self.assertEqual(passing_conversations[0].score, 1)
 
     def test_no_conversations_passing(self) -> None:
         """Test scenario where no conversations pass the analyzers."""
         coder = LLMCoder(log_conversation=False)
+        coder.conversations.pop()
+
         coder.conversations = PriorityQueue([
-            Conversation(-2, [], [
+            Conversation(-2, [
+                {'role': 'pytest', 'content': 'Test system message'},
+                {'role': 'pytest', 'content': 'Test user message'}
+            ], [
                 {},
                 {
                     "analyzer1": {"type": "critical", "pass": False},
                     "analyzer2": {"type": "critical", "pass": False},
                 }
             ]),
-            Conversation(-1, [], [
+            Conversation(-1, [
+                {'role': 'pytest', 'content': 'Test system message'},
+                {'role': 'pytest', 'content': 'Test user message'}
+            ], [
                 {},
                 {
                     "analyzer1": {"type": "critical", "pass": False},
@@ -188,6 +178,9 @@ class TestLLMCoder(unittest.TestCase):
                 }
             ]),
         ])
+
+        for conversation in coder.conversations:
+            conversation.update_passing()
 
         passing_conversations = coder._get_passing_conversations()
         self.assertEqual(len(passing_conversations), 0)
@@ -195,15 +188,23 @@ class TestLLMCoder(unittest.TestCase):
     def test_get_best_completion(self) -> None:
         """Test getting the best completion from the OpenAI API response."""
         coder = LLMCoder(log_conversation=False)
+        coder.conversations.pop()
+
         conversations = [
-            Conversation(-2, [{'role': 'pytest', 'content': 'Test message'}], [
+            Conversation(-2, [
+                {'role': 'pytest', 'content': 'Test system message'},
+                {'role': 'pytest', 'content': 'Test user message'}
+            ], [
                 {},
                 {
                     "analyzer1": {"type": "critical", "pass": False},
                     "analyzer2": {"type": "critical", "pass": False},
                 }
             ]),
-            Conversation(-1, [{'role': 'pytest', 'content': 'Better Test message'}], [
+            Conversation(-1, [
+                {'role': 'pytest', 'content': 'Test system message'},
+                {'role': 'pytest', 'content': 'Better Test message'}
+            ], [
                 {},
                 {
                     "analyzer1": {"type": "critical", "pass": False},
@@ -212,9 +213,21 @@ class TestLLMCoder(unittest.TestCase):
             ]),
         ]
 
+        for conversation in conversations:
+            conversation.update_passing()
+
         best_completion = coder._get_best_completion(conversations)
 
         self.assertEqual(best_completion, 'Better Test message')
+
+    @patch('openai.OpenAI')
+    def test_complete(self, mock_openai: MagicMock) -> None:
+        """Test the completion of a conversation."""
+        mock_openai.return_value.chat.completions.create.return_value = create_mock_openai_response('Test message')
+
+        coder = LLMCoder(log_conversation=False)
+        completion = coder.complete('Test prompt')
+        self.assertEqual(completion, 'Test message')
 
     @patch('llmcoder.llmcoder.get_conversations_dir', return_value='/tmp/conversations')
     @patch('llmcoder.llmcoder.datetime')
@@ -256,3 +269,125 @@ class TestLLMCoder(unittest.TestCase):
         coder = LLMCoder(log_conversation=False)
         # The conversations list is already empty as initialized in setUp
         self.assertFalse(coder._is_bad_completion("Any completion"))
+
+    @patch('openai.OpenAI')
+    def test_get_completions_for_feedback_n_equals_1(self, mock_openai: MagicMock) -> None:
+        """Test getting completions for feedback."""
+        mock_openai.return_value.chat.completions.create.return_value = create_mock_openai_response('Test message')
+
+        coder = LLMCoder(log_conversation=False)
+
+        _ = coder.conversations.pop()
+
+        # Add a conversation to the priority queue
+        coder.conversations.push(Conversation(score=10, messages=[
+            {"role": "user", "content": "Test system message"},
+            {"role": "user", "content": "Test user message"}
+        ]))
+
+        coder._get_completions_for(conversation=coder.conversations.pop(), n=1)
+
+        self.assertEqual(len(coder.conversations), 1)
+
+    @patch('openai.OpenAI')
+    def test_get_completions_for_feedback_n_equals_2(self, mock_openai: MagicMock) -> None:
+        """Test getting completions for feedback."""
+
+        def create_mock_openai_response_random() -> MockCompletionResponse:
+            random_string = ''.join(random.choices(string.ascii_uppercase + string.ascii_lowercase + string.digits, k=10))
+            return MockCompletionResponse(choices=[MockChoice(MockMessage(random_string + "A")), MockChoice(MockMessage(random_string + "B"))])
+
+        mock_openai.return_value.chat.completions.create.return_value = create_mock_openai_response_random()
+
+        coder = LLMCoder(log_conversation=False)
+
+        _ = coder.conversations.pop()
+
+        # Add a conversation to the priority queue
+        coder.conversations.push(Conversation(score=10, messages=[
+            {"role": "user", "content": "Test system message"},
+            {"role": "user", "content": "Test user message"}
+        ]))
+
+        print([c.messages for c in coder.conversations.queue])
+
+        coder._get_completions_for(conversation=coder.conversations.pop(), n=2)
+
+        self.assertEqual(len(coder.conversations), 2)
+
+    @patch('openai.OpenAI')
+    def test_get_completions_for_feedback_n_equals_2_bad_completion(self, mock_openai: MagicMock) -> None:
+        """Test getting completions for feedback with a bad completion."""
+        mock_openai.return_value.chat.completions.create.return_value = create_mock_openai_response('Repeated completion')
+
+        coder = LLMCoder(log_conversation=False)
+
+        _ = coder.conversations.pop()
+
+        # Add a conversation to the priority queue
+        coder.conversations.push(Conversation(score=10, messages=[
+            {"role": "user", "content": "Test system message"},
+            {"role": "user", "content": "Test user message"}
+        ]))
+
+        coder._get_completions_for(conversation=coder.conversations.pop(), n=2)
+
+        self.assertEqual(len(coder.conversations), 0)
+
+    def test_run_analyzers_separate(self) -> None:
+        """Test running the analyzers."""
+        mock_analyzer = MagicMock(analyze=MagicMock(return_value={'pass': True, 'type': 'critical'}))
+
+        coder = LLMCoder(log_conversation=False, feedback_variant="separate")
+
+        coder.analyzers = {"mock_analyzer": mock_analyzer}
+
+        code = "Test code"
+        completion = "Test completion"
+        results = coder._run_analyzers(code, completion)
+
+        mock_analyzer.analyze.assert_called_once_with(code, completion)
+        self.assertEqual(results, {'mock_analyzer': {'pass': True, 'type': 'critical'}})
+
+    def test_run_analyzers_coworker(self) -> None:
+        """Test running the analyzers."""
+        mock_analyzer_result = {'pass': True, 'type': 'critical'}
+        mock_analyzer = MagicMock(analyze=MagicMock(return_value=mock_analyzer_result))
+        mock_analyzer_2 = MagicMock(analyze=MagicMock(return_value={'pass': True, 'type': 'info', 'message': 'Test message'}))
+
+        coder = LLMCoder(log_conversation=False, feedback_variant="coworker")
+
+        coder.analyzers = {"mock_analyzer": mock_analyzer, "mock_analyzer_2": mock_analyzer_2}
+
+        code = "Test code"
+        completion = "Test completion"
+        results = coder._run_analyzers(code, completion)
+
+        self.assertEqual(results, {'mock_analyzer': {'pass': True, 'type': 'critical'}, 'mock_analyzer_2': {'pass': True, 'type': 'info', 'message': 'Test message'}})
+
+    def test_feedback_prompt_template(self) -> None:
+        """Test the feedback prompt template."""
+        coder = LLMCoder(log_conversation=False)
+
+        result_messages = ["A", "B", "C"]
+        feedback_prompt = coder._feedback_prompt_template(result_messages)
+
+        self.assertEqual(feedback_prompt, '[INST]\nA\nB\nC\n\nFix, improve and rewrite your completion for the following code:\n[/INST]\n')
+
+    @patch('openai.OpenAI')
+    def test_step(self, mock_openai: MagicMock) -> None:
+        """Test the step method."""
+        mock_openai.return_value.chat.completions.create.return_value = create_mock_openai_response('Test message')
+
+        coder = LLMCoder(log_conversation=False)
+
+        coder.conversations.pop()
+
+        coder.conversations.push(Conversation(score=10, messages=[
+            {"role": "user", "content": "Test system message"},
+            {"role": "user", "content": "Test user message"}
+        ], analyses=[{"analyzer1": {"pass": True, "type": "critical"}}]))
+
+        coder._step(code="Test code")
+
+        self.assertEqual(len(coder.conversations), 1)

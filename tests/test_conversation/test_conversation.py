@@ -15,11 +15,14 @@ class TestConversation(unittest.TestCase):
         self.assertEqual(conv.analyses, analyses)
         self.assertEqual(conv.path, path)
 
-    def test_invert_score(self) -> None:
-        """Test that invert_score method correctly inverts the score of the conversation."""
-        conv = Conversation(10, [], [])
-        inverted_conv = conv.invert_score()
-        self.assertEqual(inverted_conv.score, -10)
+    def test_copy(self) -> None:
+        """Test copying a conversation object."""
+        conv = Conversation(0, [{'id': '1', 'content': 'Hello'}])
+        conv_copy = conv.copy()
+        self.assertEqual(conv.score, conv_copy.score)
+        self.assertEqual(conv.messages, conv_copy.messages)
+        self.assertEqual(conv.analyses, conv_copy.analyses)
+        self.assertNotEqual(id(conv), id(conv_copy))
 
     def test_add_message(self) -> None:
         """Test adding a message to the conversation."""
@@ -48,20 +51,23 @@ class TestConversation(unittest.TestCase):
         conv.add_to_path(choice)
         self.assertIn(choice, conv.path)
 
+    def test_update_passing_true(self) -> None:
+        """Test updating the passing attribute of the conversation."""
+        conv = Conversation(0, [], [{'mypy_analyzer_v1': {'pass': True, 'type': 'critical'}}])
+        conv.update_passing()
+        self.assertTrue(conv.passing)
+
+    def test_update_passing_false(self) -> None:
+        """Test updating the passing attribute of the conversation."""
+        conv = Conversation(0, [], [{'mypy_analyzer_v1': {'pass': False, 'type': 'critical'}}])
+        conv.update_passing()
+        self.assertFalse(conv.passing)
+
     def test_get_last_message(self) -> None:
         """Test retrieving the last message from the conversation."""
         messages = [{'id': '1', 'content': 'First message'}, {'id': '2', 'content': 'Last message'}]
         conv = Conversation(0, messages)
         self.assertEqual(conv.get_last_message(), 'Last message')
-
-    def test_copy(self) -> None:
-        """Test copying a conversation object."""
-        conv = Conversation(0, [{'id': '1', 'content': 'Hello'}])
-        conv_copy = conv.copy()
-        self.assertEqual(conv.score, conv_copy.score)
-        self.assertEqual(conv.messages, conv_copy.messages)
-        self.assertEqual(conv.analyses, conv_copy.analyses)
-        self.assertNotEqual(id(conv), id(conv_copy))
 
     def test_comparison_operators(self) -> None:
         """Test the comparison operators for Conversation objects."""

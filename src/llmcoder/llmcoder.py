@@ -242,7 +242,7 @@ class LLMCoder:
         self.n_tokens_generated += sum([len(self.encoder.encode(message.message.content)) for message in candidates.choices])
 
         # Filter out completions that are repetitions of previous mistakes
-        valid_choices = [completion for completion in candidates.choices if not self._is_bad_completion(completion.message.content)]
+        valid_choices = list(set([completion for completion in candidates.choices if not self._is_bad_completion(completion.message.content)]))
 
         # If all completions are repetitions of previous mistakes, increase the temperature and the number of choices until we get a valid completion
         increased_temperature = temperature
@@ -261,7 +261,7 @@ class LLMCoder:
                 n=increased_n)  # type: ignore
 
             # Filter out completions that are repetitions of previous mistakes
-            valid_choices = [completion for completion in candidates.choices if not self._is_bad_completion(completion.message.content)]
+            valid_choices = list(set([completion for completion in candidates.choices if not self._is_bad_completion(completion.message.content)]))
 
             increased_temperature = min(2, increased_temperature + 0.1)
             increased_n = min(32, increased_n * 2)
