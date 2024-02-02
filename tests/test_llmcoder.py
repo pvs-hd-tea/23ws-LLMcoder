@@ -46,10 +46,6 @@ class TestLLMCoder(unittest.TestCase):
 
         self.enc = tiktoken.get_encoding('p50k_base')
 
-    def tearDown(self) -> None:
-        if os.path.isfile(self.key_file_path):
-            os.remove(self.key_file_path)
-
     @patch('llmcoder.llmcoder.get_openai_key', return_value='test_key')
     @patch('llmcoder.llmcoder.get_system_prompt', return_value='Test prompt')
     @patch('llmcoder.llmcoder.get_conversations_dir', return_value='/tmp/conversations')

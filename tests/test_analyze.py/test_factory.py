@@ -17,10 +17,6 @@ class TestAnalyzerFactory(unittest.TestCase):
             with open(self.key_file_path, "w") as f:
                 f.write("sk-mock_key")
 
-    def tearDown(self) -> None:
-        if os.path.isfile(self.key_file_path):
-            os.remove(self.key_file_path)
-
     def test_create_mypy_analyzer(self) -> None:
         analyzer = AnalyzerFactory.create_analyzer("mypy_analyzer_v1")
         self.assertIsInstance(analyzer, MypyAnalyzer)

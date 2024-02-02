@@ -32,10 +32,6 @@ class TestGPTScoreAnalyzer(unittest.TestCase):
         # Create an instance of GPTScoreAnalyzer
         self.analyzer = GPTScoreAnalyzer(client=self.mock_client)
 
-    def tearDown(self) -> None:
-        if os.path.isfile(self.key_file_path):
-            os.remove(self.key_file_path)
-
     def test_initialization(self) -> None:
         # Test default initialization
         default_analyzer = GPTScoreAnalyzer()

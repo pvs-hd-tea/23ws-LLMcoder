@@ -232,14 +232,17 @@ class LLMCoder:
         self.n_tokens_generated += sum([len(self.encoder.encode(message.message.content)) for message in candidates.choices])
 
         # Filter out completions that are repetitions of previous mistakes
-        valid_choices = list(set([completion for completion in candidates.choices if not self._is_bad_completion(completion.message.content)]))
+        valid_choices = [completion for completion in candidates.choices if not self._is_bad_completion(completion.message.content)]
+
+        # Remove duplicates
+        valid_unique_contents = list(set([choice.message.content for choice in valid_choices]))
 
         # If all completions are repetitions of previous mistakes, increase the temperature and the number of choices until we get a valid completion
         increased_temperature = temperature
         increased_n = n
         repetition = 0
 
-        while len(valid_choices) < n and repetition < max_retries:
+        while len(valid_unique_contents) < n and repetition < max_retries:
             if self.verbose:
                 print(f"[LLMcoder] All completions are repetitions of previous mistakes. Increasing temperature to {increased_temperature} and number of choices to {increased_n}... [repetition {repetition + 1}/{max_retries}]")
 
@@ -251,7 +254,10 @@ class LLMCoder:
                 n=increased_n)  # type: ignore
 
             # Filter out completions that are repetitions of previous mistakes
-            valid_choices = list(set([completion for completion in candidates.choices if not self._is_bad_completion(completion.message.content)]))
+            valid_choices = [completion for completion in candidates.choices if not self._is_bad_completion(completion.message.content)]
+
+            # Remove duplicates
+            valid_unique_contents = list(set([choice.message.content for choice in valid_choices]))
 
             increased_temperature = min(2, increased_temperature + 0.1)
             increased_n = min(32, increased_n * 2)
@@ -264,18 +270,18 @@ class LLMCoder:
             return None
 
         # Now that we have valid choices, run the analyzers on them in parallel and determine the best one
-        if n > 1 and len(valid_choices) > 1:
+        if n > 1 and len(valid_unique_contents) > 1:
             if self.verbose:
-                print(f"[LLMcoder] Analyzing {len(valid_choices)} completions...")
+                print(f"[LLMcoder] Analyzing {len(valid_unique_contents)} completions...")
 
             with ThreadPoolExecutor(max_workers=self.n_procs) as executor:
                 # Create a mapping of future to completion choice
                 choice_to_future = {
-                    i: executor.submit(self._run_analyzers, conversation.messages[1]["content"], choice.message.content)
-                    for i, choice in enumerate(valid_choices)}
+                    i: executor.submit(self._run_analyzers, conversation.messages[1]["content"], content)
+                    for i, content in enumerate(valid_unique_contents)}
 
                 # Retrieve results in the order of valid_choices
-                for i in range(len(valid_choices)):
+                for i in range(len(valid_unique_contents)):
                     future = choice_to_future[i]
                     try:
                         # Update the analyzer results history with the results of total completion
@@ -286,7 +292,7 @@ class LLMCoder:
                                                 .copy()
                                                 .set_score(analysis_score)
                                                 .add_analysis(analysis)
-                                                .add_message({'role': 'assistant', 'content': valid_choices[i].message.content})
+                                                .add_message({'role': 'assistant', 'content': valid_unique_contents[i]})
                                                 .update_passing()
                                                 .add_to_path(choice=i))
                     except Exception as e:
@@ -298,7 +304,7 @@ class LLMCoder:
         else:
             if self.verbose:
                 print("[LLMcoder] Analyzing completion...")
-            analysis = self._run_analyzers(conversation.messages[1]["content"], valid_choices[0].message.content)
+            analysis = self._run_analyzers(conversation.messages[1]["content"], valid_unique_contents[0])
             analysis_score = sum([results["score"] for results in analysis.values()])
 
             # There is only one valid choice
@@ -307,7 +313,7 @@ class LLMCoder:
                                     .copy()
                                     .set_score(analysis_score)
                                     .add_analysis(analysis)
-                                    .add_message({'role': 'assistant', 'content': valid_choices[0].message.content})
+                                    .add_message({'role': 'assistant', 'content': valid_unique_contents[0]})
                                     .update_passing()
                                     .add_to_path(choice=0))
 
