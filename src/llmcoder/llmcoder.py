@@ -36,16 +36,18 @@ class LLMCoder:
     verbose : bool, optional
         Whether to print verbose output, by default True
     """
-    def __init__(self,
-                 analyzers: list[str] = None,
-                 model_first: str = "ft:gpt-3.5-turbo-1106:personal::8LCi9Q0d",
-                 model_feedback: str = "ft:gpt-3.5-turbo-1106:personal::8LCi9Q0d",
-                 feedback_variant: str = "coworker",
-                 system_prompt: str | None = None,
-                 max_iter: int = 10,
-                 log_conversation: bool = True,
-                 n_procs: int = 1,
-                 verbose: bool = True) -> None:
+    def __init__(
+            self,
+            analyzers: list[str] = None,
+            model_first: str = "ft:gpt-3.5-turbo-1106:personal::8LCi9Q0d",
+            model_feedback: str = "ft:gpt-3.5-turbo-1106:personal::8LCi9Q0d",
+            feedback_variant: str = "coworker",
+            system_prompt: str | None = None,
+            max_iter: int = 10,
+            backtracking: bool = True,
+            log_conversation: bool = True,
+            n_procs: int = 1,
+            verbose: bool = True) -> None:
 
         # Check for invalid feedback variants
         if feedback_variant not in ["separate", "coworker"]:
@@ -61,6 +63,7 @@ class LLMCoder:
         self.n_tokens_generated = 0
         self.encoder = tiktoken.get_encoding("p50k_base")
         self.max_iter = max_iter
+        self.backtracking = backtracking
         self.messages: list[dict[str, str]] = []
 
         # Set up the analyzers
@@ -94,17 +97,6 @@ class LLMCoder:
         self.verbose = verbose
 
         self._reset_loop()
-
-    def _get_passing_conversations(self) -> list[Conversation]:
-        """
-        Get the conversations that passed all the analyzers
-
-        Returns
-        -------
-        list[Conversation]
-            The conversations that passed all the analyzers
-        """
-        return [c for c in self.conversations if c.passing]
 
     def _get_best_completion(self, conversations: list[Conversation]) -> str:
         """
@@ -152,11 +144,10 @@ class LLMCoder:
         self._step(code=code, temperature=temperature, meta_temperature=meta_temperature, n=n)
 
         # If the first completion is already correct, return it
-        passing_conversations = self._get_passing_conversations()
-        if len(passing_conversations) > 0:
+        if len(self.conversations.passing_conversations) > 0:
             if self.verbose:
                 print("[LLMcoder] First completion is correct. Stopping early...")
-            return self._get_best_completion(passing_conversations)
+            return self._get_best_completion(self.conversations.passing_conversations)
 
         # Otherwise, start the feedback loop (but only if there are analyzers that can be used)
         if self.verbose:
@@ -171,11 +162,10 @@ class LLMCoder:
                 self._step(code=code, temperature=temperature, meta_temperature=meta_temperature, n=n)
 
                 # If the code is correct, stop the feedback loop
-                passing_conversations = self._get_passing_conversations()
-                if len(passing_conversations) > 0:
+                if len(self.conversations.passing_conversations) > 0:
                     if self.verbose:
                         print("[LLMcoder] Code is correct. Stopping early...")
-                    return self._get_best_completion(passing_conversations)
+                    return self._get_best_completion(self.conversations.passing_conversations)
 
         # No conversation passes, so just return the best completion
         return self._get_best_completion(self.conversations)
@@ -335,7 +325,8 @@ class LLMCoder:
                 score=0,  # Score does not matter here because we pop the conversation with the highest score anyway
                 messages=[{
                     "role": "system",
-                    "content": self.system_prompt}]))
+                    "content": self.system_prompt}]),
+            backtracking=self.backtracking)
 
     def _run_analyzers(self, code: str, completion: str) -> dict[str, dict]:
         """

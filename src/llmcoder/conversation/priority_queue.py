@@ -6,11 +6,28 @@ from llmcoder.conversation import Conversation
 
 
 class PriorityQueue:
-    def __init__(self, conversations: Conversation | list[Conversation] | None = None):
+    def __init__(self, conversations: Conversation | list[Conversation] | None = None, backtracking: bool = True):
         self.queue: list[Conversation] = []
+        self.backtracking = backtracking
 
         if conversations is not None:
             self.push(conversations)
+
+    @property
+    def passing_conversations(self) -> list[Conversation]:
+        return [c for c in self.queue if c.passing]
+
+    def remove_unrelated_branches(self, conversation: Conversation) -> None:
+        """
+        Remove unrelated branches from the priority queue
+
+        Parameters
+        ----------
+        conversation : Conversation
+            The conversation to be used as a reference for removing unrelated branches
+        """
+        # Remove all conversations that are not related to the current conversation
+        self.queue = [c for c in self.queue if c in conversation]  # Overloaded __contains__ in Conversation
 
     def push(self, conversation: Conversation | list[Conversation]) -> None:
         """
@@ -57,10 +74,20 @@ class PriorityQueue:
 
         # If keep, return the conversation without removing it from the queue
         if keep:
-            return self.queue[index]
+            chosen_conversation = self.queue[index]
+
+            if not self.backtracking:
+                self.remove_unrelated_branches(chosen_conversation)
+
+            return chosen_conversation
 
         # Otherwise, return the conversation and remove it from the queue
-        return self.queue.pop(index)
+        chosen_conversation = self.queue.pop(index)
+
+        if not self.backtracking:
+            self.remove_unrelated_branches(chosen_conversation)
+
+        return chosen_conversation
 
     def get_probabilities(self, temperature: float = 0.0) -> np.ndarray:
         """
@@ -105,6 +132,9 @@ class PriorityQueue:
 
     def __iter__(self) -> Iterator[Conversation]:
         return self.queue.__iter__()
+
+    def __getitem__(self, index: int) -> Conversation:
+        return self.queue[index]
 
 
 def softmax(x: list | np.ndarray, temperature: float = 1.0) -> np.ndarray:

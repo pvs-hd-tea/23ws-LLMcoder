@@ -66,3 +66,14 @@ class Conversation:
 
     def __le__(self, rhs_conversation: "Conversation") -> bool:
         return self.score <= rhs_conversation.score
+
+    def __contains__(self, rhs_conversation: "Conversation") -> bool:
+        # Check if the path of the rhs_conversation is a subpath of the path of the lhs_conversation
+        if len(rhs_conversation.path) > len(self.path):
+            return False
+
+        for i in range(len(rhs_conversation.path)):
+            if rhs_conversation.path[i] != self.path[i]:
+                return False
+
+        return True

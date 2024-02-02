@@ -77,7 +77,14 @@ class TestConversation(unittest.TestCase):
         self.assertTrue(conv1 >= conv2)
         self.assertFalse(conv1 < conv2)
         self.assertFalse(conv1 <= conv2)
-        # Fixing the __le__ method test
         conv3 = Conversation(10, [])
-        self.assertTrue(conv1 >= conv3)  # This should pass given the correct implementation
-        self.assertFalse(conv1 <= conv2)  # This should fail given the incorrect implementation in __le__
+        self.assertTrue(conv1 >= conv3)
+        self.assertFalse(conv1 <= conv2)
+
+    def test_contains(self) -> None:
+        """Test the __contains__ method for Conversation objects."""
+        conv1 = Conversation(10, [], path=['R'])
+        conv2 = Conversation(5, [], path=['R', 1])
+
+        self.assertTrue(conv1 in conv2)
+        self.assertFalse(conv2 in conv1)
