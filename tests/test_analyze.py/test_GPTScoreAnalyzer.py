@@ -1,12 +1,13 @@
 # Generated with GPT-4 under supervision
 
+import os
 import unittest
 from unittest.mock import MagicMock, patch
 
 import numpy as np
 from openai import OpenAI
 
-from llmcoder.analyze.GPTScoreAnalyzer import GPTScoreAnalyzer
+from llmcoder.analyze.gpt_score_analyzer import GPTScoreAnalyzer
 
 
 class TestGPTScoreAnalyzer(unittest.TestCase):
@@ -14,6 +15,12 @@ class TestGPTScoreAnalyzer(unittest.TestCase):
     def setUp(self) -> None:
         # Mock the OpenAI client
         self.mock_client = MagicMock(spec=OpenAI, chat=MagicMock(completions=MagicMock(create=MagicMock())))
+
+        # FIXME: Use a mock instead of a real file. This currently fails because the get_openai_key is not patched correctly.
+        self.key_file_path = os.path.join(os.path.dirname(__file__), '..', '..', 'key.txt')
+        if not os.path.isfile(self.key_file_path):
+            with open(self.key_file_path, "w") as f:
+                f.write("sk-mock_key")
 
         # Set up the nested attributes and methods
         # Assuming 'chat' has a 'completions' attribute which in turn has a 'create' method
@@ -43,7 +50,7 @@ class TestGPTScoreAnalyzer(unittest.TestCase):
         expected_prompt = "Code snippet 1:\n```python\nprint('Hello, World!')\n```\n\nCode snippet 2:\n```python\nx = 5\n```\n\n"
         self.assertEqual(self.analyzer.score_prompt(code_list), expected_prompt)
 
-    @patch('llmcoder.analyze.GPTScoreAnalyzer.GPTScoreAnalyzer.score_prompt')
+    @patch('llmcoder.analyze.gpt_score_analyzer.GPTScoreAnalyzer.score_prompt')
     def test_score_code(self, mock_score_prompt: MagicMock) -> None:
         mock_score_prompt.return_value = "Mocked prompt"
 
@@ -52,7 +59,7 @@ class TestGPTScoreAnalyzer(unittest.TestCase):
         self.assertTrue(isinstance(scores, np.ndarray))
         self.assertEqual(scores.shape, (1,))
 
-    @patch('llmcoder.analyze.GPTScoreAnalyzer.GPTScoreAnalyzer.score_prompt')
+    @patch('llmcoder.analyze.gpt_score_analyzer.GPTScoreAnalyzer.score_prompt')
     def test_score_code_multi(self, mock_score_prompt: MagicMock) -> None:
         # Mock the OpenAI client
         mock_client = MagicMock(spec=OpenAI, chat=MagicMock(completions=MagicMock(create=MagicMock())))
@@ -92,19 +99,17 @@ class TestGPTScoreAnalyzer(unittest.TestCase):
             analyzer.score_code("print('Hello, World!')")
 
     def test_analyze(self) -> None:
-        # Mock score_code to return a fixed value
-        self.analyzer.score_code = MagicMock(return_value=np.array([1.0]))
+        with patch.object(self.analyzer, 'score_code', return_value=np.array([1.0])) as _:
+            result = self.analyzer.analyze("input", "completion")
+            expected_result = {
+                "type": "score",
+                "score": 1.0,
+                "pass": True,
+                "message": ""
+            }
+            self.assertEqual(result, expected_result)
 
-        result = self.analyzer.analyze("input", "completion")
-        expected_result = {
-            "type": "score",
-            "score": 1.0,
-            "pass": True,
-            "message": ""
-        }
-        self.assertEqual(result, expected_result)
-
-        # Test with invalid reduction method
-        with self.assertRaises(ValueError):
-            self.analyzer.reduction = None
-            self.analyzer.analyze("input", "completion")
+            # Test with invalid reduction method
+            with self.assertRaises(ValueError):
+                self.analyzer.reduction = None
+                self.analyzer.analyze("input", "completion")

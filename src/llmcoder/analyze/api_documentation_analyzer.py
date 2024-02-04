@@ -5,7 +5,7 @@ import re
 from types import ModuleType
 from typing import Any
 
-from llmcoder.analyze.Analyzer import Analyzer
+from llmcoder.analyze.analyzer import Analyzer
 
 
 class APIDocumentationAnalyzer(Analyzer):

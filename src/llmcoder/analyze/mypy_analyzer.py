@@ -3,7 +3,7 @@ import re
 import subprocess
 import tempfile
 
-from llmcoder.analyze.Analyzer import Analyzer
+from llmcoder.analyze.analyzer import Analyzer
 
 
 class MypyAnalyzer(Analyzer):
@@ -28,6 +28,7 @@ class MypyAnalyzer(Analyzer):
                 install_stubs: bool = True,
                 mypy_args: list[str] | None = None,
                 context: dict[str, dict[str, float | int | str]] | None = None) -> dict:
+
         """
         Analyzes the completion using mypy.
 
@@ -103,9 +104,6 @@ class MypyAnalyzer(Analyzer):
                     filtered_result.append(line)
             else:
                 filtered_result.append(line)
-
-            if self.verbose:
-                print(f"[MyPyJediAnalyzer] Mypy Error: {line}")
 
         # Replace the temp file name with "your completion". This helps the LLM understand that the error is caused by its completion.
         filtered_result = [line.replace(temp_file_name, "your completion") for line in filtered_result]

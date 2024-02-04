@@ -1,7 +1,7 @@
 import numpy as np
 from openai import OpenAI
 
-from llmcoder.analyze.Analyzer import Analyzer
+from llmcoder.analyze.analyzer import Analyzer
 from llmcoder.utils import get_openai_key, get_system_prompt
 
 
