@@ -63,7 +63,7 @@ llmcoder = LLMcoder(
     feedback_variant="coworker",  # Make context available to all analyzers
     max_iter=3,  # Maximum number of feedback iterations
     n_procs=4  # Complete and analyze in parallel
-    backtracking: bool = True, # Enable backtracking in the tree of completions
+    backtracking=True, # Enable backtracking in the tree of completions
     verbose=True  # Print progress
 )
 
