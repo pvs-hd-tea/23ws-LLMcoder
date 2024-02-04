@@ -1,8 +1,12 @@
 import re
 
 import jedi
+import numpy as np
+import openai
+from langchain_community.embeddings import GPT4AllEmbeddings
 
 from llmcoder.analyze.Analyzer import Analyzer
+from llmcoder.utils import get_openai_key
 
 
 class HallucinationAnalyzer(Analyzer):
@@ -20,6 +24,9 @@ class HallucinationAnalyzer(Analyzer):
             Whether to print debug messages.
         """
         super().__init__(verbose)
+        self.client = openai.OpenAI(api_key=get_openai_key())
+        # self.gpt4al = ""
+        self.gpt4all = GPT4AllEmbeddings()
 
     def analyze(self, input: str, completion: str, context: dict[str, dict[str, float | int | str]] | None = None) -> dict:
         """
@@ -75,7 +82,13 @@ class HallucinationAnalyzer(Analyzer):
                                 try:  # https://www.phind.com/search?cache=ey5i26k2mr5wuezcjx9tzkaf
                                     suggested_attributes = script.complete_search(module_of_hallucinated_attribute + '.')
                                     n_total_suggestions += len(suggested_attributes)
+
+                                    hallucinated_embedding = self.client.embeddings.create(input=[module_matches[0][-1]], model="text-embedding-3-small")
+                                    suggested_attributes_embeddings = [self.client.embeddings.create(input=[suggested_attribute.full_name.split('.')[-1]], model="text-embedding-3-small").data[0].embedding for suggested_attribute in suggested_attributes if isinstance(suggested_attribute.full_name, str)]
+                                    suggested_attributes_similarities = sorted([np.dot(hallucinated_embedding, embedding) for embedding in suggested_attributes_embeddings], reverse=True)  # noqa: F841
+
                                 except AttributeError:
+                                    print(AttributeError)
                                     continue
                             else:
                                 module_of_hallucinated_attribute = None
