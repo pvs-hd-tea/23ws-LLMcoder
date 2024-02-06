@@ -21,3 +21,4 @@ scores: [
 ]
 n_choices: 3
 n_procs: 3
+backtracking: false

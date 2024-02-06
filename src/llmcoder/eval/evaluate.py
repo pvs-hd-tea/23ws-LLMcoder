@@ -190,6 +190,7 @@ class Evaluation:
                     feedback_variant=config.get('feedback_variant'),
                     system_prompt=config.get('system_prompt'),
                     max_iter=config.get('max_iter'),
+                    backtracking=config.get('backtracking'),
                     log_conversation=config.get('log_conversation'),
                     n_procs=config.get('n_procs'),
                     verbose=True
