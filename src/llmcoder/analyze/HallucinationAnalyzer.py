@@ -25,7 +25,6 @@ class HallucinationAnalyzer(Analyzer):
         """
         super().__init__(verbose)
         self.client = openai.OpenAI(api_key=get_openai_key())
-        # self.gpt4al = ""
         self.gpt4all = GPT4AllEmbeddings()
 
     def analyze(self, input: str, completion: str, context: dict[str, dict[str, float | int | str]] | None = None) -> dict:
@@ -83,8 +82,13 @@ class HallucinationAnalyzer(Analyzer):
                                     suggested_attributes = script.complete_search(module_of_hallucinated_attribute + '.')
                                     n_total_suggestions += len(suggested_attributes)
 
+                                    # Get the embeddings of the hallucinated attribute and the suggested attributes
                                     hallucinated_embedding = self.client.embeddings.create(input=[module_matches[0][-1]], model="text-embedding-3-small")
+
+                                    # create a list of embeddings for the suggested attributes
                                     suggested_attributes_embeddings = [self.client.embeddings.create(input=[suggested_attribute.full_name.split('.')[-1]], model="text-embedding-3-small").data[0].embedding for suggested_attribute in suggested_attributes if isinstance(suggested_attribute.full_name, str)]
+
+                                    # calculate the similarity between the hallucinated attribute and the suggested attributes
                                     suggested_attributes_similarities = sorted([np.dot(hallucinated_embedding, embedding) for embedding in suggested_attributes_embeddings], reverse=True)  # noqa: F841
 
                                 except AttributeError:
