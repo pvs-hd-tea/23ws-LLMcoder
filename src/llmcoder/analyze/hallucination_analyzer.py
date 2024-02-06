@@ -2,7 +2,7 @@ import re
 
 import jedi
 
-from llmcoder.analyze.Analyzer import Analyzer
+from llmcoder.analyze.analyzer import Analyzer
 
 
 class HallucinationAnalyzer(Analyzer):

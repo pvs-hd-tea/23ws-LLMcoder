@@ -5,7 +5,7 @@ import re
 from types import ModuleType
 from typing import Any
 
-from llmcoder.analyze.Analyzer import Analyzer
+from llmcoder.analyze.analyzer import Analyzer
 
 
 class APIDocumentationAnalyzer(Analyzer):
@@ -264,9 +264,8 @@ class APIDocumentationAnalyzer(Analyzer):
 
         if spec is not None:
             module: ModuleType | str = importlib.util.module_from_spec(spec)
-            if module is not None:
-                spec.loader.exec_module(module)
-                print(f"Module: \n{module}\n\n")
-                return module
+            spec.loader.exec_module(module)
 
-        return package
+            return module
+        else:
+            raise ModuleNotFoundError(f"No module named '{package}'")

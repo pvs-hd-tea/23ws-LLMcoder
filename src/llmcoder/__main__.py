@@ -61,9 +61,9 @@ def main() -> None:
             preprocessor.validate_conversations(conversations)
             preprocessor.save_conversations(conversations)
         case 'complete':
-            from llmcoder.LLMCoder import LLMCoder
+            from llmcoder.llmcoder import LLMCoder
 
-            llmcoder = LLMCoder(log_conversation=args.log)
+            llmcoder = LLMCoder(analyzers=["mypy_analyzer_v1", "jedi_analyzer_v1"], feedback_variant="coworker", log_conversation=args.log, verbose=True)
 
             if args.file:
                 with open(args.file, 'r') as file:

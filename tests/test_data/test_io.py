@@ -34,8 +34,12 @@ class TestReadDataFromPairs(unittest.TestCase):
 
 class TestReadDataFromConversationsFile(unittest.TestCase):
 
+    def tearDown(self) -> None:
+        # Remove the test file
+        os.remove("./test_conversations.jsonl")
+
     def test_read_data_from_conversations_file(self) -> None:
-        test_file = "test_conversations.jsonl"
+        test_file = "./test_conversations.jsonl"
         # Create the test file
         with open(test_file, "w") as f:
             f.write(json.dumps({"messages": [{"role": "system", "content": "test_system"},

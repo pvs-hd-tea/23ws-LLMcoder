@@ -3,7 +3,7 @@ import re
 import subprocess
 import tempfile
 
-from llmcoder.analyze.Analyzer import Analyzer
+from llmcoder.analyze.analyzer import Analyzer
 
 
 class MypyAnalyzer(Analyzer):
@@ -28,6 +28,7 @@ class MypyAnalyzer(Analyzer):
                 install_stubs: bool = True,
                 mypy_args: list[str] | None = None,
                 context: dict[str, dict[str, float | int | str]] | None = None) -> dict:
+
         """
         Analyzes the completion using mypy.
 
