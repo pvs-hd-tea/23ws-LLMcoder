@@ -190,6 +190,7 @@ class Evaluation:
                     feedback_variant=config.get('feedback_variant'),
                     system_prompt=config.get('system_prompt'),
                     max_iter=config.get('max_iter'),
+                    backtracking=config.get('backtracking'),
                     log_conversation=config.get('log_conversation'),
                     n_procs=config.get('n_procs'),
                     verbose=True
@@ -208,11 +209,13 @@ class Evaluation:
 
             # Add the results to the results list
             results[input_id] = {}
-            results[input_id]['messages'] = llmcoder.messages
-            results[input_id]['analyzer_results'] = llmcoder.analyzer_results_history
+            results[input_id]['messages'] = llmcoder.conversations.pop(keep=True).messages
+            results[input_id]['analyzer_results'] = llmcoder.conversations.pop(keep=True).analyses
             results[input_id]['log'] = f.getvalue()
             results[input_id]['time'] = time_end - time_start
             results[input_id]['n_tokens_generated'] = llmcoder.n_tokens_generated
+
+            time.sleep(1)  # Avoid API rate limits
 
         return results
 
@@ -247,21 +250,13 @@ class Metrics:
         configs : Dynaconf | list[Dynaconf], optional
             The configuration object from Dynaconf.
         """
-        # Check if the configuration is correct.
-        if configs is not None:
-            if isinstance(configs, Dynaconf):
-                check_config(configs)
-            else:
-                for config in configs:
-                    check_config(config)
-
         if configs is None:
             # Load all configurations from the config directory
             self.configs = [
                 Dynaconf(settings_files=[os.path.join(get_config_dir(), config)])
                 for config in sorted(os.listdir(get_config_dir())) if config.endswith('.yaml')]
         elif isinstance(configs, Dynaconf):
-            self.configs = [self.configs]
+            self.configs = [configs]
         elif isinstance(configs, str):
             # Check if the config file exists
             if not os.path.exists(os.path.join(get_config_dir(), configs)):
@@ -269,6 +264,10 @@ class Metrics:
             self.configs = [Dynaconf(settings_files=[os.path.join(get_config_dir(), configs)])]
         else:
             self.configs = configs
+
+        # Check if the configuration is correct.
+        for config in self.configs:
+            check_config(config)
 
         # Check if the datasets exists
         for config in self.configs:

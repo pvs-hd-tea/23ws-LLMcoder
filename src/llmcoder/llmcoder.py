@@ -204,7 +204,17 @@ class LLMCoder:
 
         return False
 
-    def _get_completions_for(self, conversation: Conversation, model: str = 'gpt-3.5-turbo', temperature: float = 0.7, n: int = 1, max_retries: int = 10) -> None:
+    def _get_completions_for(
+            self,
+            conversation: Conversation,
+            model: str = 'gpt-3.5-turbo',
+            temperature: float = 0.7,
+            n: int = 1,
+            max_retries: int = 5,
+            delta_temperature: float = 0.2,
+            max_temperature: float = 2,
+            factor_n: int = 2,
+            max_n: int = 32) -> None:
         """
         Use OpenAI's API to get completion(s) for the user's code for a given conversation
 
@@ -219,14 +229,26 @@ class LLMCoder:
         n : int, optional
             The number of choices to generate, by default 1
         max_retries : int, optional
-            The maximum number of retries to get a valid completion, by default 10
+            The maximum number of retries to get a valid completion, by default 5
+        delta_temperature : float, optional
+            The amount to increase the temperature in case of repeated mistakes, by default 0.2
+        max_temperature : float, optional
+            The maximum temperature to use, by default 2
+        factor_n : int, optional
+            The factor to increase the number of choices in case of repeated mistakes, by default 2
+        max_n : int, optional
+            The maximum number of choices to use, by default 32
         """
+        total_generate_candidates = 0
+
         # Get the completions from OpenAI's API
         candidates = self.client.chat.completions.create(
             messages=conversation.messages,
             model=model,
             temperature=temperature,
             n=n)  # type: ignore
+
+        total_generate_candidates += len(candidates.choices)
 
         # Count the number of tokens generated
         self.n_tokens_generated += sum([len(self.encoder.encode(message.message.content)) for message in candidates.choices])
@@ -244,7 +266,7 @@ class LLMCoder:
 
         while len(valid_unique_contents) < n and repetition < max_retries:
             if self.verbose:
-                print(f"[LLMcoder] All completions are repetitions of previous mistakes. Increasing temperature to {increased_temperature} and number of choices to {increased_n}... [repetition {repetition + 1}/{max_retries}]")
+                print(f"[LLMcoder] Found {total_generate_candidates - len(valid_choices)} repeated mistakes, {len(valid_choices) - len(valid_unique_contents)} duplicates. Increasing temperature to {increased_temperature:.1f} and number of choices to {increased_n}... [repetition {repetition + 1}/{max_retries}]")
 
             # Sample new candidates
             candidates = self.client.chat.completions.create(
@@ -253,20 +275,23 @@ class LLMCoder:
                 temperature=increased_temperature,
                 n=increased_n)  # type: ignore
 
+            total_generate_candidates += len(candidates.choices)
+
+            # Add the new completions to the list of valid completions
             # Filter out completions that are repetitions of previous mistakes
-            valid_choices = [completion for completion in candidates.choices if not self._is_bad_completion(completion.message.content)]
+            valid_choices += [completion for completion in candidates.choices if not self._is_bad_completion(completion.message.content)]
 
             # Remove duplicates
             valid_unique_contents = list(set([choice.message.content for choice in valid_choices]))
 
-            increased_temperature = min(2, increased_temperature + 0.1)
-            increased_n = min(32, increased_n * 2)
+            increased_temperature = min(max_temperature, increased_temperature + delta_temperature)
+            increased_n = min(max_n, increased_n * factor_n)
             repetition += 1
 
         # If we still do not have valid choices, abort
-        if repetition >= max_retries:
+        if len(valid_unique_contents) == 0 and repetition >= max_retries:
             if self.verbose:
-                print("[LLMcoder] All completions are repetitions of previous mistakes. Aborting...")
+                print("[LLMcoder] Could not generate valid completions. Aborting...")
             return None
 
         # Now that we have valid choices, run the analyzers on them in parallel and determine the best one

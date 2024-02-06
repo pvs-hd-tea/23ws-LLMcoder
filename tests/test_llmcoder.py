@@ -223,7 +223,7 @@ class TestLLMCoder(unittest.TestCase):
 
         coder._get_completions_for(conversation=coder.conversations.pop(), n=2)
 
-        self.assertEqual(len(coder.conversations), 0)
+        self.assertEqual(len(coder.conversations), 1)  # The duplicate "Repeated completion" should be removed and only one completion should be added
 
     def test_run_analyzers_separate(self) -> None:
         """Test running the analyzers."""
