@@ -1,3 +1,5 @@
+import re
+
 import numpy as np
 from openai import OpenAI
 
@@ -90,9 +92,21 @@ class GPTScoreAnalyzer(Analyzer):
                 "content": self.score_prompt(code)
             }
         ]
-        completions = self.client.chat.completions.create(messages=messages, model="gpt-3.5-turbo", temperature=0)
+        response = self.client.chat.completions.create(messages=messages, model="gpt-3.5-turbo", temperature=0).choices[0].message.content
 
-        lines = completions.choices[0].message.content.split("\n")
+        # Remove special characters except for :, ., and \n
+        response = re.sub(r"[^a-zA-Z0-9:.\n\s]", "", response)
+
+        lines = response.split("\n")
+
+        # Remove empty lines
+        lines = [line for line in lines if line]
+
+        # HACK: Parsing this response is not very robust
+
+        # Remove leading lines until a line contains "Code snippet" or "Code Quality"
+        while not lines[0].startswith("Code snippet") and not lines[0].startswith("Code Quality"):
+            lines.pop(0)
 
         # Extract the scores from the response
         scores: list[float | list[float]] = []
@@ -105,7 +119,7 @@ class GPTScoreAnalyzer(Analyzer):
                         try:
                             scores_for_snippet.append(float(lines[i + j + 1][lines[i + j + 1].index(":") + 1:]))
                         except ValueError:
-                            print(f"[Scoring] Error while scoring code. Expected float, got: {completions.choices[0].message.content}")
+                            print(f"[Scoring] Error while scoring code. Expected float, got: {lines[i + j + 1]}")
                             scores_for_snippet.append(np.nan)
                     scores.append(scores_for_snippet)
         elif len(code) == 1:
@@ -115,7 +129,7 @@ class GPTScoreAnalyzer(Analyzer):
                     scores.append(float(lines[i][lines[i].index(":") + 1:]))
                 except ValueError:
                     if self.verbose:
-                        print(f"[Scoring] Error while scoring code. Expected float, got: {completions.choices[0].message.content}")
+                        print(f"[Scoring] Error while scoring code. Expected float, got: {lines[i]}")
                     scores.append(np.nan)
 
         scores_array = np.atleast_2d(np.array(scores))
