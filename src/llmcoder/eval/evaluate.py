@@ -44,36 +44,41 @@ def check_config(config: Dynaconf) -> bool:
 
 
 class Evaluation:
-    def __init__(self, configs: Dynaconf | list[Dynaconf] | None = None):
+    def __init__(self, configs: Dynaconf | list[Dynaconf] | str | list[str] | None = None):
         """
-        Initialize the Evaluation with a Dynaconf configuration.
+        Initialize the Evaluation with a configuration or list of configurations.
 
         Parameters
         ----------
-        configs : Dynaconf | list[Dynaconf], optional
-            The configuration object from Dynaconf.
+        configs : Dynaconf | list[Dynaconf] | str | list[str] | None, optional
+            The configuration object(s) from Dynaconf or path(s) to configuration file(s).
         """
         if configs is None:
-            # Load all configurations from the config directory
             self.configs = [
                 Dynaconf(settings_files=[os.path.join(get_config_dir(), config)])
                 for config in sorted(os.listdir(get_config_dir())) if config.endswith('.yaml')]
         elif isinstance(configs, Dynaconf):
             self.configs = [configs]
         elif isinstance(configs, str):
-            # Check if the config file exists
-            if not os.path.exists(os.path.join(get_config_dir(), configs)):
-                raise FileNotFoundError(f'Config file not found at {os.path.join(get_config_dir(), configs)}')
             self.configs = [Dynaconf(settings_files=[os.path.join(get_config_dir(), configs)])]
+        elif isinstance(configs, list):
+            self.configs = []
+            for config in configs:
+                if isinstance(config, Dynaconf):
+                    self.configs.append(config)
+                elif isinstance(config, str):
+                    config_path = os.path.join(get_config_dir(), config)
+                    if not os.path.exists(config_path):
+                        raise FileNotFoundError(f'Config file not found at {config_path}')
+                    self.configs.append(Dynaconf(settings_files=[config_path]))
+                else:
+                    raise ValueError(f'Unsupported config type: {type(config)}')
         else:
-            self.configs = configs
+            raise ValueError(f'Unsupported config type: {type(configs)}')
 
-        # Check if the configuration is correct.
+        # Check if the configuration and datasets are correct.
         for config in self.configs:
             check_config(config)
-
-        # Check if the datasets exists
-        for config in self.configs:
             dataset_path = os.path.abspath(os.path.join(get_data_dir(config.get("dataset")), 'conversations.jsonl'))
             if not os.path.exists(dataset_path):
                 raise FileNotFoundError(f'Dataset not found at {dataset_path}')
@@ -241,35 +246,44 @@ class Evaluation:
 
 
 class Metrics:
-    def __init__(self, configs: Dynaconf | list[Dynaconf] | None = None):
+    def __init__(self, configs: Dynaconf | list[Dynaconf] | str | list[str] | None = None):
         """
-        Initialize the Metrics with a Dynaconf configuration.
+        Initialize the Metrics with a Dynaconf configuration or path to configurations.
 
         Parameters
         ----------
-        configs : Dynaconf | list[Dynaconf], optional
-            The configuration object from Dynaconf.
+        configs : Dynaconf | list[Dynaconf] | str | list[str], optional
+            The configuration object(s) from Dynaconf, or path(s) to configuration files.
         """
         if configs is None:
             # Load all configurations from the config directory
             self.configs = [
                 Dynaconf(settings_files=[os.path.join(get_config_dir(), config)])
                 for config in sorted(os.listdir(get_config_dir())) if config.endswith('.yaml')]
-        elif isinstance(configs, Dynaconf):
-            self.configs = [configs]
-        elif isinstance(configs, str):
-            # Check if the config file exists
-            if not os.path.exists(os.path.join(get_config_dir(), configs)):
-                raise FileNotFoundError(f'Config file not found at {os.path.join(get_config_dir(), configs)}')
-            self.configs = [Dynaconf(settings_files=[os.path.join(get_config_dir(), configs)])]
+        elif isinstance(configs, (Dynaconf, str)):
+            configs = [configs]
+
+        if isinstance(configs, list):
+            processed_configs = []
+            for config in configs:
+                if isinstance(config, str):
+                    config_path = os.path.join(get_config_dir(), config)
+                    if not os.path.exists(config_path):
+                        raise FileNotFoundError(f'Config file not found at {config_path}')
+                    processed_configs.append(Dynaconf(settings_files=[config_path]))
+                elif isinstance(config, Dynaconf):
+                    processed_configs.append(config)
+                else:
+                    raise ValueError("Unsupported config type. Must be Dynaconf, str, or list of these.")
+            self.configs = processed_configs
         else:
-            self.configs = configs
+            raise ValueError("Unsupported config type. Must be Dynaconf, str, or list of these.")
 
         # Check if the configuration is correct.
         for config in self.configs:
             check_config(config)
 
-        # Check if the datasets exists
+        # Check if the datasets exist
         for config in self.configs:
             dataset_path = os.path.abspath(os.path.join(get_data_dir(config.get("dataset")), 'conversations.jsonl'))
             if not os.path.exists(dataset_path):
@@ -279,7 +293,7 @@ class Metrics:
         for config in self.configs:
             print(f'\t- {config.settings_file_for_dynaconf[0]}')
 
-    def run(self, store: bool = False, index: int | None = None, verbose: bool = False) -> dict[str, dict[str, dict[str, dict]]]:
+    def run(self, store: bool = False, index: int | None = None, verbose: bool = False, force: bool = False) -> dict[str, dict[str, dict[str, dict]]]:
         """
         Analyze the results from the database given the configuration and store it back in the database.
 
@@ -291,6 +305,8 @@ class Metrics:
             The index of the results to analyze, by default None (analyze all)
         verbose : bool, optional
             Whether to print the results to the console, by default False
+        force : bool, optional
+            Whether to force the analysis, by default False
 
         Returns
         -------
@@ -315,6 +331,8 @@ class Metrics:
 
             metric = self.compute_metrics(config, results, targets, store=store, verbose=verbose)
             metrics[config.settings_file_for_dynaconf[0]] = metric
+
+            time.sleep(2)
 
         return metrics
 

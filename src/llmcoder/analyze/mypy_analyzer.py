@@ -99,7 +99,12 @@ class MypyAnalyzer(Analyzer):
         filtered_result = []
         for line in result.split("\n"):
             if line.startswith(temp_file_name):
-                line_number = int(line.split(":")[1])
+                try:
+                    line_number = int(line.split(":")[1])
+                except ValueError:
+                    print(temp_file_name)
+                    print(line)
+                    raise ValueError("Failed to parse line number from mypy output.")
                 if line_number > n_input_lines:
                     filtered_result.append(line)
             else:

@@ -29,11 +29,11 @@ def main() -> None:
 
     # Add specific arguments to the evaluate command
     evaluate_parser = subparsers.add_parser('evaluate')
-    evaluate_parser.add_argument('-c', '--config', type=str, default=None, help='Configuration file in the configs folder for evaluation')
+    evaluate_parser.add_argument('-c', '--config', nargs='+', type=str, default=None, help='Configuration file in the configs folder for evaluation')
     evaluate_parser.add_argument('-n', '--n_repeat', type=int, default=1, help='Number of times to repeat the evaluation')
 
     metrics_parser = subparsers.add_parser('metrics')
-    metrics_parser.add_argument('-c', '--config', type=str, default=None, help='Configuration file in the configs folder for evaluation')
+    metrics_parser.add_argument('-c', '--config', nargs='+', type=str, default=None, help='Configuration file in the configs folder for evaluation')
     metrics_parser.add_argument('-i', '--index', type=int, default=None, help='Only compute metrics of the i-th repetition')
 
     # Parse the command line arguments
