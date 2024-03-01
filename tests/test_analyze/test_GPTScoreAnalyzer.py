@@ -27,7 +27,7 @@ class TestGPTScoreAnalyzer(unittest.TestCase):
         self.mock_client.chat.completions.create.return_value = MagicMock(
             choices=[MagicMock(
                 message=MagicMock(
-                    content="Score: 1\nScore: 2\nScore: 3\nScore: 4"))])
+                    content="Code Quality: 1\nCode Quality: 2\nCode Quality: 3\nCode Quality: 4"))])
 
         # Create an instance of GPTScoreAnalyzer
         self.analyzer = GPTScoreAnalyzer(client=self.mock_client)
@@ -52,7 +52,7 @@ class TestGPTScoreAnalyzer(unittest.TestCase):
 
     @patch('llmcoder.analyze.gpt_score_analyzer.GPTScoreAnalyzer.score_prompt')
     def test_score_code(self, mock_score_prompt: MagicMock) -> None:
-        mock_score_prompt.return_value = "Mocked prompt"
+        mock_score_prompt.return_value = "Code Quality: 10"
 
         # Test with single code snippet
         scores = self.analyzer.score_code("print('Hello, World!')")
