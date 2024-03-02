@@ -34,6 +34,8 @@ def main() -> None:
     complete_parser.add_argument('-l', '--log_conversation', action='store_true', help='Whether to log the conversation')
     complete_parser.add_argument('-np', '--n_procs', type=int, default=1, help='The number of processes to use for the analyzers')
     complete_parser.add_argument('-v', '--verbose', action='store_true', help='Whether to print verbose output')
+    complete_parser.add_argument('-t', '--temperature', type=float, default=0.7, help='The temperature to use for the first completion')
+    complete_parser.add_argument('-mt', '--meta_temperature', type=float, default=0.0, help='The temperature to use for the feedback loop')
 
     complete_parser.add_argument('-n', '--n_completions', type=int, default=1, help='The number of completions to generate')
     complete_parser.add_argument('-f', '--file', type=str, help='File to complete')
@@ -98,7 +100,11 @@ def main() -> None:
             else:
                 user_input = args.user_input
 
-            completion = llmcoder.complete(user_input)
+            completion = llmcoder.complete(
+                code=user_input,
+                temperature=args.temperature,
+                meta_temperature=args.meta_temperature,
+                n=args.n_completions)
 
             if args.file:
                 with open(args.file, 'a') as file:
