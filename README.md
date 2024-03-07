@@ -13,6 +13,9 @@
 [![Code Quality](https://github.com/pvs-hd-tea/23ws-LLMcoder/actions/workflows/pre-commit.yml/badge.svg)](https://github.com/pvs-hd-tea/23ws-LLMcoder/actions/workflows/pre-commit.yml)
 </div>
 
+
+![Visual Abstract](./images/visual_abstract.png)
+
 # Introduction
 # Requirements
 ## Hardware
