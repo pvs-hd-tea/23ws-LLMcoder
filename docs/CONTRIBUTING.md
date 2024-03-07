@@ -30,7 +30,9 @@ We follow common Python project structure conventions which includes
 ### Methods
 ---
 
-#### `complete(code: str, temperature: float = 0.7, meta_temperature: float = 0.0, n: int = 1) -> str`
+```python
+complete(code: str, temperature: float = 0.7, meta_temperature: float = 0.0, n: int = 1) -> str
+```
 Initiates the code completion process using the LLMCoder feedback loop, aiming to generate and iteratively refine code completions based on the provided code snippet. This method is the primary interface for users to interact with the LLMCoder system for code completion tasks.
 
 **Parameters**:
@@ -43,7 +45,9 @@ Initiates the code completion process using the LLMCoder feedback loop, aiming t
 
 ---
 
-#### `_create_conversation_file() -> str`
+```python
+_create_conversation_file() -> str
+```
 Creates a file to log the conversation history, including code completions and interactions with the analyzers. This method facilitates debugging and analysis of the LLMCoder's performance.
 
 **Parameters**: None
@@ -52,7 +56,9 @@ Creates a file to log the conversation history, including code completions and i
 
 ---
 
-#### `_get_best_completion(conversations: list[Conversation]) -> str`
+```python
+_get_best_completion(conversations: list[Conversation]) -> str:
+```
 Identifies and retrieves the best code completion from a list of conversations based on their scores. This method is critical for selecting the most promising code completion after the feedback loop.
 
 **Parameters**:
@@ -62,7 +68,9 @@ Identifies and retrieves the best code completion from a list of conversations b
 
 ---
 
-#### `_reset_loop()`
+```python
+_reset_loop()
+```
 Resets the feedback loop and internal variables to their initial states. This includes resetting iteration counters, token generation counts, and initializing the priority queue for conversations. Essential for starting a fresh code completion process.
 
 **Parameters**: None
@@ -71,7 +79,9 @@ Resets the feedback loop and internal variables to their initial states. This in
 
 ---
 
-#### `_get_completions_for(self, conversation: Conversation, model: str = 'gpt-3.5-turbo', temperature: float = 0.7, n: int = 1, max_retries: int = 5, delta_temperature: float = 0.2, max_temperature: float = 2, factor_n: int = 2, max_n: int = 32) -> None`
+```python
+_get_completions_for(self, conversation: Conversation, model: str = 'gpt-3.5-turbo', temperature: float = 0.7, n: int = 1, max_retries: int = 5, delta_temperature: float = 0.2, max_temperature: float = 2, factor_n: int = 2, max_n: int = 32) -> None
+```
 The `_get_completions_for` method is a crucial component of the `LLMCoder` class, responsible for generating and evaluating code completions based on a given conversation context. This method interacts with OpenAI's API to fetch code completions, filters out unsuitable options based on previous mistakes, and employs analyzers to evaluate the quality of the completions. It aims to refine the selection process through iterative adjustments and parallel processing, ultimately contributing to the enhancement of code generation.
 
 #### Parameters
@@ -106,7 +116,9 @@ This method does not return a value directly; instead, it significantly influenc
 
 ---
 
-#### `_run_analyzers(code: str, completion: str) -> dict[str, dict]`
+```python
+_run_analyzers(code: str, completion: str) -> dict[str, dict]
+```
 Runs the configured analyzers on a given code snippet and its completion. This method evaluates the quality and relevance of the completion, contributing to the scoring mechanism that guides the feedback loop.
 
 **Parameters**:
@@ -117,7 +129,9 @@ Runs the configured analyzers on a given code snippet and its completion. This m
 
 ---
 
-#### `_feedback_prompt_template(result_messages: list[str]) -> str`
+```python
+_feedback_prompt_template(result_messages: list[str]) -> str
+```
 Constructs a feedback prompt based on the messages resulting from previous analyses. This method formats the feedback for inclusion in the next iteration of code completion requests, guiding the model towards improved outputs.
 
 **Parameters**:
@@ -127,7 +141,9 @@ Constructs a feedback prompt based on the messages resulting from previous analy
 
 ---
 
-#### `_step(code: str, temperature: float = 0.7, meta_temperature: float = 0.0, n: int = 1)`
+```python
+_step(code: str, temperature: float = 0.7, meta_temperature: float = 0.0, n: int = 1)
+```
 Executes a single iteration of the feedback loop for code completion. This involves selecting a conversation based on scores, generating new completions based on feedback, and updating the conversation queue with these new completions.
 
 **Parameters**:
