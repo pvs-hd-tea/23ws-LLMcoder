@@ -152,6 +152,8 @@ pip install -e .[dev]
 pre-commit install
 ```
 
+For further information, see [CONTRIBUTING.md](./docs/CONTRIBUTING.md).
+
 
 # Citation
 ```bibtex
