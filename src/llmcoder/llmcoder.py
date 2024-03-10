@@ -24,11 +24,13 @@ class LLMCoder:
     model_feedback : str, optional
         The model to use for the feedback loop, by default "ft:gpt-3.5-turbo-1106:personal::8LCi9Q0d"
     feedback_variant : str, optional
-        The feedback variant to use, by default "separate"
+        The feedback variant to use, by default "coworker"
     system_prompt : str, optional
         The system prompt to use, by default the one used for preprocessing and fine-tuning
     max_iter : int, optional
         The maximum number of iterations to run the feedback loop, by default 10
+    backtracking : bool, optional
+        Whether to use backtracking in the feedback loop, by default True
     log_conversation : bool, optional
         Whether to log the conversation, by default False
     n_procs : int, optional
