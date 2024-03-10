@@ -1,7 +1,7 @@
 import re
 
 import jedi
-import numpy as np
+import Levenshtein
 import openai
 from langchain_community.embeddings import GPT4AllEmbeddings
 
@@ -79,25 +79,21 @@ class HallucinationAnalyzer(Analyzer):
                                 module_of_hallucinated_attribute = '.'.join(module_matches[0][:-1])
 
                                 try:  # https://www.phind.com/search?cache=ey5i26k2mr5wuezcjx9tzkaf
+                                    hallucinated_attribute = module_matches[0][-1]
                                     suggested_attributes = script.complete_search(module_of_hallucinated_attribute + '.')
                                     n_total_suggestions += len(suggested_attributes)
 
-                                    # Get the embeddings of the hallucinated attribute and the suggested attributes
-                                    hallucinated_embedding = self.client.embeddings.create(input=[module_matches[0][-1]], model="text-embedding-3-small")
-
-                                    # create a list of embeddings for the suggested attributes
-                                    suggested_attributes_embeddings = [self.client.embeddings.create(input=[suggested_attribute.full_name.split('.')[-1]], model="text-embedding-3-small").data[0].embedding for suggested_attribute in suggested_attributes if isinstance(suggested_attribute.full_name, str)]
-
-                                    # calculate the similarity between the hallucinated attribute and the suggested attributes
-                                    suggested_attributes_similarities = sorted([np.dot(hallucinated_embedding, embedding) for embedding in suggested_attributes_embeddings], reverse=True)  # noqa: F841
+                                    suggested_attributes_distances = sorted([(Levenshtein.distance(hallucinated_attribute, suggested_attribute.name), suggested_attribute) for suggested_attribute in suggested_attributes if hasattr(suggested_attribute, "name") and isinstance(suggested_attribute.name, str)], key=lambda sim: sim[0])[:10]
+                                    suggested_attributes = [suggested_attribute_distance[1] for suggested_attribute_distance in suggested_attributes_distances]
 
                                 except AttributeError:
-                                    print(AttributeError)
                                     continue
                             else:
                                 module_of_hallucinated_attribute = None
                                 suggested_attributes = []
 
+                            if self.verbose:
+                                print(f"[Hallucinations] Found hallucination: {match} in {module_of_hallucinated_attribute} with {len(suggested_attributes)} suggestions")
                             hallucinations.append({
                                 'name': match,
                                 'module': module_of_hallucinated_attribute,
@@ -110,6 +106,8 @@ class HallucinationAnalyzer(Analyzer):
         for hallucination in hallucinations:
             full_name = hallucination['module'] + '.' + hallucination['name']
             if full_name not in hallucinations_full_names:
+                if self.verbose:
+                    print(f"[Hallucinations] Full name: {full_name}, append to {hallucinations_dedupe}")
                 hallucinations_full_names.append(full_name)
                 hallucinations_dedupe.append(hallucination)
 
@@ -138,6 +136,8 @@ class HallucinationAnalyzer(Analyzer):
                 results_str += "\n\n"
                 for h in hallucinations_dedupe:
                     results_str += f"Instead of '{h['module']}.{h['name']}', use the most plausible of these attributes: {h['module']}.[" + ', '.join([s.name for s in h['suggested_attributes']]) + "]\n"
+                    if self.verbose:
+                        print(f"[Hallucinations] Suggested attributes for {h['module']}.{h['name']}: {[s.name for s in h['suggested_attributes']]}")
 
             n_hallucinations_without_suggestions = len([h for h in hallucinations_dedupe if len(h['suggested_attributes']) == 0])
             n_hallucinations_with_suggestions = len([h for h in hallucinations_dedupe if len(h['suggested_attributes']) > 0])
