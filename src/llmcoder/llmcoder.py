@@ -24,7 +24,7 @@ class LLMCoder:
     model_feedback : str, optional
         The model to use for the feedback loop, by default "ft:gpt-3.5-turbo-1106:personal::8LCi9Q0d"
     feedback_variant : str, optional
-        The feedback variant to use, by default "coworker"
+        The feedback variant to use, one of ["separate", "coworker"], by default "coworker", which enables a shared context for the analyzers
     system_prompt : str, optional
         The system prompt to use, by default the one used for preprocessing and fine-tuning
     max_iter : int, optional
@@ -47,7 +47,7 @@ class LLMCoder:
             system_prompt: str | None = None,
             max_iter: int = 10,
             backtracking: bool = True,
-            log_conversation: bool = True,
+            log_conversation: bool = False,
             n_procs: int = 1,
             verbose: bool = True) -> None:
 
@@ -102,7 +102,7 @@ class LLMCoder:
 
     def _get_best_completion(self, conversations: list[Conversation]) -> str:
         """
-        Get the best completion from the provided conversations
+        Get the best completion from the provided conversations measured by their `score`
 
         Parameters
         ----------
@@ -128,14 +128,14 @@ class LLMCoder:
         temperature : float, optional
             The temperature to use for the completion, by default 0.7
         meta_temperature : float, optional
-            The temperature to use for choosing the most promising conversation, by default 0.1
+            The temperature to use for choosing the most promising conversation, by default 0.0
         n : int, optional
             The number of choices to generate, by default 1
 
         Returns
         -------
         str
-            The completed code
+            The code completion
         """
         # Reset the feedback loop and internal variables
         self._reset_loop()
@@ -182,6 +182,7 @@ class LLMCoder:
         str
             The path to the conversation file
         """
+        # FIXME: Add support for backtracking and graph mode
         return os.path.join(get_conversations_dir(create=True), f"{datetime.now()}.jsonl")
 
     def _is_bad_completion(self, completion: str) -> bool:
@@ -192,7 +193,7 @@ class LLMCoder:
         Parameters
         ----------
         completion : str
-            The completion to check
+            The completion to check against the existing conversations
 
         Returns
         -------
@@ -209,7 +210,7 @@ class LLMCoder:
     def _get_completions_for(
             self,
             conversation: Conversation,
-            model: str = 'gpt-3.5-turbo',
+            model: str = 'ft:gpt-3.5-turbo-1106:personal::8LCi9Q0d',
             temperature: float = 0.7,
             n: int = 1,
             max_retries: int = 5,
@@ -223,15 +224,15 @@ class LLMCoder:
         Parameters
         ----------
         conversation: Conversation
-            Tuple in the priority queue. Contains the completion/code over which the model will complete.
+            The conversation to get completions for. Usually the most promising conversation from the priority queue
         model : str, optional
-            The model to use for the completion, by default 'gpt-3.5-turbo'
+            The model to use for the completion, by default 'ft:gpt-3.5-turbo-1106:personal::8LCi9Q0d'
         temperature : float, optional
             The temperature to use for the completion, by default 0.7
         n : int, optional
             The number of choices to generate, by default 1
         max_retries : int, optional
-            The maximum number of retries to get a valid completion, by default 5
+            The maximum number of retries to get a valid completion due to repeated mistakes or duplicates, by default 5
         delta_temperature : float, optional
             The amount to increase the temperature in case of repeated mistakes, by default 0.2
         max_temperature : float, optional
@@ -368,14 +369,14 @@ class LLMCoder:
         Parameters
         ----------
         code : str
-            The code to analyze
+            The beginning of the code
         completion : str
-            The completion to analyze
+            The completion of the code to analyze
 
         Returns
         -------
         dict[str, dict]
-            The analyzer results
+            The analyzer results with the analyzer names as keys and the results as values
         """
         analyzer_results: dict[str, dict] = {}
 
@@ -407,7 +408,7 @@ class LLMCoder:
         Parameters
         ----------
         result_messages : list[str]
-            The analyzer result messages
+            The analyzer result messages, typically obtained by concatenating the `message` field of the analyzer results
 
         Returns
         -------
@@ -418,8 +419,11 @@ class LLMCoder:
 
     def _step(self, code: str, temperature: float = 0.7, meta_temperature: float = 0.0, n: int = 1) -> None:
         """
-        Complete the provided code with the OpenAI model and feedback, if available
-        Make choice on highest scored snippet through PriorityQueue.pop().
+        Run one step of the feedback loop, including
+        - getting and duplicating the most promising conversation from the priority queue
+        - adding the user's code to the conversation
+        - getting completions for the conversation with `LLMCoder._get_completions_for`
+        - adding the completions to the priority queue
 
         Parameters
         ----------
@@ -428,7 +432,7 @@ class LLMCoder:
         temperature : float, optional
             The temperature to use for the completion, by default 0.7
         meta_temperature : float, optional
-            The temperature to use for choosing the most promising conversation, by default 0.1
+            The temperature to use for choosing the most promising conversation, by default 0.0
         n : int, optional
             The number of choices to generate, by default 1
         """

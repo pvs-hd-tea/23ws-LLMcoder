@@ -4,6 +4,7 @@ import os
 import time
 from contextlib import redirect_stdout
 from datetime import datetime
+from typing import Any
 
 import pandas as pd
 from dynaconf import Dynaconf
@@ -15,6 +16,19 @@ from llmcoder.utils import get_config_dir, get_data_dir
 
 
 def check_config(config: Dynaconf) -> bool:
+    """
+    Check if the configuration is correctly formatted.
+
+    Parameters
+    ----------
+    config : Dynaconf
+        The configuration object from Dynaconf.
+
+    Returns
+    -------
+    bool
+        Whether the configuration is correctly formatted.
+    """
 
     # Return if all the required keys are present and the types are correct
     if not isinstance(config.get('analyzers'), list):
@@ -44,15 +58,13 @@ def check_config(config: Dynaconf) -> bool:
 
 
 class Evaluation:
+    """
+    Parameters
+    ----------
+    configs : Dynaconf | list[Dynaconf] | str | list[str] | None, optional
+        The configuration object(s) from Dynaconf or path(s) to configuration file(s).
+    """
     def __init__(self, configs: Dynaconf | list[Dynaconf] | str | list[str] | None = None):
-        """
-        Initialize the Evaluation with a configuration or list of configurations.
-
-        Parameters
-        ----------
-        configs : Dynaconf | list[Dynaconf] | str | list[str] | None, optional
-            The configuration object(s) from Dynaconf or path(s) to configuration file(s).
-        """
         if configs is None:
             self.configs = [
                 Dynaconf(settings_files=[os.path.join(get_config_dir(), config)])
@@ -89,14 +101,14 @@ class Evaluation:
 
     def run(self, store: bool = True, n_repeat: int = 1, verbose: bool = False) -> dict[str, list]:
         """
-        Run the evaluation end to end (reading inputs from the database and writing results back)
+        Run the evaluation for the configurations
 
         Parameters
         ----------
         store : bool, optional
             Whether to store the results in the database, by default True
         n_repeat : int, optional
-            The number of times to repeat the evaluation, by default 1
+            The number of times to repeat the evaluation for better statistics about indeterministic methods, by default 1
         verbose : bool, optional
             Whether to print the results to the console, by default False
 
@@ -126,7 +138,7 @@ class Evaluation:
 
     def predict(self, config: Dynaconf, store: bool = False, verbose: bool = False) -> dict:
         """
-        Run the LLMCoder on the provided files and write the results to the database.
+        Run the LLMCoder on the provided files
 
         Parameters
         ----------
@@ -159,7 +171,7 @@ class Evaluation:
         # Return the results
         return results
 
-    def run_llmcoder(self, config: Dynaconf, inputs: dict, verbose: bool = False) -> dict:
+    def run_llmcoder(self, config: Dynaconf, inputs: dict[Any, str], verbose: bool = False) -> dict:
         """
         Run the LLMCoder on the provided files and return the results.
 
@@ -167,17 +179,17 @@ class Evaluation:
         ----------
         config : Dynaconf
             The configuration object from Dynaconf.
-        inputs : List[str]
-            A list of inputs to complete with the LLMCoder.
+        inputs : dict[Any, str]
+            The inputs to run the LLMCoder on with unique identifiers as keys.
         verbose : bool, optional
-            Whether to print the results to the console, by default False
+            Whether to print the results to the standard output, by default False
 
         Returns
         -------
         dict
             The results from the evaluation.
         """
-        results: dict[str, dict] = {}
+        results: dict[Any, dict] = {}
 
         # Run the LLMCoder on each input
         for input_id, input in tqdm(inputs.items(), desc='Prediction', total=len(inputs), disable=not verbose):
@@ -201,6 +213,7 @@ class Evaluation:
                     verbose=True
                 )
 
+                # In case of errors, print verbose output
                 try:
                     _ = llmcoder.complete(input, n=config.get('n_choices'))
                 except TypeError as e:
@@ -226,12 +239,14 @@ class Evaluation:
 
     def _write_results(self, config: Dynaconf, results: dict) -> None:
         """
-        Write the results back to the database.
+        Write the results to a file.
 
         Parameters
         ----------
+        config : Dynaconf
+            The configuration object from Dynaconf. Used to identify the dataset for naming the file.
         results : dict
-            The results to write back to the database.
+            The results to write to a file.
         """
         # Get the current time
         current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -246,15 +261,13 @@ class Evaluation:
 
 
 class Metrics:
+    """
+    Parameters
+    ----------
+    configs : Dynaconf | list[Dynaconf] | str | list[str], optional
+        The configuration object(s) from Dynaconf, or path(s) to configuration files.
+    """
     def __init__(self, configs: Dynaconf | list[Dynaconf] | str | list[str] | None = None):
-        """
-        Initialize the Metrics with a Dynaconf configuration or path to configurations.
-
-        Parameters
-        ----------
-        configs : Dynaconf | list[Dynaconf] | str | list[str], optional
-            The configuration object(s) from Dynaconf, or path(s) to configuration files.
-        """
         if configs is None:
             # Load all configurations from the config directory
             self.configs = [
@@ -293,25 +306,23 @@ class Metrics:
         for config in self.configs:
             print(f'\t- {config.settings_file_for_dynaconf[0]}')
 
-    def run(self, store: bool = False, index: int | None = None, verbose: bool = False, force: bool = False) -> dict[str, dict[str, dict[str, dict]]]:
+    def run(self, store: bool = True, index: int | None = None, verbose: bool = False) -> dict[str, dict[str, dict[str, dict]]]:
         """
-        Analyze the results from the database given the configuration and store it back in the database.
+        Analyze the results from the database given the configuration.
 
         Parameters
         ----------
         store : bool, optional
-            Whether to store the analysis in the database, by default False
+            Whether to store the analysis in the database, by default True
         index : int, optional
             The index of the results to analyze, by default None (analyze all)
         verbose : bool, optional
             Whether to print the results to the console, by default False
-        force : bool, optional
-            Whether to force the analysis, by default False
 
         Returns
         -------
         dict[str, dict[str, dict[str, dict]]]
-            The analysis results.
+            The analysis results with the configuration as the key.
         """
 
         metrics = {}
@@ -347,11 +358,7 @@ class Metrics:
         results_dict : dict[str, dict]
             The results to compute the metrics for.
         targets : dict
-            The target completions to compute with the LLMCoder.
-        intrinsic_score_functions : list[callable]
-            The intrinsic score functions to use.
-        extrinsic_score_functions : list[callable]
-            The extrinsic score functions to use.
+            The target completions to compare the LLMcoder results to.
         store : bool, optional
             Whether to store the analysis in the database, by default False
         verbose : bool, optional
@@ -360,7 +367,7 @@ class Metrics:
         Returns
         -------
         dict[str, dict[str, dict]]
-            The metrics for each result.
+            The metrics for each result with the repitition id as the key.
         """
 
         metrics_dict = {}
@@ -394,7 +401,7 @@ class Metrics:
 
     def load_results(self, config: Dynaconf, index: int | list[int] | None = None) -> dict[str, dict]:
         """
-        Read the results for a tuple from the database.
+        Read the evaluation results for the given configuration from a directory named after the configuration.
 
         Parameters
         ----------
@@ -406,7 +413,7 @@ class Metrics:
         Returns
         -------
         dict[str, dict]
-            The results from the database.
+            The selected results from the evaluation.
         """
         config_name = os.path.splitext(os.path.split(config.settings_file_for_dynaconf[0])[-1])[0]
 
@@ -427,7 +434,7 @@ class Metrics:
 
     def _write_metrics(self, config: Dynaconf, result_repitition_id: str, metrics: dict) -> None:
         """
-        Write the analysis results back to the database.
+        Write the analysis results to a file.
 
         Parameters
         ----------
@@ -436,7 +443,7 @@ class Metrics:
         result_repitition_id : str
             The id of the result repitition.
         metrics : dict
-            The analysis results to write back to the database.
+            The analysis results to write to a file.
         """
         # Create a dataframe from the analysis results
         df = pd.DataFrame.from_dict(metrics, orient='index')

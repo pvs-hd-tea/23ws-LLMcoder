@@ -2,6 +2,22 @@ from typing import Any
 
 
 class Conversation:
+    """
+    A class to represent a conversation, which contains a list of messages, a score, and a list of analyses.
+
+    Parameters
+    ----------
+    score : int
+        The score of the conversation
+    messages : list[dict[str, str]]
+        The list of messages in the conversation
+    analyses : list[dict[str, dict[str, float | int | str | bool]]] | None, optional
+        The list of analyses in the conversation, by default None
+    path : list[Any] | None, optional
+        The path of the conversation in the conversation tree, by default None
+    passing : bool, optional
+        Whether the conversation has passed all critical analyzers, by default False
+    """
     def __init__(
             self,
             score: int,
@@ -43,6 +59,14 @@ class Conversation:
         return self
 
     def update_passing(self) -> "Conversation":
+        """
+        Update the passing status of the conversation based on the critical analyzers
+
+        Returns
+        -------
+        Conversation
+            The conversation with the updated passing status
+        """
         # Print how many critical analyzers have passed
         n_passed = sum(results['pass'] for results in self.analyses[-1].values() if (results['type'] == "critical" and type(results['pass']) is bool))
         n_total = len([results for results in self.analyses[-1].values() if results['type'] == "critical" and type(results['pass']) is bool])

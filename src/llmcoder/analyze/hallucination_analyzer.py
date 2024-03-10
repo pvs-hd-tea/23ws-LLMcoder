@@ -8,17 +8,14 @@ from llmcoder.analyze.analyzer import Analyzer
 class HallucinationAnalyzer(Analyzer):
     """
     Analyzer that checks mypy errors for hallucinations.
+
+    Parameters
+    ----------
+    verbose : bool
+        Whether to print debug messages.
     """
 
     def __init__(self, verbose: bool = False) -> None:
-        """
-        Initialize the SignatureAnalyzer.
-
-        Parameters
-        ----------
-        verbose : bool
-            Whether to print debug messages.
-        """
         super().__init__(verbose)
 
     def analyze(self, input: str, completion: str, context: dict[str, dict[str, float | int | str]] | None = None) -> dict:
@@ -31,7 +28,7 @@ class HallucinationAnalyzer(Analyzer):
             The input code.
         completion : str
             The completion code.
-        context : dict[str, dict[str, float | int | str]] | None
+        context : dict[str, dict[str, float | int | str]] | None, optional
             The context from the previous analyzers.
 
         Returns

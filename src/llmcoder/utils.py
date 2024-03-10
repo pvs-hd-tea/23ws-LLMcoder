@@ -8,7 +8,7 @@ def get_data_dir(*args: str, create: bool = False) -> str:
     Parameters
     ----------
     args : str
-        The path to the data directory.
+        The path to the data directory in /data.
     create : bool
         Whether to create the directory if it does not exist.
 
@@ -34,7 +34,7 @@ def get_config_dir(*args: str, create: bool = False) -> str:
     Parameters
     ----------
     args : str
-        The path to the configs directory.
+        The path to the configs directory in /configs.
     create : bool
         Whether to create the directory if it does not exist.
 
@@ -55,7 +55,7 @@ def get_config_dir(*args: str, create: bool = False) -> str:
 
 def get_openai_key(key: str = "") -> str:
     """
-    Get OpenAI API key. Try to interpret the key as a key first, then as a path to a file containing the key.
+    Get OpenAI API key. Try to interpret the `key` parameter as a key first, then as a path to a file containing the key.
     Finally, fall back to the default key.txt file or the OPENAI_KEY environment variable.
 
     Parameters
@@ -92,7 +92,7 @@ def get_openai_key(key: str = "") -> str:
 
 def get_github_access_token(token: str = "") -> str:
     """
-    Get GitHub access token. Try to interpret the token as a token first, then as a path to a file containing the token.
+    Get GitHub access token. Try to interpret the `token` parameter as a token first, then as a path to a file containing the token.
     Finally, fall back to the default token.txt file or the GITHUB_ACCESS_TOKEN environment variable.
 
     Parameters
@@ -151,7 +151,7 @@ def get_system_prompt(name: str = "2023-11-15_GPT-Builder.txt") -> str:
 
 def get_system_prompt_dir(*args: str, create: bool = False) -> str:
     """
-    Get the path to the system prompts directory.
+    Get the path to the system prompts directory in /system_prompts.
 
     Parameters
     ----------
@@ -177,7 +177,7 @@ def get_system_prompt_dir(*args: str, create: bool = False) -> str:
 
 def get_conversations_dir(*args: str, create: bool = False) -> str:
     """
-    Get the path to the log directory.
+    Get the path to the log directory in /conversations.
 
     Parameters
     ----------

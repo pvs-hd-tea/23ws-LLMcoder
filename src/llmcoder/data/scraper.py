@@ -14,20 +14,17 @@ GITHUB_API = "https://api.github.com"
 class GitHubScraper:
     """
     A class for scraping GitHub repositories and storing them in a flat structure.
+
+    Parameters
+    ----------
+    dataset_name : str
+        The name of the dataset to scrape repositories for.
+    access_token : str
+        A GitHub access token for authenticating with the GitHub API.
+    scraped_files_dir : str
+        The directory to store the scraped files in, defaults to 'scraped_repos'.
     """
     def __init__(self, dataset_name: str, access_token: str | None = None, scraped_files_dir: str | None = None) -> None:
-        """
-        Initialize the GitHubScraper class with a GitHub access token.
-
-        Parameters
-        ----------
-        dataset_name : str
-            The name of the dataset to scrape repositories for.
-        access_token : str
-            A GitHub access token for authenticating with the GitHub API.
-        scraped_files_dir : str
-            The directory to store the scraped files in, defaults to 'scraped_repos'.
-        """
         self.name = dataset_name
 
         self.access_token = access_token
@@ -47,9 +44,13 @@ class GitHubScraper:
         ----------
         query : str
             A GitHub API query.
-
         num_repos : int
             The number of repositories to fetch.
+
+        Returns
+        -------
+        list
+            A list of repositories.
         """
         if self.access_token is not None:
             headers = {'Authorization': f'token {self.access_token}'}
@@ -150,13 +151,13 @@ class GitHubScraper:
 
         Parameters
         ----------
-        repository_sets : list[list[str]]
-            A list of lists of repository URLs to scrape. Each list represents a set of repositories to scrape relating to a specific topic.
+        repository_sets : list[list[str]] | None, optional
+            A list of lists of repository URLs to scrape. Each list represents a set of repositories to scrape relating to a specific topic. If None, a default set of repositories will be used. by default None.
 
         Returns
         -------
-        list[str]
-            A list of repository URLs to scrape.
+        list[tuple[str, str]]
+            A list of tuples of (repo_url, repo_name).
         """
         if repository_sets is None:
             # Get the top 10 Python repositories by stars
@@ -230,8 +231,8 @@ class GitHubScraper:
 
         Parameters
         ----------
-        repos : list[tuple[str, str]]
-            A list of tuples of (repo_url, repo_name).
+        repos : list[tuple[str, str]] | None, optional
+            A list of tuples of (repo_url, repo_name). If None, a default set of repositories will be used. by default None.
         max_n_repositories : int
             The maximum number of repositories to scrape.
         verbose : bool
