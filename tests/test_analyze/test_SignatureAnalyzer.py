@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from unittest.mock import MagicMock, patch
 
-from llmcoder.analyze.SignatureAnalyzer import Import, SignatureAnalyzer
+from llmcoder.analyze.signature_analyzer import Import, SignatureAnalyzer
 
 
 class TestSignatureAnalyzer(unittest.TestCase):

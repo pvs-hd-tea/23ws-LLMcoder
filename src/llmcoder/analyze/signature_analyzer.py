@@ -7,7 +7,7 @@ import tempfile
 from collections import namedtuple
 from typing import Generator
 
-from llmcoder.analyze.Analyzer import Analyzer
+from llmcoder.analyze.analyzer import Analyzer
 
 Import = namedtuple("Import", ["module", "name", "alias"])
 
@@ -15,17 +15,14 @@ Import = namedtuple("Import", ["module", "name", "alias"])
 class SignatureAnalyzer(Analyzer):
     """
     Analyzer that fetches the signatures and documentations of functions and classes in the code.
+
+    Parameters
+    ----------
+    verbose : bool
+        Whether to print debug messages.
     """
 
     def __init__(self, verbose: bool = False) -> None:
-        """
-        Initialize the SignatureAnalyzer.
-
-        Parameters
-        ----------
-        verbose : bool
-            Whether to print debug messages.
-        """
         super().__init__(verbose)
 
     def get_imports(self, path: str, query: str | list[str] | None = None) -> Generator:
@@ -243,17 +240,12 @@ class SignatureAnalyzer(Analyzer):
                 alias = imp.alias if imp.alias else imp.name[-1] if imp.name else full_module
                 import_aliases[alias] = full_module
 
-        # print(f"[Signatures] {import_aliases=}")
-        # print(f"[Signatures] {direct_imports=}")
-
         # Find all function calls that match the query
         function_calls = self.find_function_calls(code, query)
 
         print(f"[Signatures] {function_calls=}")
 
         function_calls = list(set(function_calls))
-
-        # print(f"[Signatures] {function_calls=}")
 
         # Match the function calls to the imports
         matched_function_calls = []
@@ -314,8 +306,8 @@ class SignatureAnalyzer(Analyzer):
             The input code.
         completion : str
             The completion code.
-        context : dict[str, dict[str, float | int | str]] | None
-            The context from the previous analyzers.
+        context : dict[str, dict[str, float | int | str]] | None, optional
+            The context of previous analyzers of the completion.
 
         Returns
         -------
@@ -372,8 +364,6 @@ class SignatureAnalyzer(Analyzer):
                         # Remove duplicates
                         all_matches = list(set(all_matches))
 
-                        print(f"[Signatures] {all_matches=}")
-
                         # Add the matches to the query
                         for match in all_matches:
                             if self.verbose:
@@ -404,8 +394,6 @@ class SignatureAnalyzer(Analyzer):
         # If there is a query, get the signatures and documentations of the functions and classes that match the query
         else:
             result = self.get_signature_and_doc(temp_file_name, list(set(query)))
-
-            print(f"[Signatures] {result=}")
 
             # Truncate the documentation to the first line (i.e. the signature)
             # Otherwise, the message will be too long

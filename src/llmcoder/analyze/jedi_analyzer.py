@@ -4,7 +4,7 @@ import tempfile
 
 import jedi
 
-from llmcoder.analyze.Analyzer import Analyzer
+from llmcoder.analyze.analyzer import Analyzer
 
 
 class JediAnalyzer(Analyzer):

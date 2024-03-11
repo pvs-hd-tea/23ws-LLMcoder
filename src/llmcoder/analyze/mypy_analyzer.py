@@ -3,31 +3,29 @@ import re
 import subprocess
 import tempfile
 
-from llmcoder.analyze.Analyzer import Analyzer
+from llmcoder.analyze.analyzer import Analyzer
 
 
 class MypyAnalyzer(Analyzer):
     """
     Analyzer that runs mypy on the code with the completion and returns the result.
+
+    Parameters
+    ----------
+    verbose : bool, optional
+        Whether to print verbose output, by default False.
     """
-
     def __init__(self, verbose: bool = False):
-        """
-        Initializes the analyzer.
-
-        Parameters
-        ----------
-        verbose : bool, optional
-            Whether to print verbose output, by default False.
-        """
         super().__init__(verbose=verbose)
 
-    def analyze(self,
-                input: str,
-                completion: str,
-                install_stubs: bool = True,
-                mypy_args: list[str] | None = None,
-                context: dict[str, dict[str, float | int | str]] | None = None) -> dict:
+    def analyze(
+            self,
+            input: str,
+            completion: str,
+            install_stubs: bool = True,
+            mypy_args: list[str] | None = None,
+            context: dict[str, dict[str, float | int | str]] | None = None) -> dict:
+
         """
         Analyzes the completion using mypy.
 
@@ -39,10 +37,10 @@ class MypyAnalyzer(Analyzer):
             The completion to analyze.
         install_stubs : bool, optional
             Whether to install missing stubs, by default True.
-        mypy_args : list[str], optional
+        mypy_args : list[str] | None, optional
             Additional arguments to pass to mypy, by default None.
-        context : dict[str, dict[str, float | int | str]], optional
-            The context of the completion, by default None.
+        context : dict[str, dict[str, float | int | str]] | None, optional
+            Ignored. The context of previous analyzers of the completion, by default None.
 
         Returns
         -------
@@ -98,14 +96,16 @@ class MypyAnalyzer(Analyzer):
         filtered_result = []
         for line in result.split("\n"):
             if line.startswith(temp_file_name):
-                line_number = int(line.split(":")[1])
+                try:
+                    line_number = int(line.split(":")[1])
+                except ValueError:
+                    print(temp_file_name)
+                    print(line)
+                    raise ValueError("Failed to parse line number from mypy output.")
                 if line_number > n_input_lines:
                     filtered_result.append(line)
             else:
                 filtered_result.append(line)
-
-            if self.verbose:
-                print(f"[MyPyJediAnalyzer] Mypy Error: {line}")
 
         # Replace the temp file name with "your completion". This helps the LLM understand that the error is caused by its completion.
         filtered_result = [line.replace(temp_file_name, "your completion") for line in filtered_result]

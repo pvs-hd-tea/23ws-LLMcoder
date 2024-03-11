@@ -1,7 +1,7 @@
 import unittest
 
-from llmcoder.analyze.MypyAnalyzer import MypyAnalyzer
-from llmcoder.analyze.SignatureAnalyzer import SignatureAnalyzer
+from llmcoder.analyze.mypy_analyzer import MypyAnalyzer
+from llmcoder.analyze.signature_analyzer import SignatureAnalyzer
 
 
 class TestSignatureAnalyzerContext(unittest.TestCase):
@@ -150,7 +150,7 @@ import re
 import subprocess
 import tempfile
 
-from llmcoder.analyze.Analyzer import Analyzer
+from llmcoder.analyze.analyzer import Analyzer
 
 class MypyAnalyzer(Analyzer):
     def analyze("""

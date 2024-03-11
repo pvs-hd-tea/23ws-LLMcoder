@@ -1,28 +1,23 @@
 import re
 
-from llmcoder.analyze.Analyzer import Analyzer
-from llmcoder.index import Index
-
-# from typing import Any
-
 import jedi
 import Levenshtein
+
+from llmcoder.analyze.analyzer import Analyzer
+from llmcoder.index import Index
 
 
 class HallucinationAnalyzer(Analyzer):
     """
     Analyzer that checks mypy errors for hallucinations.
+
+    Parameters
+    ----------
+    verbose : bool
+        Whether to print debug messages.
     """
 
     def __init__(self, verbose: bool = False) -> None:
-        """
-        Initialize the SignatureAnalyzer.
-
-        Parameters
-        ----------
-        verbose : bool
-            Whether to print debug messages.
-        """
         super().__init__(verbose)
         self.index = Index(verbose)
 
@@ -36,7 +31,7 @@ class HallucinationAnalyzer(Analyzer):
             The input code.
         completion : str
             The completion code.
-        context : dict[str, dict[str, float | int | str]] | None
+        context : dict[str, dict[str, float | int | str]] | None, optional
             The context from the previous analyzers.
 
         Returns

@@ -20,4 +20,5 @@ scores: [
   "intrinsic.total_tokens_generated_score"
 ]
 n_choices: 3
-n_procs: 3
+n_procs: 1
+backtracking: false

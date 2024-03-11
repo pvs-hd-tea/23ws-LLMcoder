@@ -3,7 +3,7 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from llmcoder.analyze.MypyAnalyzer import MypyAnalyzer
+from llmcoder.analyze.mypy_analyzer import MypyAnalyzer
 
 
 class TestMypyAnalyzer(unittest.TestCase):
