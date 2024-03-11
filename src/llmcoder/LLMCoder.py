@@ -8,6 +8,7 @@ import openai
 import tiktoken
 
 from llmcoder.analyze.factory import AnalyzerFactory
+from llmcoder.index import Index
 from llmcoder.utils import get_conversations_dir, get_openai_key, get_system_prompt, get_system_prompt_dir
 
 
@@ -46,6 +47,9 @@ class LLMCoder:
                  log_conversation: bool = True,
                  n_procs: int = 1,
                  verbose: bool = True) -> None:
+
+        # Initialize the database
+        self.index = Index(verbose)
 
         # Check for invalid feedback variants
         if feedback_variant not in ["separate", "coworker"]:
@@ -141,6 +145,9 @@ class LLMCoder:
         str
             The completed code
         """
+        # Create or update the Index
+        self.index.create(code, collection_name="llmcoder")
+
         # Reset the feedback loop and internal variables
         self._reset_loop()
 
