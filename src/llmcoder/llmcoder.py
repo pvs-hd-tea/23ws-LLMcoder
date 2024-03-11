@@ -267,7 +267,7 @@ class LLMCoder:
         increased_n = n
         repetition = 0
 
-        while len(valid_unique_contents) < n and repetition < max_retries:
+        while len(valid_choices) < n and repetition < max_retries:
             if self.verbose:
                 print(f"[LLMcoder] Found {total_generate_candidates - len(valid_choices)} repeated mistakes, {len(valid_choices) - len(valid_unique_contents)} duplicates. Increasing temperature to {increased_temperature:.1f} and number of choices to {increased_n}... [repetition {repetition + 1}/{max_retries}]")
 
