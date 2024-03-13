@@ -66,7 +66,6 @@ class LLMCoder:
         self.encoder = tiktoken.get_encoding("p50k_base")
         self.max_iter = max_iter
         self.backtracking = backtracking
-        self.messages: list[dict[str, str]] = []
 
         # Set up the analyzers
         if analyzers is None:
@@ -116,7 +115,7 @@ class LLMCoder:
         """
         return sorted(conversations, key=lambda c: c.score, reverse=True)[0].get_last_message()
 
-    def complete(self, code: str, temperature: float = 0.7, meta_temperature: float = 0.0, n: int = 1) -> str:
+    def complete(self, code: str, temperature: float = 0.7, meta_temperature: float = 0.0, n: int = 1, require_unique_choices: bool = False) -> str:
         """
         Main entry point for LLMCoder.
         Complete the provided code with the LLMCoder feedback loop
@@ -131,6 +130,8 @@ class LLMCoder:
             The temperature to use for choosing the most promising conversation, by default 0.0
         n : int, optional
             The number of choices to generate, by default 1
+        require_unique_choices : bool, optional
+            Whether to require unique choices when sampling multiple completions, by default False
 
         Returns
         -------
@@ -161,7 +162,7 @@ class LLMCoder:
                 if self.verbose:
                     print(f"[LLMcoder] Starting feedback iteration {i + 1}...")
 
-                self._step(code=code, temperature=temperature, meta_temperature=meta_temperature, n=n)
+                self._step(code=code, temperature=temperature, meta_temperature=meta_temperature, n=n, require_unique_choices=require_unique_choices)
 
                 # If the code is correct, stop the feedback loop
                 if len(self.conversations.passing_conversations) > 0:
@@ -217,7 +218,8 @@ class LLMCoder:
             delta_temperature: float = 0.2,
             max_temperature: float = 2,
             factor_n: int = 2,
-            max_n: int = 32) -> None:
+            max_n: int = 32,
+            require_unique_choices: bool = False) -> None:
         """
         Use OpenAI's API to get completion(s) for the user's code for a given conversation
 
@@ -241,6 +243,8 @@ class LLMCoder:
             The factor to increase the number of choices in case of repeated mistakes, by default 2
         max_n : int, optional
             The maximum number of choices to use, by default 32
+        require_unique_choices : bool, optional
+            Whether to require unique choices when sampling multiple completions. If True, sampling may take a lot more time, by default False
         """
         total_generate_candidates = 0
 
@@ -267,7 +271,12 @@ class LLMCoder:
         increased_n = n
         repetition = 0
 
-        while len(valid_choices) < n and repetition < max_retries:
+        if require_unique_choices:
+            have_enough_choices = len(valid_unique_contents) >= n
+        else:
+            have_enough_choices = len(valid_choices) >= n
+
+        while not have_enough_choices and repetition < max_retries:
             if self.verbose:
                 print(f"[LLMcoder] Found {total_generate_candidates - len(valid_choices)} repeated mistakes, {len(valid_choices) - len(valid_unique_contents)} duplicates. Increasing temperature to {increased_temperature:.1f} and number of choices to {increased_n}... [repetition {repetition + 1}/{max_retries}]")
 
@@ -287,18 +296,28 @@ class LLMCoder:
             # Remove duplicates
             valid_unique_contents = list(set([choice.message.content for choice in valid_choices]))
 
+            # Check if we have enough unique choices
+            if require_unique_choices:
+                have_enough_choices = len(valid_unique_contents) >= n
+            else:
+                have_enough_choices = len(valid_choices) >= n
+
             increased_temperature = min(max_temperature, increased_temperature + delta_temperature)
             increased_n = min(max_n, increased_n * factor_n)
             repetition += 1
 
-        # If we still do not have valid choices, abort
-        if len(valid_unique_contents) == 0 and repetition >= max_retries:
+        # If we still do not have any valid choices after max_retries, abort
+        have_any_choices = len(valid_unique_contents) > 0
+
+        if not have_any_choices and repetition >= max_retries:
             if self.verbose:
                 print("[LLMcoder] Could not generate valid completions. Aborting...")
             return None
 
         # Now that we have valid choices, run the analyzers on them in parallel and determine the best one
+        # Only run the analyzers on the unique completions, to avoid redundant work
         if n > 1 and len(valid_unique_contents) > 1:
+            # Use multiple processes to run the analyzers in parallel
             if self.verbose:
                 print(f"[LLMcoder] Analyzing {len(valid_unique_contents)} completions...")
 
@@ -417,7 +436,7 @@ class LLMCoder:
         """
         return '[INST]\n' + '\n'.join(result_messages) + '\n\nFix, improve and rewrite your completion for the following code:\n[/INST]\n'
 
-    def _step(self, code: str, temperature: float = 0.7, meta_temperature: float = 0.0, n: int = 1) -> None:
+    def _step(self, code: str, temperature: float = 0.7, meta_temperature: float = 0.0, n: int = 1, require_unique_choices: bool = False) -> None:
         """
         Run one step of the feedback loop, including
         - getting and duplicating the most promising conversation from the priority queue
@@ -435,6 +454,8 @@ class LLMCoder:
             The temperature to use for choosing the most promising conversation, by default 0.0
         n : int, optional
             The number of choices to generate, by default 1
+        require_unique_choices : bool, optional
+            Whether to require unique choices when sampling multiple completions, by default False
         """
         # Choose highest-scored conversation from the priority queue
         most_promising_conversation = self.conversations.pop(temperature=meta_temperature)
@@ -456,7 +477,12 @@ class LLMCoder:
         most_promising_conversation.add_message({'role': 'user', 'content': feedback_prompt + code})
 
         # Get new completions and add them to the priority queue
-        self._get_completions_for(most_promising_conversation, self.model_feedback, temperature, n)
+        self._get_completions_for(
+            conversation=most_promising_conversation,
+            model=self.model_feedback,
+            temperature=temperature,
+            n=n,
+            require_unique_choices=require_unique_choices)
 
         if self.verbose:
             probabilities = self.conversations.get_probabilities(temperature=meta_temperature)

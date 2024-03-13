@@ -59,6 +59,7 @@ exclude = [
 	"env",
 	".env",
 	"images",
+    "demos"
 ]
 
 
@@ -67,9 +68,10 @@ no_implicit_optional = false
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
 explicit_package_bases = true
-exclude = ".venv"
+exclude = "(.venv|demos)" # Modify this line
 ignore_missing_imports = true
 
 [tool.isort]
 multi_line_output = 2
 line_length = 500
+skip = ["demos"] # Add this line
