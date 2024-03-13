@@ -139,7 +139,9 @@ class HallucinationAnalyzer(Analyzer):
             if n_total_suggestions > 0:
                 results_str += "\n\n"
                 for h in hallucinations_dedupe:
-                    results_str += f"Instead of '{h['module']}.{h['name']}', use the most plausible of these attributes: {h['module']}.[" + ', '.join([s for s in h['suggested_attributes']]) + "]\n"
+                    results_str += f"Instead of '{h['module']}.{h['name']}', use the most plausible of these attributes:\n"
+                    for s in h['suggested_attributes']:
+                        results_str += f"{h['module']}.{s}\n"
                     if self.verbose:
                         print(f"[Hallucinations] Suggested attributes for {h['module']}.{h['name']}: {[s for s in h['suggested_attributes']]}")
 
