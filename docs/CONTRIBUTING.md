@@ -2,6 +2,10 @@
 
 ## Algorithm
 
+![LLMCoder Algorithm](../images/visual_abstract.png)
+
+For fine-tuning, we use our custom [LLMcoder-GitHub-Python-Mix-Direct](https://huggingface.co/datasets/23ws-LLMcoder/LLMcoder-GitHub-Python-Mix-Direct/tree/main) dataset and [OpenAI's fine-tuning service](https://platform.openai.com/docs/guides/fine-tuning) for GPT-3.5.
+
 ## Project Structure
 
 We follow common Python project structure conventions which includes
@@ -11,6 +15,7 @@ We follow common Python project structure conventions which includes
 - `experimental/` - A directory for pilot tests, experiments, troubleshooting, etc. This directory mostly contains Jupyter notebooks.
 - `configs/` - Configuration files used for evaluation of the LLMcoder
 - `demos/` - Demo notebooks showing how to use the LLMcoder package
+- `data/` - Data used for evaluation and testing
 
 ## `LLMCoder` class
 
@@ -153,6 +158,324 @@ Executes a single iteration of the feedback loop for code completion. This invol
 - `n` (int, optional): The number of completions to generate in this step.
 
 
-### Evaluation
+## Usage
+
+In addition to tis python API, the LLMcoder program can be invoked through the command line with various commands and options to perform specific tasks. Below is the structure of the command line interface (CLI) and the available commands ordered by relevance:
+
+```sh
+llmcoder <command> [options]
+```
+
+### Commands
+
+#### 1. `complete`
+
+Generates code completions based on provided input.
+
+- **Options**:
+  - `-a`, `--analyzers`: List of analyzers to use. One of `mypy_analyzer_v1`, `signature_analyzer_v1`, `hallucination_analyzer_v1`, `gpt_score_analyzer_v1`
+  - `-mf`, `--model_first`: The model to use for the first completion.
+  - `-ml`, `--model_feedback`: The model to use for the feedback loop.
+  - `-fv`, `--feedback_variant`: The feedback variant to use.
+  - `-p`, `--system_prompt`: The system prompt to use.
+  - `-i`, `--max_iter`: The maximum number of iterations for the feedback loop.
+  - `-b`, `--backtracking`: Enable backtracking for the feedback loop.
+  - `-l`, `--log_conversation`: Log the conversation.
+  - `-np`, `--n_procs`: The number of processes for the analyzers.
+  - `-v`, `--verbose`: Enable verbose output.
+  - `-t`, `--temperature`: The temperature for the first completion.
+  - `-mt`, `--meta_temperature`: The temperature for the feedback loop.
+  - `-uq`, `--require_unique_sampling`: Require unique sampling for the feedback loop.
+  - `-n`, `--n_completions`: The number of completions to generate.
+  - `-f`, `--file`: File to complete.
+  - `-u`, `--user_input`: User input from CLI to complete.
+
+Either `-f` or `-u` is required.
+
+#### 2. `evaluate`
+
+Performs evaluation of the completions.
+
+- **Options**:
+  - `-c`, `--config`: Configuration file(s) for evaluation.
+  - `-n`, `--n_repeat`: Number of times to repeat the evaluation.
+
+#### 3. `metrics`
+
+Calculates metrics based on evaluations.
+
+- **Options**:
+  - `-c`, `--config`: Configuration file(s) for metrics calculation.
+  - `-i`, `--index`: Compute metrics of the i-th repetition only.
+
+For further details about the evaluation, please refer to [Evaluation](#evaluation).
+
+#### 4. `preprocess`
+
+Prepares datasets for further processing.
+
+- **Options**:
+  - `-n`, `--name` (required): Name of the dataset.
+  - `-s`, `--size`: Number of samples to extract per repository.
+
+#### 5. `export`
+
+Exports processed data for use in other stages or analyses.
+
+- **Options**:
+  - `-n`, `--name` (required): Name of the dataset.
+
+
+### Command Execution
+
+Upon invocation, LLMcoder parses the command line arguments and executes the specified command using the provided options. It supports operations such as scraping GitHub repositories, preprocessing datasets, generating code completions with feedback mechanisms, and evaluating the quality of code completions.
+
+### Examples
+
+- Generate code completions for user input `print('H`
+
+    ```sh
+    llmcoder complete -u "print('H"
+    ```
+
+    ```
+    >>> ello, world!')
+    ```
+
+- Compile a list of target completion pairs in `data/LLMcoder-Eval/level_0/pairs/pair*/{input, output}.txt`:
+
+    ```
+    llmcoder export -n LLMcoder-Eval/level_0
+    ```
+
+    ```
+    >>> 100%|████████████████████████████████████████████████████████████████████████████████| 4/4 [00:00<00:00, 31184.42it/s]
+    >>> 4it [00:00, 3681.64it/s]
+    >>> 100%|████████████████████████████████████████████████████████████████████████████████| 4/4 [00:00<00:00, 32017.59it/s]
+    >>> Data saved in /home/psaegert/Projects/23ws-LLMcoder/data/LLMcoder-Eval/level_0/conversations.jsonl and ready to be used in the OpenAI API
+    ```
+
+## Evaluation
+
+### 1. Prerequisites
+
+For evaluation, we require the following file structure:
+
+```
+data/
+└── my_dataset/
+    ├── level_0/
+    │   ├── pairs/
+    │   │   ├── pair1/
+    │   │   │   ├── input.txt
+    │   │   │   └── output.txt
+    │   │   ├── pair2/
+    │   │   │   ├── input.txt
+    │   │   │   └── output.txt
+    │   │   ├── ...
+    ├── level_1/
+    │   ├── pairs/
+    │   │   ├── pair1/
+    │   │   │   ├── input.txt
+    │   │   │   └── output.txt
+    │   │   ├── pair2/
+    │   │   │   ├── input.txt
+    │   │   │   └── output.txt
+    │   │   ├── ...
+    └── ...
+```
+
+Running `llmcoder export -n my_dataset/level_0` will generate a `conversations.jsonl` file in the `level_0` directory:
+
+```
+data/
+└── my_dataset/
+    ├── level_0/
+    │   ├── pairs/
+    │   │   ├── pair1/
+    │   │   │   ├── input.txt
+    │   │   │   └── output.txt
+    │   │   ├── pair2/
+    │   │   │   ├── input.txt
+    │   │   │   └── output.txt
+    │   │   ├── ...
+    │   └── conversations.jsonl  <--- *
+    ├── level_1/
+    │   ├── pairs/
+    │   │   ├── pair1/
+    │   │   │   ├── input.txt
+    │   │   │   └── output.txt
+    │   │   ├── pair2/
+    │   │   │   ├── input.txt
+    │   │   │   └── output.txt
+    │   │   ├── ...
+    └── ...
+```
+
+Additionally, the evaluation uses a config to specify the evaluation parameters:
+
+```yaml
+# configs/my_config.yaml
+analyzers: ["mypy_analyzer_v1"]
+model_first: "ft:gpt-3.5-turbo-1106:personal::8LCi9Q0d"
+model_feedback: "ft:gpt-3.5-turbo-1106:personal::8LCi9Q0d"
+feedback_variant: "coworker"
+system_prompt: 2023-11-15_GPT-Builder.txt
+dataset: "LLMcoder-Eval/level_0"
+max_iter: 5
+log_conversation: true
+scores: [
+  "extrinsic.levenshtein_distance_score",
+  "extrinsic.bleu_score",
+  "extrinsic.trf_similarity_score",
+  "extrinsic.sequence_matcher_score",
+  "extrinsic.gpt_reviewer_score",
+  "intrinsic.loops_required_score",
+  "intrinsic.tokens_used_score",
+  "intrinsic.agility_score",
+  "intrinsic.time_score",
+  "intrinsic.all_analyzers_passed_score",
+  "intrinsic.total_tokens_generated_score"
+]
+n_choices: 1
+n_procs: 1
+backtracking: false
+```
+
+### 2. Evaluation
+
+Now, the LLMcoder can be evaluated using the `evaluate` command:
+
+```sh
+llmcoder evaluate -c my_config.yaml
+```
+
+This will create files in the following structure:
+
+```
+data/
+└── my_dataset/
+    ├── level_0/
+    │   ├── pairs/
+    │   │   ├── pair1/
+    │   │   │   ├── input.txt
+    │   │   │   └── output.txt
+    │   │   ├── pair2/
+    │   │   │   ├── input.txt
+    │   │   │   └── output.txt
+    │   │   ├── ...
+    │   ├── conversations.jsonl
+    │   ├── eval/                           <--- *
+    │   │   ├── my_config/
+    │   │   │   ├── 2024-03-16_12-01-23
+    │   │   │   │   ├── readable_logs/
+    │   │   │   │   │   ├── 0.txt
+    │   │   │   │   │   ├── 1.txt
+    │   │   │   │   │   ├── ...
+    │   │   │   │   └── results.json
+    ├── level_1/
+    │   ├── ...
+    └── ...
+```
+
+The `readable logs` contains captured stdout and stderr of the LLMcoder in verbose mode during evaluation:
+
+```
+[LLMcoder] Creating first completions...
+[LLMcoder] Choosing conversation R with score 0
+[LLMcoder] Analyzing completion...
+[LLMcoder] Analyzing code in coworker mode...
+[LLMcoder] Running mypy_analyzer_v1...
+[Mypy] No missing stubs found.
+[Mypy] Success: no issues found in 1 source file
+[LLMcoder] Have 1 conversations:
+[LLMcoder] Passing   Score     Prob      Path
+[LLMcoder] True      0         1.0       ['R', 0]
+[LLMcoder] First completion is correct. Stopping early...
+```
+
+
+The `results.json` contains the evaluation results:
+
+```json
+{
+    "0": {  // Unique identifier
+        "messages": [  // Messages of the passing conversation
+            {
+                "role": "system",
+                "content": "MY_SYSTEM_PROMPT"
+            },
+            {
+                "role": "user",
+                "content": "# Import random forest regressor\n"
+            },
+            {
+                "role": "assistant",
+                "content": "from sklearn.ensemble import RandomForestRegressor"
+            }
+        ],
+        "analyzer_results": [
+            {
+                "mypy_analyzer_v1": {
+                    "type": "critical",
+                    "score": 0,
+                    "pass": true,
+                    "message": "The completion you provided resulted in the following errors:\nSuccess: no issues found in 1 source file"
+                }
+            }
+        ],
+        "log": "[LLMcoder] Creating first completions...\n[LLMcoder] Choosing conversation R with score 0\n[LLMcoder] Analyzing completion...\n[LLMcoder] Analyzing code in coworker mode...\n[LLMcoder] Running mypy_analyzer_v1...\n[Mypy] No missing stubs found.\n[Mypy] Success: no issues found in 1 source file\n[LLMcoder] Have 1 conversations:\n[LLMcoder] Passing   Score     Prob      Path\n[LLMcoder] True      0         1.0       ['R', 0]\n[LLMcoder] First completion is correct. Stopping early...\n",
+        "time": 0.9953744411468506,
+        "n_tokens_generated": 11
+    },
+    ...
+}
+```
+
+### 3. Metrics
+
+With the evaluation results, we can calculate metrics using the `metrics` command:
+
+```sh
+llmcoder metrics -c my_config.yaml
+```
+
+This will create a `metrics.csv` file in the `eval` directory:
+
+```
+data/
+└── my_dataset/
+    ├── level_0/
+    │   ├── pairs/
+    │   │   ├── pair1/
+    │   │   │   ├── input.txt
+    │   │   │   └── output.txt
+    │   │   ├── pair2/
+    │   │   │   ├── input.txt
+    │   │   │   └── output.txt
+    │   │   ├── ...
+    │   ├── conversations.jsonl
+    │   ├── eval/
+    │   │   ├── my_config/
+    │   │   │   ├── 2024-03-16_12-01-23
+    │   │   │   │   ├── readable_logs/
+    │   │   │   │   │   ├── 0.txt
+    │   │   │   │   │   ├── 1.txt
+    │   │   │   │   │   ├── ...
+    │   │   │   │   └── results.json
+    │   │   │   ├── metrics.csv         <--- *
+    ├── level_1/
+    │   ├── ...
+    └── ...
+```
+
+
+### 4. Analysis
+
+We provide a Jupyter notebook `notebooks/analysis.ipynb` to analyze the evaluation results and metrics and visualize the performance of the LLMcoder.
+
 
 ## Future Work
+
+- Improve / streamline the evaluation process
+- Integrate LLMcoder as a VSCode extension, possible benefit: direct access to environment info
