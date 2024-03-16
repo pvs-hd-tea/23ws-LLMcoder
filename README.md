@@ -17,8 +17,11 @@
 ![Visual Abstract](./images/visual_abstract.png)
 
 # Introduction
-TODO
+
+Enhancemenent of coding assistants through integration of feedback from LLM querying. LLMCoder fetches and retrieves API information and documentation based on error report obtained from four different analyzers. These aim to prevent instances of type errors, incorrect API signature usage and LLM-induced hallucinations. These have been implemented after fine-tuning GPT-3.5 aligning with a evaluated scale of difficulty levels.
+
 # Requirements
+
 ## Hardware
 ## Software
 - Python >= 3.10
