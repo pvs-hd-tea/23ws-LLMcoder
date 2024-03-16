@@ -479,3 +479,4 @@ We provide a Jupyter notebook `notebooks/analysis.ipynb` to analyze the evaluati
 
 - Improve / streamline the evaluation process
 - Integrate LLMcoder as a VSCode extension, possible benefit: direct access to environment info
+- Find a way to store conversation logs in nested json format
