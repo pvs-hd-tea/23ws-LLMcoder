@@ -1,3 +1,4 @@
+import textwrap
 import warnings
 from difflib import SequenceMatcher
 
@@ -181,18 +182,19 @@ def sequence_matcher_score(ground_truth: str, llmcoder_result: dict | str) -> fl
 
 def _user_prompt_template(code_1: str, code_2: str, qualities_list: list[str] | None) -> str:
     quality_list_string = '\n'.join([f'- {q}' for q in qualities_list]) if qualities_list is not None else ''
-    return f"""Assess and compare these two code snippets and evaluate the completions. Do your own analysis and also consider the following criteria:
-{quality_list_string}
+    return textwrap.dedent(
+        f"""Assess and compare these two code snippets and evaluate the completions. Do your own analysis and also consider the following criteria:
+        {quality_list_string}
 
-CODE 1:
-```python
-{code_1}
-```
+        CODE 1:
+        ```python
+        {code_1}
+        ```
 
-CODE 2:
-```python
-{code_2}
-```"""
+        CODE 2:
+        ```python
+        {code_2}
+        ```""")
 
 
 def _get_scores(ground_truth: str, completion: str, system_prompt_compare: str, qualities_list: list[str] | None = None, model: str = "gpt-3.5-turbo", max_iter: int = 5) -> float:
@@ -249,24 +251,25 @@ def gpt_reviewer_score(ground_truth: str, llmcoder_result: dict | str, model: st
         The similarity between the two strings. Positive if the completion is better than the ground truth, negative otherwise.
     """
 
-    system_prompt_compare = """You are a data scientist tasked with comparing and evaluating code completions made by a language model.
-The user will submit two code snippets with the same beginning but different completions.
-Given these snippets, you evaluate the completions in a concise way, and give each a score between 0 and 10, with 0 being the worst (unusable completion that would make a developer frustrated) and 10 being the best (perfect completion that would make a developer happy).
-The user may ask you to prioritize different qualities of the code.
-Take these priorities into account when scoring the completions.
-Your output must always have the following format:
-```
-COMPARISON:
-<comparison of the two completions with regard to the requested qualities>
+    system_prompt_compare = textwrap.dedent(
+        """You are a data scientist tasked with comparing and evaluating code completions made by a language model.
+        The user will submit two code snippets with the same beginning but different completions.
+        Given these snippets, you evaluate the completions in a concise way, and give each a score between 0 and 10, with 0 being the worst (unusable completion that would make a developer frustrated) and 10 being the best (perfect completion that would make a developer happy).
+        The user may ask you to prioritize different qualities of the code.
+        Take these priorities into account when scoring the completions.
+        Your output must always have the following format:
+        ```
+        COMPARISON:
+        <comparison of the two completions with regard to the requested qualities>
 
-SCORE 1: <score for completion 1, integer between 0 and 10>
-SCORE 2: <score for completion 2, integer between 0 and 10>
-```
+        SCORE 1: <score for completion 1, integer between 0 and 10>
+        SCORE 2: <score for completion 2, integer between 0 and 10>
+        ```
 
-Do not include any other information in your output.
-It is very important that the output following "SCORE 1: " and "SCORE 2: " is a single integer between 0 and 10, with no other characters or spaces since scores will later be parsed at this exact location.
-Therefore, make sure to keep your comparison (the text after COMPARISON:) concise, and adhere to the score format exactly.
-"""
+        Do not include any other information in your output.
+        It is very important that the output following "SCORE 1: " and "SCORE 2: " is a single integer between 0 and 10, with no other characters or spaces since scores will later be parsed at this exact location.
+        Therefore, make sure to keep your comparison (the text after COMPARISON:) concise, and adhere to the score format exactly.
+        """)
 
     if qualities_list is None:
         qualities_list = [

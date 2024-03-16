@@ -36,6 +36,7 @@ def main() -> None:
     complete_parser.add_argument('-v', '--verbose', action='store_true', help='Whether to print verbose output')
     complete_parser.add_argument('-t', '--temperature', type=float, default=0.7, help='The temperature to use for the first completion')
     complete_parser.add_argument('-mt', '--meta_temperature', type=float, default=0.0, help='The temperature to use for the feedback loop')
+    complete_parser.add_argument('-uq', '--require_unique_sampling', action='store_true', help='Whether to require unique sampling for the feedback loop')
 
     complete_parser.add_argument('-n', '--n_completions', type=int, default=1, help='The number of completions to generate')
     complete_parser.add_argument('-f', '--file', type=str, help='File to complete')
@@ -104,7 +105,8 @@ def main() -> None:
                 code=user_input,
                 temperature=args.temperature,
                 meta_temperature=args.meta_temperature,
-                n=args.n_completions)
+                n=args.n_completions,
+                require_unique_choices=args.require_unique_sampling)
 
             if args.file:
                 with open(args.file, 'a') as file:

@@ -9,7 +9,7 @@ from llmcoder.utils import get_openai_key, get_system_prompt
 
 class GPTScoreAnalyzer(Analyzer):
     """
-    Create a new GPTScoreAnalyzer
+    Analyzer that scores code using GPT-3.5 with a scoring prompt.
 
     Parameters
     ----------
@@ -18,7 +18,7 @@ class GPTScoreAnalyzer(Analyzer):
     scoring_prompt : str
         The scoring prompt to use
     reduction : str | None, optional
-        The reduction method to use, by default "geo"
+        The reduction method to use, by default "geo" (geometric mean)
     verbose : bool, optional
         Whether to print verbose output, by default False
     """
@@ -30,7 +30,8 @@ class GPTScoreAnalyzer(Analyzer):
         self.verbose = verbose
 
     def score_prompt(self, code_list: list[str]) -> str:
-        """Concatenates the code snippets with the scoring prompt in the following format:
+        """
+        Concatenates the code snippets with the scoring prompt in the following format:
 
         Code snippet 1:
         ```python
@@ -156,6 +157,8 @@ class GPTScoreAnalyzer(Analyzer):
             The input code
         completion : str
             The completion to analyze
+        context : dict[str, dict[str, float | int | str]] | None, optional
+            Ignored. The context of previous analyzers of the completion, by default None.
         reduction : str | None, optional
             The reduction method to use, by default "geo"
 
