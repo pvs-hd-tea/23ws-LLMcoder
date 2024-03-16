@@ -15,17 +15,14 @@ Import = namedtuple("Import", ["module", "name", "alias"])
 class SignatureAnalyzer(Analyzer):
     """
     Analyzer that fetches the signatures and documentations of functions and classes in the code.
+
+    Parameters
+    ----------
+    verbose : bool
+        Whether to print debug messages.
     """
 
     def __init__(self, verbose: bool = False) -> None:
-        """
-        Initialize the SignatureAnalyzer.
-
-        Parameters
-        ----------
-        verbose : bool
-            Whether to print debug messages.
-        """
         super().__init__(verbose)
 
     def get_imports(self, path: str, query: str | list[str] | None = None) -> Generator:
@@ -309,8 +306,8 @@ class SignatureAnalyzer(Analyzer):
             The input code.
         completion : str
             The completion code.
-        context : dict[str, dict[str, float | int | str]] | None
-            The context from the previous analyzers.
+        context : dict[str, dict[str, float | int | str]] | None, optional
+            The context of previous analyzers of the completion.
 
         Returns
         -------

@@ -17,6 +17,7 @@
 ![Visual Abstract](./images/visual_abstract.png)
 
 # Introduction
+TODO
 # Requirements
 ## Hardware
 ## Software

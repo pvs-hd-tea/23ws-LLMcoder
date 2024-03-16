@@ -6,6 +6,16 @@ from llmcoder.conversation import Conversation
 
 
 class PriorityQueue:
+    """
+    A priority queue for conversations, which sorts the conversations based on their scores.
+
+    Parameters
+    ----------
+    conversations : Conversation | list[Conversation] | None, optional
+        The conversations to be added to the priority queue, by default None
+    backtracking : bool, optional
+        Whether to allow re-considering previous conversations, by default True
+    """
     def __init__(self, conversations: Conversation | list[Conversation] | None = None, backtracking: bool = True):
         self.queue: list[Conversation] = []
         self.backtracking = backtracking

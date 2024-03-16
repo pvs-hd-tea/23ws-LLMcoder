@@ -1,4 +1,5 @@
 dynaconf
+jedi
 levenshtein
 mypy
 nltk
