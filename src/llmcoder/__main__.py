@@ -105,7 +105,8 @@ def main() -> None:
                 code=user_input,
                 temperature=args.temperature,
                 meta_temperature=args.meta_temperature,
-                n=args.n_completions)
+                n=args.n_completions,
+                require_unique_choices=args.require_unique_sampling)
 
             if args.file:
                 with open(args.file, 'a') as file:
