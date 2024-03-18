@@ -3,6 +3,7 @@ dynaconf
 gpt4all
 langchain
 langchain-community
+jedi
 levenshtein
 mypy
 nltk

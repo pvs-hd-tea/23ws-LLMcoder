@@ -61,6 +61,11 @@ def split_file(file_contents: str, min_pos: int = 1, max_pos: int = None) -> tup
         The minimum position to split the file at, by default 1
     max_pos : int, optional
         The maximum position to split the file at, by default None
+
+    Returns
+    -------
+    tuple[str, str]
+        A tuple containing the first and second part of the file.
     """
     if max_pos is None:
         max_pos = len(file_contents) - 1
@@ -122,27 +127,27 @@ def sample_files_from_dir(repo_dir: str, n_samples: int = 4, file_extensions: li
 
 
 class Preprocessor:
-    def __init__(self, dataset_name: str, tokenizer: str = "p50k_base", scraped_files_dir: str | None = None, save_pairs_dir: str | None = None, save_data_dir: str | None = None, system_prompt: str | None = None, disallowed_special_tokens: list[str] | None = None) -> None:
-        """
-        A preprocessor for the fine-tuning data which samples files from scraped repositories, splits them into two parts and saves them in a format that can be used for fine-tuning.
+    """
+    A preprocessor for the fine-tuning data which samples files from scraped repositories, splits them into two parts and saves them in a format that can be used for fine-tuning.
 
-        Parameters
-        ----------
-        dataset_name : str
-            The name of the dataset.
-        tokenizer : str, optional
-            The tokenizer to use, by default "p50k_base" for gpt-3.5-turbo
-        scraped_files_dir : str
-            The directory to store the scraped files in, defaults to 'scraped_repos'.
-        save_pairs_dir : str
-            The directory to store the sampled files in, defaults to 'pairs'.
-        save_data_dir : str
-            The directory to store the preprocessed data in, defaults to 'github_mix'.
-        system_prompt : str
-            The system prompt to use, defaults to the default system prompt.
-        disallowed_special_tokens : list[str]
-            A list of disallowed special tokens, defaults to the default disallowed special tokens.
-        """
+    Parameters
+    ----------
+    dataset_name : str
+        The name of the dataset.
+    tokenizer : str, optional
+        The tokenizer to use, by default "p50k_base" for gpt-3.5-turbo
+    scraped_files_dir : str
+        The directory to store the scraped files in, defaults to 'scraped_repos'.
+    save_pairs_dir : str
+        The directory to store the sampled files in, defaults to 'pairs'.
+    save_data_dir : str
+        The directory to store the preprocessed data in, defaults to 'github_mix'.
+    system_prompt : str
+        The system prompt to use, defaults to the default system prompt.
+    disallowed_special_tokens : list[str]
+        A list of disallowed special tokens, defaults to the default disallowed special tokens.
+    """
+    def __init__(self, dataset_name: str, tokenizer: str = "p50k_base", scraped_files_dir: str | None = None, save_pairs_dir: str | None = None, save_data_dir: str | None = None, system_prompt: str | None = None, disallowed_special_tokens: list[str] | None = None) -> None:
         self.name = dataset_name
 
         self.enc = tiktoken.get_encoding(tokenizer)

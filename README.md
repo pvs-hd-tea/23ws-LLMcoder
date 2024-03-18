@@ -14,6 +14,7 @@
 </div>
 
 # Introduction
+TODO
 # Requirements
 ## Hardware
 ## Software
@@ -63,6 +64,7 @@ llmcoder = LLMcoder(
     feedback_variant="coworker",  # Make context available to all analyzers
     max_iter=3,  # Maximum number of feedback iterations
     n_procs=4  # Complete and analyze in parallel
+    backtracking=True, # Enable backtracking in the tree of completions
     verbose=True  # Print progress
 )
 
@@ -157,7 +159,7 @@ pre-commit install
     month = mar,
     year = 2024,
     publisher = {GitHub},
-    version = {0.3.1},
+    version = {0.4.0},
     url = {https://github.com/pvs-hd-tea/23ws-LLMcoder}
 }
 ```

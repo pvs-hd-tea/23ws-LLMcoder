@@ -23,17 +23,32 @@ def main() -> None:
 
     # Add specific arguments to the complete command
     complete_parser = subparsers.add_parser('complete')
+
+    complete_parser.add_argument('-a', '--analyzers', nargs='+', type=str, default=[], help='The list of analyzers to use')
+    complete_parser.add_argument('-mf', '--model_first', type=str, default="ft:gpt-3.5-turbo-1106:personal::8LCi9Q0d", help='The model to use for the first completion')
+    complete_parser.add_argument('-ml', '--model_feedback', type=str, default="ft:gpt-3.5-turbo-1106:personal::8LCi9Q0d", help='The model to use for the feedback loop')
+    complete_parser.add_argument('-fv', '--feedback_variant', type=str, default="coworker", help='The feedback variant to use')
+    complete_parser.add_argument('-p', '--system_prompt', type=str, default=None, help='The system prompt to use')
+    complete_parser.add_argument('-i', '--max_iter', type=int, default=10, help='The maximum number of iterations to run the feedback loop')
+    complete_parser.add_argument('-b', '--backtracking', action='store_true', help='Whether to use backtracking for the feedback loop')
+    complete_parser.add_argument('-l', '--log_conversation', action='store_true', help='Whether to log the conversation')
+    complete_parser.add_argument('-np', '--n_procs', type=int, default=1, help='The number of processes to use for the analyzers')
+    complete_parser.add_argument('-v', '--verbose', action='store_true', help='Whether to print verbose output')
+    complete_parser.add_argument('-t', '--temperature', type=float, default=0.7, help='The temperature to use for the first completion')
+    complete_parser.add_argument('-mt', '--meta_temperature', type=float, default=0.0, help='The temperature to use for the feedback loop')
+    complete_parser.add_argument('-uq', '--require_unique_sampling', action='store_true', help='Whether to require unique sampling for the feedback loop')
+
+    complete_parser.add_argument('-n', '--n_completions', type=int, default=1, help='The number of completions to generate')
     complete_parser.add_argument('-f', '--file', type=str, help='File to complete')
-    complete_parser.add_argument('-l', '--log', action='store_true', help='Log the conversation')
-    complete_parser.add_argument('user_input', nargs='?', default='', help='User input to complete')
+    complete_parser.add_argument('-u', '--user_input', type=str, default='', help='User input to complete')
 
     # Add specific arguments to the evaluate command
     evaluate_parser = subparsers.add_parser('evaluate')
-    evaluate_parser.add_argument('-c', '--config', type=str, default=None, help='Configuration file in the configs folder for evaluation')
+    evaluate_parser.add_argument('-c', '--config', nargs='+', type=str, default=None, help='Configuration file in the configs folder for evaluation')
     evaluate_parser.add_argument('-n', '--n_repeat', type=int, default=1, help='Number of times to repeat the evaluation')
 
     metrics_parser = subparsers.add_parser('metrics')
-    metrics_parser.add_argument('-c', '--config', type=str, default=None, help='Configuration file in the configs folder for evaluation')
+    metrics_parser.add_argument('-c', '--config', nargs='+', type=str, default=None, help='Configuration file in the configs folder for evaluation')
     metrics_parser.add_argument('-i', '--index', type=int, default=None, help='Only compute metrics of the i-th repetition')
 
     # Parse the command line arguments
@@ -61,9 +76,24 @@ def main() -> None:
             preprocessor.validate_conversations(conversations)
             preprocessor.save_conversations(conversations)
         case 'complete':
-            from llmcoder.LLMCoder import LLMCoder
+            from llmcoder.llmcoder import LLMCoder
 
-            llmcoder = LLMCoder(analyzers=["mypy_analyzer_v1", "jedi_analyzer_v1"], feedback_variant="coworker", log_conversation=args.log, verbose=True)
+            if args.file is None and args.user_input == '':
+                print('Either a file or user input must be provided, usage:')
+                print('llmcoder complete -f <file> or llmcoder complete -u <user_input>')
+                sys.exit(1)
+
+            llmcoder = LLMCoder(
+                analyzers=args.analyzers,
+                model_first=args.model_first,
+                model_feedback=args.model_feedback,
+                feedback_variant=args.feedback_variant,
+                system_prompt=args.system_prompt,
+                max_iter=args.max_iter,
+                log_conversation=args.log_conversation,
+                n_procs=args.n_procs,
+                verbose=args.verbose
+            )
 
             if args.file:
                 with open(args.file, 'r') as file:
@@ -71,7 +101,12 @@ def main() -> None:
             else:
                 user_input = args.user_input
 
-            completion = llmcoder.complete(user_input)
+            completion = llmcoder.complete(
+                code=user_input,
+                temperature=args.temperature,
+                meta_temperature=args.meta_temperature,
+                n=args.n_completions,
+                require_unique_choices=args.require_unique_sampling)
 
             if args.file:
                 with open(args.file, 'a') as file:

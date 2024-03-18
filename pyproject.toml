@@ -8,7 +8,7 @@ authors = [
     ]
 readme = "README.md"
 requires-python = ">=3.10"
-version = "0.3.1"
+version = "0.4.0"
 urls = { Github = "https://github.com/pvs-hd-tea/23ws-LLMcoder"}
 dynamic = ["dependencies"]
 
@@ -59,6 +59,7 @@ exclude = [
 	"env",
 	".env",
 	"images",
+    "demos"
 ]
 
 
@@ -67,9 +68,10 @@ no_implicit_optional = false
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
 explicit_package_bases = true
-exclude = ".venv"
+exclude = "(.venv|demos)" # Modify this line
 ignore_missing_imports = true
 
 [tool.isort]
 multi_line_output = 2
 line_length = 500
+skip = ["demos"] # Add this line
