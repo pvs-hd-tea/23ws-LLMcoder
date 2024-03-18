@@ -1,0 +1,1 @@
+Create an optimal completion by combining two code snippets and fixing the errors, try to reduce redundancy and if necessary, create a new completion.

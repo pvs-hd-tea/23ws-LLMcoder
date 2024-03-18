@@ -1,0 +1,131 @@
+import unittest
+
+from llmcoder import LLMCoder
+from llmcoder.conversation import Conversation
+
+class TestCombiningPromptTemplate(unittest.TestCase):
+    def test_both_result_messages_not_none(self):
+        """Test case with both result_messages1 and result_messages2 not None"""
+        conversation1 = Conversation()
+        conversation2 = Conversation()
+        result_messages1 = ["Error 1", "Error 2"]
+        result_messages2 = ["Error 3", "Error 4"]
+        llmcoder = LLMCoder(analyzers=["signature_analyzer_v1"], max_iter=5, feedback_variant="coworker", n_procs=3, min_score=5, backtracking=False, combining=True)
+        expected_result = '[INST]\n' + self.combining_prompt + '\nFirst completion: ' + conversation1.get_last_message() + '\nErrors first completion: ' + '\n'.join(result_messages1) + '\n\nSecond completion: ' + conversation2.get_last_message() + '\nErrors second completion: ' + '\n'.join(result_messages2) + '\n\n[/INST]\n'
+        self.assertEqual(llmcoder._combining_prompt_template(conversation1, conversation2, result_messages1, result_messages2), expected_result)
+
+    def test_result_messages1_not_none(self):
+        """Test case with result_messages1 not None"""
+        conversation1 = Conversation()
+        conversation2 = Conversation()
+        result_messages1 = ["Error 1", "Error 2"]
+        result_messages2 = None
+        llmcoder = LLMCoder(analyzers=["signature_analyzer_v1"], max_iter=5, feedback_variant="coworker", n_procs=3, min_score=5, backtracking=False, combining=True)
+        expected_result = '[INST]\n' + self.combining_prompt + '\nFirst completion: ' + conversation1.get_last_message() + '\nErrors first completion: ' + '\n'.join(result_messages1) + '\n\nSecond completion: ' + conversation2.get_last_message() + '\n\n[/INST]\n'
+        self.assertEqual(llmcoder._combining_prompt_template(conversation1, conversation2, result_messages1, result_messages2), expected_result)
+
+    def test_result_messages2_not_none(self):
+        """Test case with result_messages2 not None"""
+        conversation1 = Conversation()
+        conversation2 = Conversation()
+        result_messages1 = None
+        result_messages2 = ["Error 3", "Error 4"]
+        llmcoder = LLMCoder(analyzers=["signature_analyzer_v1"], max_iter=5, feedback_variant="coworker", n_procs=3, min_score=5, backtracking=False, combining=True)
+        expected_result = '[INST]\n' + self.combining_prompt + '\nFirst completion: ' + conversation1.get_last_message() + '\n\nSecond completion: ' + conversation2.get_last_message() + '\nErrors second completion: ' + '\n'.join(result_messages2) + '\n\n[/INST]\n'
+        self.assertEqual(llmcoder._combining_prompt_template(conversation1, conversation2, result_messages1, result_messages2), expected_result)
+
+    def test_both_result_messages_none(self):
+        """Test case with both result_messages1 and result_messages2 None"""
+        conversation1 = Conversation()
+        conversation2 = Conversation()
+        result_messages1 = None
+        result_messages2 = None
+        llmcoder = LLMCoder(analyzers=["signature_analyzer_v1"], max_iter=5, feedback_variant="coworker", n_procs=3, min_score=5, backtracking=False, combining=True)
+        expected_result = '[INST]\n' + self.combining_prompt + '\nFirst completion: ' + conversation1.get_last_message() + '\n\nSecond completion: ' + conversation2.get_last_message() + '\n\n[/INST]\n'
+        self.assertEqual(llmcoder._combining_prompt_template(conversation1, conversation2, result_messages1, result_messages2), expected_result)
+
+
+class TestCombine(unittest.TestCase):
+    def test_both_conversations_analyses_not_empty(self):
+        """Test case with both conversation1.analyses and conversation2.analyses not empty"""
+        coder = LLMCoder(log_conversation=False, combining=True)
+        coder.conversations.push(Conversation(score=10, messages=[
+            {"role": "user", "content": "Test system message"},
+            {"role": "user", "content": "Test user message"}
+            ],
+            analyses=[{'mypy_analyzer_v1': {'score': 0.9, 'label': True}}],
+            path=['start', 'middle', 'end']))
+        coder.conversations.push(Conversation(score=10, messages=[
+            {"role": "user", "content": "Test second system message"},
+            {"role": "user", "content": "Test second user message"}
+            ],
+            analyses=[{'mypy_analyzer_v1': {'score': 0.9, 'label': True}}],
+            path=['start', 'middle', 'end']))
+        conversation1 = coder.conversations.pop()
+        conversation2 = coder.conversations.pop()
+        coder._combining_prompt_template(conversation1, conversation2, conversation1.analyses, conversation2.analyses)
+        coder._get_completions_for(conversation1, n=1)
+        coder._combine(conversation1, conversation2, n=1)
+        self.assertTrue(len(coder.conversations) == 1)
+
+    def test_conversation1_analyses_not_empty(self):
+        """Test case with both conversation1.analyses and conversation2.analyses not empty"""
+        coder = LLMCoder(log_conversation=False, combining=True)
+        coder.conversations.push(Conversation(score=10, messages=[
+            {"role": "user", "content": "Test system message"},
+            {"role": "user", "content": "Test user message"}
+            ],
+            analyses=[{'mypy_analyzer_v1': {'score': 0.9, 'label': True}}],
+            path=['start', 'middle', 'end']))
+        coder.conversations.push(Conversation(score=10, messages=[
+            {"role": "user", "content": "Test second system message"},
+            {"role": "user", "content": "Test second user message"}
+            ],
+            path=['start', 'middle', 'end']))
+        conversation1 = coder.conversations.pop()
+        conversation2 = coder.conversations.pop()
+        coder._combining_prompt_template(conversation1, conversation2, conversation1.analyses, None)
+        coder._get_completions_for(conversation1, n=1)
+        coder._combine(conversation1, conversation2, n=1)
+        self.assertTrue(len(coder.conversations) == 1)
+
+    def test_conversation2_analyses_not_empty(self):
+        """Test case with conversation2.analyses not empty"""
+        coder = LLMCoder(log_conversation=False, combining=True)
+        coder.conversations.push(Conversation(score=10, messages=[
+            {"role": "user", "content": "Test system message"},
+            {"role": "user", "content": "Test user message"}
+            ],
+            path=['start', 'middle', 'end']))
+        coder.conversations.push(Conversation(score=10, messages=[
+            {"role": "user", "content": "Test second system message"},
+            {"role": "user", "content": "Test second user message"}
+            ],
+            analyses=[{'mypy_analyzer_v1': {'score': 0.9, 'label': True}}],
+            path=['start', 'middle', 'end']))
+        conversation1 = coder.conversations.pop()
+        conversation2 = coder.conversations.pop()
+        coder._combining_prompt_template(conversation1, conversation2, conversation1.analyses, None)
+        coder._get_completions_for(conversation1, n=1)
+        coder._combine(conversation1, conversation2, n=1)
+        self.assertTrue(len(coder.conversations) == 1)
+
+    def test_both_conversations_analyses_empty(self):
+        """Test case with both conversation1.analyses and conversation2.analyses empty"""
+        coder = LLMCoder(log_conversation=False, combining=True)
+        coder.conversations.push(Conversation(score=10, messages=[
+            {"role": "user", "content": "Test system message"},
+            {"role": "user", "content": "Test user message"}
+            ],
+            path=['start', 'middle', 'end']))
+        coder.conversations.push(Conversation(score=10, messages=[
+            {"role": "user", "content": "Test second system message"},
+            {"role": "user", "content": "Test second user message"}
+            ],
+            path=['start', 'middle', 'end']))
+        conversation1 = coder.conversations.pop()
+        conversation2 = coder.conversations.pop()
+        coder._combining_prompt_template(conversation1, conversation2, None, None)
+        coder._get_completions_for(conversation1, n=1)
+        coder._combine(conversation1, conversation2, n=1)
+        self.assertTrue(len(coder.conversations) == 1)

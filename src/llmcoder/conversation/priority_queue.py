@@ -65,7 +65,7 @@ class PriorityQueue:
         # If temperature is 0, return the conversation with the highest score
         if temperature == 0:
             index = 0
-        # If the temerature is infinite, sample uniformly
+        # If the temperature is infinite, sample uniformly
         elif temperature == np.inf:
             index = np.random.choice(len(self.queue))
         # Otherwise, sample from the queue using softmax
@@ -88,6 +88,19 @@ class PriorityQueue:
             self.remove_unrelated_branches(chosen_conversation)
 
         return chosen_conversation
+
+    def get_second_best_conversation(self) -> Conversation:
+        """
+        Get the second best conversation from the priority queue
+
+        Returns
+        -------
+        Conversation
+            The conversation with the second highest score
+        """
+        if len(self) < 2:
+            return sorted(self, key=lambda c: c.score, reverse=True)[0]
+        return sorted(self, key=lambda c: c.score, reverse=True)[1]
 
     def get_probabilities(self, temperature: float = 0.0) -> np.ndarray:
         """

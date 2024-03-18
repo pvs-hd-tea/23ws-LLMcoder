@@ -149,6 +149,28 @@ def get_system_prompt(name: str = "2023-11-15_GPT-Builder.txt") -> str:
         return f.read().strip()
 
 
+def get_combining_prompt(name: str = "2024-03-08_GPT-Combine.txt") -> str:
+    """
+    Read the combining prompt from a file.
+
+    Parameters
+    ----------
+    name : str
+        The name or path to the combining prompt file.
+
+    Returns
+    -------
+    str
+        The combining prompt.
+    """
+    # Construct the path to the file
+    path = os.path.join(os.path.dirname(__file__), '..', '..', 'system_prompts', 'combining_prompts', name)
+
+    # Read the file
+    with open(path, "r") as f:
+        return f.read().strip()
+
+
 def get_system_prompt_dir(*args: str, create: bool = False) -> str:
     """
     Get the path to the system prompts directory.
@@ -173,6 +195,32 @@ def get_system_prompt_dir(*args: str, create: bool = False) -> str:
         os.makedirs(os.path.join(os.path.dirname(__file__), '..', '..', 'system_prompts', *args), exist_ok=True)
 
     return os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'system_prompts', *args))
+
+
+def get_combining_prompt_dir(*args: str, create: bool = False) -> str:
+    """
+    Get the path to the combining prompts directory.
+
+    Parameters
+    ----------
+    args : str
+        The path to the combining prompts directory.
+    create : bool
+        Whether to create the directory if it does not exist.
+
+    Returns
+    -------
+    str
+        The path to the combining prompts directory.
+    """
+    # Check that the args are a list of strings
+    if not all(isinstance(arg, str) for arg in args):
+        raise TypeError(f"Expected a list of strings, got {args}.")
+
+    if create:
+        os.makedirs(os.path.join(os.path.dirname(__file__), '..', '..', 'system_prompts', 'combining_prompts', *args), exist_ok=True)
+
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'system_prompts', 'combining_prompts', *args))
 
 
 def get_conversations_dir(*args: str, create: bool = False) -> str:

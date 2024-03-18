@@ -54,6 +54,12 @@ class Conversation:
     def get_last_message(self) -> str:
         return self.messages[-1]["content"]
 
+    def get_second_last_message(self) -> str:
+        if len(self.messages) < 2:
+            return ""
+        else:
+            return self.messages[-2]["content"]
+
     # Enabling comparison for conversations
     def __gt__(self, rhs_conversation: "Conversation") -> bool:
         return self.score > rhs_conversation.score
