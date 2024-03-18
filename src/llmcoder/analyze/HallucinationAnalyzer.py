@@ -80,13 +80,24 @@ class HallucinationAnalyzer(Analyzer):
                                 try:  # https://www.phind.com/search?cache=ey5i26k2mr5wuezcjx9tzkaf
                                     hallucinated_attribute = module_matches[0][-1]
                                     suggested_attributes = script.complete_search(module_of_hallucinated_attribute + '.')
+                                    names = script.get_names()
+
+                                    full_name_of_hallucinated_attribute = None
+                                    for name in names:
+                                        if name.name == module_of_hallucinated_attribute:
+                                            for real_name in script.infer(name.line, name.column):
+                                                full_name_of_hallucinated_attribute = real_name.full_name
 
                                     # levenshtein distance
-                                    suggested_attributes_distances = sorted([(Levenshtein.distance(hallucinated_attribute, suggested_attribute.name), suggested_attribute) for suggested_attribute in suggested_attributes if hasattr(suggested_attribute, "name") and isinstance(suggested_attribute.name, str)], key=lambda sim: sim[0])[:5]
-                                    suggested_attributes = [suggested_attribute_distance[1].name for suggested_attribute_distance in suggested_attributes_distances]
+                                    # suggested_attributes_distances = sorted([(Levenshtein.distance(hallucinated_attribute, suggested_attribute.name), suggested_attribute) for suggested_attribute in suggested_attributes if hasattr(suggested_attribute, "name") and isinstance(suggested_attribute.name, str)], key=lambda sim: sim[0])[:5]
+                                    # suggested_attributes = [suggested_attribute_distance[1].name for suggested_attribute_distance in suggested_attributes_distances]
+                                    suggested_attributes = []
 
                                     # embedding similarity
-                                    similar_attributes = self.index.query(hallucinated_attribute, top_k=10)
+                                    # query_response = self.index.query(hallucinated_attribute, full_name=None, top_k=10)
+                                    query_response = self.index.query(hallucinated_attribute, module=full_name_of_hallucinated_attribute, top_k=10)
+                                    similar_attributes = query_response["documents"][0]
+                                    print(f"[Hallucination] Metadatas: {query_response['metadatas'][0], query_response['metadatas'][0]}")
 
                                     for similar_attribute in similar_attributes:
                                         if similar_attribute not in suggested_attributes and len(suggested_attributes) < 10:

@@ -96,13 +96,15 @@ class Index:
         self.collection = self.database.get_or_create_collection(name=self.collection_name)
         embeddings = self.client.embed_query(attribute)
 
+        if self.verbose:
+            print(f"[IndexQuery] Full Name: {full_name}")
         if module is None and full_name is None:
-            return self.collection.query(query_embeddings=embeddings, n_results=top_k)['documents'][0]
+            return self.collection.query(query_embeddings=embeddings, n_results=top_k)
         if module is not None and full_name is None:
-            return self.collection.query(query_embeddings=embeddings, where={"module": module}, n_results=top_k)['documents'][0]
+            return self.collection.query(query_embeddings=embeddings, where={"module": module}, n_results=top_k)
         if module is None and full_name is not None:
-            return self.collection.query(query_embeddings=embeddings, where={"full_name": full_name}, n_results=top_k)['documents'][0]
+            return self.collection.query(query_embeddings=embeddings, where={"full_name": full_name}, n_results=top_k)
         if module is not None and full_name is not None:
-            return self.collection.query(query_embeddings=embeddings, where={"full_name": full_name, "module": module}, n_results=top_k)['documents'][0]
+            return self.collection.query(query_embeddings=embeddings, where={"full_name": full_name, "module": module}, n_results=top_k)
 
         return None
