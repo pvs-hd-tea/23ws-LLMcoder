@@ -13,9 +13,15 @@
 [![Code Quality](https://github.com/pvs-hd-tea/23ws-LLMcoder/actions/workflows/pre-commit.yml/badge.svg)](https://github.com/pvs-hd-tea/23ws-LLMcoder/actions/workflows/pre-commit.yml)
 </div>
 
+
+![Visual Abstract](./images/visual_abstract.png)
+
 # Introduction
-TODO
+
+Enhancemenent of coding assistants through integration of feedback from LLM querying. LLMCoder fetches and retrieves API information and documentation based on error report obtained from four different analyzers. These aim to prevent instances of type errors, incorrect API signature usage and LLM-induced hallucinations. These have been implemented after fine-tuning GPT-3.5 aligning with a evaluated scale of difficulty levels.
+
 # Requirements
+
 ## Hardware
 ## Software
 - Python >= 3.10
@@ -149,6 +155,8 @@ To set up the development environment, run the following commands:
 pip install -e .[dev]
 pre-commit install
 ```
+
+For further information, see [CONTRIBUTING.md](./docs/CONTRIBUTING.md).
 
 
 # Citation
