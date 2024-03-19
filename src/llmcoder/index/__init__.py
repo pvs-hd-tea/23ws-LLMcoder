@@ -1,1 +1,1 @@
-from .Index import Index  # noqa: F401
+from .index import Index  # noqa: F401
