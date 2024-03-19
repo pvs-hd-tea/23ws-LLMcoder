@@ -1,18 +1,10 @@
 import re
 
-<<<<<<< HEAD:src/llmcoder/analyze/HallucinationAnalyzer.py
-from llmcoder.analyze.Analyzer import Analyzer
-from llmcoder.index import Index
-
-# from typing import Any
-
 import jedi
 import Levenshtein
-=======
-import jedi
 
 from llmcoder.analyze.analyzer import Analyzer
->>>>>>> origin:src/llmcoder/analyze/hallucination_analyzer.py
+from llmcoder.index import Index
 
 
 class HallucinationAnalyzer(Analyzer):
@@ -79,6 +71,7 @@ class HallucinationAnalyzer(Analyzer):
 
                             if len(module_matches) > 0:
                                 module_of_hallucinated_attribute = '.'.join(module_matches[0][:-1])
+                                print(f"[Hallucination] Module Matches: {module_matches}")
 
                                 try:  # https://www.phind.com/search?cache=ey5i26k2mr5wuezcjx9tzkaf
                                     hallucinated_attribute = module_matches[0][-1]
@@ -98,7 +91,10 @@ class HallucinationAnalyzer(Analyzer):
 
                                     # embedding similarity
                                     # query_response = self.index.query(hallucinated_attribute, full_name=None, top_k=10)
-                                    query_response = self.index.query(hallucinated_attribute, module=full_name_of_hallucinated_attribute, top_k=10)
+                                    if full_name_of_hallucinated_attribute is None:
+                                        query_response = self.index.query(hallucinated_attribute, full_name=module_of_hallucinated_attribute, top_k=10)
+                                    else:
+                                        query_response = self.index.query(hallucinated_attribute, full_name=full_name_of_hallucinated_attribute, top_k=10)
                                     similar_attributes = query_response["documents"][0]
                                     print(f"[Hallucination] Metadatas: {query_response['metadatas'][0], query_response['metadatas'][0]}")
 

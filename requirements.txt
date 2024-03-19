@@ -1,9 +1,9 @@
 chromadb
 dynaconf
 gpt4all
+jedi
 langchain
 langchain-community
-jedi
 levenshtein
 mypy
 nltk

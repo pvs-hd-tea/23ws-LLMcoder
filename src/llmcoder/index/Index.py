@@ -1,11 +1,11 @@
-import os
 import json
+import os
 from typing import Any, List, Optional
 
-from chromadb.api.types import ID, Document, Metadata, OneOrMany, QueryResult
-import jedi
 import chromadb
-
+import jedi
+from chromadb.api.types import ID, Document, Metadata, OneOrMany, QueryResult
+from jedi.inference import references
 from langchain_community.embeddings import GPT4AllEmbeddings
 from langchain_community.vectorstores import Chroma
 
@@ -33,53 +33,95 @@ class Index:
         metadatas = []
         embeddings = []
         ids = []
-        i = 0
 
+        i = 0
         for reference_name in reference_names:
-            if (not reference_name.in_builtin_module()) and reference_name.type in ("module", "class", "interface"):
-                defined_names = reference_name.defined_names()
-                for defined_name in defined_names:
-                    if defined_name.type == "function" and (defined_name.name not in attribute_names):
-                        attribute_names.append(defined_name.name)
-                        attributes.append({ 
-                            "metadata": {
+            if reference_name.full_name is not None and reference_name.type in ["statement", "function", "class"]:
+                for infered_name in script.infer(line=reference_name.line, column=reference_name.column):
+                    if infered_name.type in ["class", "module"]:
+                        for defined_name in infered_name.defined_names():
+                            print(f"[Index] Defined Full Name: {defined_name.full_name, defined_name.full_name.split('.')[:-1] if defined_name.full_name is not None else defined_name.name, defined_name.type}")
+                            attribute_names.append(defined_name.name)
+                            attributes.append({
+                                "metadata": {
+                                    "module": defined_name.full_name.split(".")[0] if defined_name.full_name is not None else defined_name.name,
+                                    "full_name": "".join(defined_name.full_name.split(".")[:-1] if defined_name.full_name is not None else defined_name.name),
+                                    "name": defined_name.name
+                                }, "embedding": defined_name.name
+                            })
+                            embeddings.append(self.client.embed_query(defined_name.name))
+                            names.append(defined_name.name)
+                            metadatas.append({
                                 "module": defined_name.full_name.split(".")[0] if defined_name.full_name is not None else defined_name.name,
-                                "full_name": defined_name.full_name,
-                                "name": defined_name.name
-                            }, "embedding": defined_name.name
+                                "full_name": "".join(defined_name.full_name.split(".")[:-1] if defined_name.full_name is not None else defined_name.name),
+                                "name": defined_name.name,
+                             })
+                            ids.append(str(i))
+                            i = i + 1
+                    elif infered_name.type == "function":
+                        print(f"[Index] Defined Full Name: {infered_name.full_name, infered_name.full_name.split('.')[:-1] if infered_name.full_name is not None else infered_name.name, infered_name.type}")
+                        attribute_names.append(infered_name.name)
+                        attributes.append({
+                            "metadata": {
+                                "module": infered_name.full_name.split(".")[0] if infered_name.full_name is not None else infered_name.name,
+                                "full_name": "".join(infered_name.full_name.split(".")[:-1] if infered_name.full_name is not None else infered_name.name),
+                                "name": infered_name.name
+                            }, "embedding": infered_name.name
                         })
-                        embeddings.append(self.client.embed_query(defined_name.name))
-                        names.append(defined_name.name)
+                        embeddings.append(self.client.embed_query(infered_name.name))
+                        names.append(infered_name.name)
                         metadatas.append({
-                            "module": defined_name.full_name.split(".")[0] if defined_name.full_name is not None else defined_name.name,
-                            "full_name": defined_name.full_name if defined_name.full_name is not None else defined_name.name,
-                            "name": defined_name.name,
+                            "module": infered_name.full_name.split(".")[0] if infered_name.full_name is not None else infered_name.name,
+                            "full_name": infered_name.full_name,
+                            "name": infered_name.name,
                          })
                         ids.append(str(i))
                         i = i + 1
 
-                for defined_name in defined_names:
-                    if (not defined_name.in_builtin_module()) and defined_name.type in ("module", "class", "interface"):
-                        d_names = defined_name.defined_names()
-                        for d_name in d_names:
-                            if d_name.type == "function" and (d_name.name not in attribute_names):
-                                attribute_names.append(d_name.name)
-                                attributes.append({ 
-                                    "metadata": {
-                                        "module": d_name.full_name.split(".")[0] if d_name.full_name is not None else d_name.name,
-                                        "full_name": d_name.full_name,
-                                        "name": d_name.name
-                                    }, "embedding": d_name.name
-                                })
-                                embeddings.append(self.client.embed_query(d_name.name))
-                                names.append(d_name.name)
-                                metadatas.append({
-                                    "module": d_name.full_name.split(".")[0] if d_name.full_name is not None else d_name.name,
-                                    "full_name": d_name.full_name if d_name.full_name is not None else d_name.name,
-                                    "name": d_name.name,
-                                 })
-                                ids.append(str(i))
-                                i = i + 1
+            # if (not reference_name.in_builtin_module()) and reference_name.type in ("module", "class", "interface"):
+            #     defined_names = reference_name.defined_names()
+            #     for defined_name in defined_names:
+            #         if defined_name.type == "function" and (defined_name.name not in attribute_names):
+            #             attribute_names.append(defined_name.name)
+            #             attributes.append({
+            #                 "metadata": {
+            #                     "module": defined_name.full_name.split(".")[0] if defined_name.full_name is not None else defined_name.name,
+            #                     "full_name": "".join(defined_name.full_name.split(".")[:-1] if defined_name.full_name is not None else defined_name.name),
+            #                     "name": defined_name.name
+            #                 }, "embedding": defined_name.name
+            #             })
+            #             embeddings.append(self.client.embed_query(defined_name.name))
+            #             names.append(defined_name.name)
+            #             metadatas.append({
+            #                 "module": defined_name.full_name.split(".")[0] if defined_name.full_name is not None else defined_name.name,
+            #                 "full_name": "".join(defined_name.full_name.split(".")[:-1] if defined_name.full_name is not None else defined_name.name),
+            #                 "name": defined_name.name,
+            #              })
+            #             ids.append(str(i))
+            #             i = i + 1
+
+                # for defined_name in defined_names:
+                #     if (not defined_name.in_builtin_module()) and defined_name.type in ("module", "class", "interface"):
+                #         d_names = defined_name.defined_names()
+                #         for d_name in d_names:
+                #             if d_name.type == "function" and (d_name.name not in attribute_names):
+                #                 attribute_names.append(d_name.name)
+                #                 attributes.append({
+                #                     "metadata": {
+                #                         "module": d_name.full_name.split(".")[0] if d_name.full_name is not None else d_name.name,
+                #                         "full_name": "".join(defined_name.full_name.split(".")[:-1] if defined_name.full_name is not None else defined_name.name),
+                #                         "name": d_name.name
+                #                     }, "embedding": d_name.name
+                #                 })
+                #                 embeddings.append(self.client.embed_query(d_name.name))
+                #                 names.append(d_name.name)
+                #                 metadatas.append({
+                #                     "module": d_name.full_name.split(".")[0] if d_name.full_name is not None else d_name.name,
+                #                     "full_name": "".join(defined_name.full_name.split(".")[:-1] if defined_name.full_name is not None else defined_name.name),
+                #                     "name": d_name.name,
+                #                  })
+                #                 ids.append(str(i))
+                #                 i = i + 1
 
         with open("./temp-attributes.jsonl", "w") as jsonfile:
             json.dump(attributes, jsonfile)
