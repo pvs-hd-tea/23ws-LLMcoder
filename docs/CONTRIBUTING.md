@@ -477,6 +477,19 @@ We provide a Jupyter notebook `notebooks/analysis.ipynb` to analyze the evaluati
 
 ## Future Work
 
-- Improve / streamline the evaluation process
-- Integrate LLMcoder as a VSCode extension, possible benefit: direct access to environment info
-- Find a way to store conversation logs in nested json format
+Currently, the LLMcoder has two active Pull Requests:
+
+- [#96](https://github.com/pvs-hd-tea/23ws-LLMcoder/pull/96) implements the Anti-Hallucination Analyzer with vector similarity search between hallucinated attributes and existing attributes in the packages.
+- [#95](https://github.com/pvs-hd-tea/23ws-LLMcoder/pull/95) generalizes the tree of conversations algorithm to graph of conversations, where the feedback in child conversations is derived from multiple (if not most) of the previous mistakes in any other conversation.
+
+Furthermore, we think that the LLMcoder can benefit from the following improvements:
+
+Packaging the algorithm in a VSCode extension would make it more useful for users, and would allow for more direct and efficient access to environment information.
+
+We also think that providing the completion-LLM with readily available API and environment information for its first completion may often save time that as of now, is spent on the first feedback loop iteration.
+
+Additionally, we imagine that using context from different files in the user's project, as well as context above and below the cursor, could greatly improve the quality and relevance of completions. Similarly, adding a history of previous user actions into the context for the current completion could save the user time to explicitly state their needs and thus speed up the user's workflow.
+
+Additionally, we did not have time to properly adjust the conversation logging and storage to our tree and graph methods, and suggest to come up with a file format that can store conversation logs in a nested json format and perhaps traces to parent conversations.
+
+Finally, we are aware that the time to analyze completions very much depends on the performance of the user's system. We believe that the LLMcoder would greatly benefit from outsourcing the processing to a cloud service and providing an API that can be used in the VSCode extension.
