@@ -1,5 +1,9 @@
+chromadb
 dynaconf
+gpt4all
 jedi
+langchain
+langchain-community
 levenshtein
 mypy
 nltk
